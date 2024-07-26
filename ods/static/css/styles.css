@@ -1,0 +1,37 @@
+.card-header-tabs .nav-link.active {
+  background-color: #3572A5;
+  color: white;
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.card-header-tabs {
+}
+
+.nav-tabs .nav-link {
+  padding: 20px 10px;
+  fill: #FFF;
+  border: 0.5px solid #f6f6f6;
+  color: initial;
+}
+
+.card-header {
+  background-color: #ffffff;
+}
+
+.card-body {
+  box-shadow: 4px 4px 3px -2px #e6e6e6, -4px -4px 3px -2px #e6e6e6;
+}
+
+.card-header:first-child {
+  border: none;
+}
+
+th {
+}
+
+th {
+  background-color: #3572a5 !important;
+  color: #ffffff !important;
+}
+
