@@ -131,9 +131,10 @@ Vue.component('ods', {
                                                 </tr>
                                             </thead>
                                             <tbody>
+                                                
                                                 <tr v-for="record in listOfResult1">
-                                                    <td>{{record[0]}}</td>
-                                                    <td>{{record[1]}}</td>
+                                                    <td>{{record["docsymbol"]}}</td>
+                                                    <td>{{record["text"]}}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -188,6 +189,7 @@ Vue.component('ods', {
                                                     <th>Filename </th>
                                                     <th>Document symbol</th>
                                                     <th>Language</th>
+                                                    <th>Jobnumber</th>
                                                     <th>Result</th>
                                                 </tr>
                                             </thead>
@@ -202,6 +204,9 @@ Vue.component('ods', {
                                                         </td>
                                                         <td>
                                                          {{record["language"]}}
+                                                        </td>
+                                                        <td>
+                                                         {{record["jobnumber"]}}
                                                         </td>
                                                         <td>
                                                             {{record["result"]}}
@@ -292,12 +297,12 @@ data: function () {
             if (element["body"]["data"].length!==0)    
                 this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
             else {
-                alert("No data found!!!!")
+                alert("No data found for this docsymbol, maybe it is not created!!!!")
             }
             })
             
         } catch (error) {
-            alert(error)
+            console.log(error)
         }
         finally{
             // display Progress bar
@@ -308,8 +313,8 @@ data: function () {
         if (this.listOfRecordsDiplayMetaData.length>=1)
             this.displayResult=true;
         },
-
-        async displayResultCreateUpdate(docsymbols1){
+              
+        async displayResultCreateUpdate(){
 
             // just in case
             this.displayResult1=false;
@@ -322,29 +327,44 @@ data: function () {
             
             let dataset = new FormData()
             dataset.append('docsymbols1',this.docsymbols1)
+
         
             // loading all the data
             const my_response = await fetch("/create_metadata_ods",{
                 "method":"POST",
                 "body":dataset
                 });
-                
+            
+        
            
             const my_data = await my_response.json();
 
+            try {        
+                my_data.forEach(elements => {
+                    //console.log(typeof(elements))
+                    this.listOfResult1=this.listOfResult1.concat(elements)
+                })
+                
+            } catch (error) {
+                alert(error)
+            }
+            finally{
+                // display Progress bar
+                this.displayProgress2=false
+            }
 
-            this.listOfResult1.push(my_data)
+            //this.listOfResult1.push(my_data)
 
     
             // hide Progress bar
-            this.displayProgress2=false
+            //this.displayProgress2=false
 
             // display the results of the query
             this.displayResult1=true;
             
             },
 
-            async displayResultSendFile(docsymbols2){
+            async displayResultSendFile(){
 
                 // just in case
                 this.displayResult2=false;

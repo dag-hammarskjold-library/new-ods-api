@@ -278,9 +278,9 @@ def ods_create_update_metadata(my_symbol):
   
   if ods_get_loading_symbol(my_symbol)["body"]["data"]:
     my_job_numbers=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["job_numbers"]
+
   
   if my_matche==0: # the symbol is new we can create 
-  
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     
@@ -383,20 +383,22 @@ def ods_create_update_metadata(my_symbol):
       }
 
       res = requests.post(url, headers=headers,files=files,verify=False)
-      return res.json()
+      data=res.json()
+      data["status"]=1
+      data["update"]=False 
+      return data
         
     else :
       result={}
       result["status"]=0
+      result["update"]=False
       return result
 
   else : # the symbol is not new it's an update
-    
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     
     if len(datamodel)>0:
-    
       # assign the values from central database to local variables
       my_symbol=datamodel[0]["symbol"]
       my_distribution=datamodel[0]["distribution"]
@@ -487,11 +489,15 @@ def ods_create_update_metadata(my_symbol):
       }
 
       res = requests.post(url, headers=headers,files=files,verify=False)
-      return res.json()
+      data=res.json()
+      data["status"]=2 #update
+      data["update"]=True #update
+      return data
         
     else :
       result={}
       result["status"]=0
+      result["update"]=False
       return result
 
 
@@ -528,6 +534,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   # building the request
 
   response = requests.post(url,headers=headers,files=files,verify=False)
+  print(response.json())
   
   return response.json()
 
@@ -567,113 +574,144 @@ def get_data_from_undl(docsymbol):
 ########################################################################
 
 def download_file_and_send_to_ods(docsymbol):
-  
+    
   # define the report list
   report=[]
-  
-  # connect to the database
-  DB.connect(Config.connect_string, database="undlFiles")
-
-  # query the database according to the document symbol
-  query = Query.from_string(f"191__a:/^{docsymbol}/")
-  
-  # download the files in all languages
-  for bib in BibSet.from_query(query):
-
-    document_symbol=bib.get_value('191', 'a')
-    distribution=bib.get_value('091', 'a')
-    # document_symbol=docsymbol
     
-    for language in LANGUAGES : 
-      
-      filename = document_symbol.replace("/", "_") + f"-{language}.pdf"  
-      
-      path=""
-      
-      if platform.os.name in ['windows','nt'] :
-        path='ods\\temp'
+  # call the api to know if this symbol exists already (1 if the symbol exists 0 otherwise)
+  my_matche=ods_get_loading_symbol(docsymbol)["body"]["meta"]["matches"]
+  
+  if my_matche!=0: # the symbol is new we can create 
     
-      if platform.os.name == 'linux':
-        path='ods/temp'
-        
+    # connect to the database
+    DB.connect(Config.connect_string, database="undlFiles")
+
+    # query the database according to the document symbol
+    query = Query.from_string(f"191__a:/^{docsymbol}/")
+    
+    # store  not used jobnumbers
+    used_jobnumbers=[]
+    
+    # download the files in all languages
+    for bib in BibSet.from_query(query):
+      my_jobnumber=""
+      document_symbol=bib.get_value('191', 'a')
       
-      filepath = os.path.join(path, filename)
-      
-      # getting the file
-      f = File.latest_by_identifier_language(Identifier('symbol', document_symbol), f'{language}')
-
-      if f is not None:
-        uri = f.uri
-        response = requests.get("https://"+uri, stream=True)
-
-        # download the file on the temp folder
-        with open(filepath, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    file.write(chunk)
-
-      # write the report and send the file to ODS
-      recup1=""
-      if f is not None:
-        result=ods_get_loading_symbol(docsymbol)
+      # fixing some issues with the regex returning values 
+      if len(document_symbol)==len(docsymbol):
+        distribution=bib.get_value('091', 'a')
+        for language in LANGUAGES : 
+          
+          filename = document_symbol.replace("/", "_") + f"-{language}.pdf"  
+          
+          path=""
+          
+          if platform.os.name in ['windows','nt'] :
+            path='ods\\temp'
         
-        recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-        
-                
-        if language=="AR":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
+          if platform.os.name == 'linux':
+            path='ods/temp'
+            
           
-        if language=="ZH":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
+          filepath = os.path.join(path, filename)
           
-        if language=="EN":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
-          
-        if language=="FR":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
-          
-        if language=="RU":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath)
-          
-        if language=="ES":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath)    
-          
-        if language=="DE":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath)    
+          # getting the file
+          f = File.latest_by_identifier_language(Identifier('symbol', document_symbol), f'{language}')
 
-        if recup1["status"]==1:    
-          report.append({
+          if f is not None:
+            uri = f.uri
+            response = requests.get("https://"+uri, stream=True)
+
+            # download the file on the temp folder
+            with open(filepath, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        file.write(chunk)
+
+          # write the report and send the file to ODS
+          recup1=""
+
+          if f is not None:
+            result=ods_get_loading_symbol(docsymbol)
+            recup_job_numbers=result["body"]["data"][0]["job_numbers"]
+                    
+            if language=="AR":
+              my_jobnumber=recup_job_numbers[0]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
+              
+            if language=="ZH":
+              my_jobnumber=recup_job_numbers[1]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
+              
+            if language=="EN":
+              my_jobnumber=recup_job_numbers[2]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
+              
+            if language=="FR":
+              my_jobnumber=recup_job_numbers[3]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
+              
+            if language=="RU":
+              my_jobnumber=recup_job_numbers[4]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath)
+              
+            if language=="ES":
+              my_jobnumber=recup_job_numbers[5]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath)    
+              
+            if language=="DE":
+              my_jobnumber=recup_job_numbers[6]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath)    
+
+            if recup1["status"]==1:
+              used_jobnumbers.append(my_jobnumber)    
+              report.append({
+                              "filename":filename,
+                              "docsymbol":docsymbol,
+                              "language":language,
+                              "jobnumber":my_jobnumber,
+                              "result":"downloaded and sent successfully!!!"
+                              })
+            else:
+              report.append({
+                            "filename":filename,
+                            "docsymbol":docsymbol,
+                            "language":language,
+                            "jobnumber":"",
+                            "result":"not sent to ODS!!!"
+                          })
+          
+          else :
+              report.append({
                           "filename":filename,
                           "docsymbol":docsymbol,
                           "language":language,
-                          "result":"downloaded and sent successfully!!!"
+                          "jobnumber":"",
+                          "result":"file not downloaded!!!"
                           })
-        else:
-          report.append({
-                        "filename":filename,
-                        "docsymbol":docsymbol,
-                        "language":language,
-                        "result":"not sent to ODS!!!"
-                      })
-      
-      else :
-          report.append({
-                      "filename":filename,
-                      "docsymbol":docsymbol,
-                      "language":language,
-                      "result":"file not downloaded!!!"
-                      })
-  
-  # clean temp folder
-  files = os.listdir(path)
-  
-  # Iterate over each file and delete it
-  for file in files:
-      file_path = os.path.join(path, file)
-      os.remove(file_path)
-      
+
+    # release not used jobnumbers
+    not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
+    for jb in not_used_jobnumbers:
+      release_job_number(jb)
+
+    # clean temp folder
+    files = os.listdir(path)
+    
+    # Iterate over each file and delete it
+    for file in files:
+        file_path = os.path.join(path, file)
+        os.remove(file_path)
+        
+  else :
+
+    report.append({
+                "filename":"",
+                "docsymbol":docsymbol,
+                "language":"",
+                "jobnumber":"",
+                "result":"docsymbol does not exist!!!"
+                })
+
   # return the report
   return report
-
-
-
