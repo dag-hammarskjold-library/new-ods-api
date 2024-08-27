@@ -17,6 +17,7 @@ from dlx.marc import BibSet, Query,Condition,AuthSet
 import os
 import platform
 import base64
+import time
 
 ########################################################################
 # setup urllib3
@@ -48,6 +49,33 @@ client = MongoClient(config("CONN"))
 my_database = client["undlFiles"] 
 
 ########################################################################
+# function managing the creation of the logs depending of the context
+########################################################################
+
+def add_log(date_log:str,user_connected:str,action_log:str)-> int:
+    
+    try:
+        
+        # setup the database and the collection
+        my_collection = my_database["ods_action_logs_collection"]
+
+        # creation of the log object
+        my_log = {
+            "user": user_connected,
+            "action": action_log,
+            "date": date_log
+        }
+        
+        # save the log in the database
+        my_collection.insert_one(my_log)
+        
+        return 0
+        
+    except:
+
+        return -1
+
+########################################################################
 # encode base64
 ########################################################################
 
@@ -59,74 +87,95 @@ def get_encode_base64()-> str:
   encoded_string = encoded_bytes.decode('utf-8')
   return encoded_string
 
-
 ####################################################################################################################################        
+# check if a job number exists already
+####################################################################################################################################        
+
+def check_if_job_number_exists(my_job_number:str)-> bool:
+  """
+  The idea of this function is to check if one jobnumber exits already.
+  Inorder to achieve this goal we will call the loading symbol route 
+  to check if we have a match result not nul.
+  """
+  # init the variable
+  find_occurence=False
+  
+  # call the function using the route providing information with the parameters of the function and analyse the result
+  find_occurence=ods_get_loading_search(my_job_number)
+  
+  # display result
+  if ods_get_loading_symbol(my_job_number)["body"]["meta"]["matches"]==1:
+    find_occurence=True
+    
+  return find_occurence
+  
+ ####################################################################################################################################        
 # create a job number using a batch
 ####################################################################################################################################        
 
 def get_job_number(my_docsymbol,my_language):
+
+  try:
+  
+    # get the collection
+    my_collection = my_database["ods_jobnumber_collection"]
     
-    try:
+    # get the last value
+    number_of_records=my_collection.estimated_document_count()
+
+    # if the collection is empty        
+    if number_of_records == 0:
+
+        number_to_insert="NX" + str(900000)
+        # the collection is empty
+        data = {
+            "creation_date": datetime.now(), 
+            "jobnumber_value":number_to_insert,
+            "docsymbol": my_docsymbol,
+            "language":my_language
+        }
+
+        # save the record in the database
+        resultat=my_collection.insert_one(data)
     
-      # get the collection
-      my_collection = my_database["ods_jobnumber_collection"]
-      
-      # get the last value
-      number_of_records=my_collection.estimated_document_count()
+        # return the jobnumber
+        return data
+    
+    # if the collection is not empty     
+    if number_of_records !=0:
 
-      # if the collection is empty        
-      if number_of_records == 0:
-
-          number_to_insert="NX" + str(900000)
-          # the collection is empty
-          data = {
-              "creation_date": datetime.now(), 
-              "jobnumber_value":number_to_insert,
-              "docsymbol": my_docsymbol,
-              "language":my_language
-          }
-
-          # save the record in the database
-          resultat=my_collection.insert_one(data)
-      
-          # return the jobnumber
-          return data
-      
-      # if the collection is not empty     
-      if number_of_records !=0:
-
-          # get the job number of the last record
-          last_record=my_collection.find().limit(1).sort([('$natural',-1)])
-          
-          # retrieve last_record_number value
-          last_record_number=0 
-          for doc in last_record:
-              last_record_number=doc["jobnumber_value"]
-
-          last_record =int(last_record_number[2:]) + 1
-          number_to_insert="NX" + str(last_record)
-          data = {
-              "created_date": datetime.now(), 
-              "jobnumber_value":number_to_insert,
-              "docsymbol": my_docsymbol,
-              "language":my_language
-          }
-          
-                      
-          # save the log in the database
-          my_collection.insert_one(data)
-
-          return data
+        # get the job number of the last record
+        last_record=my_collection.find().limit(1).sort([('$natural',-1)])
         
-    except:
+        # retrieve last_record_number value
+        last_record_number=0 
+        for doc in last_record:
+            last_record_number=doc["jobnumber_value"]
 
-      result={
-          "result":"NOK",
-          "jobnumber":"",
-          "id":""
-      }
+        last_record =int(last_record_number[2:]) + 1
+        number_to_insert="NX" + str(last_record)
+        data = {
+            "created_date": datetime.now(), 
+            "jobnumber_value":number_to_insert,
+            "docsymbol": my_docsymbol,
+            "language":my_language
+        }
+        
+                    
+        # save the log in the database
+        my_collection.insert_one(data)
 
-      return result
+        return data
+      
+  except:
+
+    result={
+        "result":"NOK",
+        "jobnumber":"",
+        "id":""
+    }
+
+    return result
 
 ####################################################################################################################################                
 #release job number not used
@@ -202,69 +251,99 @@ def ods_get_loading_symbol(my_param):
   # return the response
   return response.json()
 
+######################################################################################
+# call the API for loading the symbols using search endpoint : /api/loading/search
+######################################################################################
+
+def ods_get_loading_search(my_param):
+
+  # get the token
+  my_token=get_token()
+  
+  # build the url
+  url1=config("base_url") + "api/loading/search?k=" + my_param
+  
+  # build the payload
+  payload={}
+  
+  # build the header
+  headers = {
+          "authorization":  "Access {}".format(my_token),
+          }
+  
+  # get the response 
+  response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
+  
+  # return the response
+  return response.json()
+
 ########################################################################
 # Getting data from central database
 ########################################################################
 
 
 def escape_characters(input_string, chars_to_escape):
-    for char in chars_to_escape:
-        input_string = input_string.replace(char, f'\\{char}')
-    return input_string
+  for char in chars_to_escape:
+      input_string = input_string.replace(char, f'\\{char}')
+  return input_string
 
 def get_tcodes(subject):
-    query = Query(
-              Condition(
-                  tag='150',
-                  subfields={'a': re.compile(str(subject).upper())}
-                  )
-            )
+  query = Query(
+            Condition(
+                tag='150',
+                subfields={'a': re.compile(str(subject).upper())}
+                )
+          )
 
-    authset = AuthSet.from_query(query, projection={'035':1,'150':1})
+  authset = AuthSet.from_query(query, projection={'035':1,'150':1})
 
-    for auth in authset:
-        val_035a=auth.get_values('035','a')
-        val_035a=''.join([str for str in val_035a if str[0] in {'T', 'P'}] )
-    return val_035a
+  for auth in authset:
+      val_035a=auth.get_values('035','a')
+      val_035a=''.join([str for str in val_035a if str[0] in {'T', 'P'}] )
+  return val_035a
 
 def get_data_from_cb(symbols):
-    
-    lst=[]
-    try:
-      DB.connect(Config.connect_string, database="undlFiles")
-      symbol=escape_characters(symbols,"()")
-      query = Query.from_string("symbol:/^"+symbol+"$/") 
-      document_symbol=""
-      distribution=""
-      area="UNDOC"
-      publication_date=""
-      release_date=datetime.now().strftime('%d/%m/%y')
-      sessions=""
-      title_en=""
-      agendas=""
-      subjects=""
-      tcodes=""
+  
+  lst=[]
+  try:
+    DB.connect(Config.connect_string, database="undlFiles")
+    symbol=escape_characters(symbols,"()")
+    query = Query.from_string("symbol:/^"+symbol+"$/") 
+    document_symbol=""
+    distribution=""
+    area="UNDOC"
+    publication_date=""
+    release_date=datetime.now().strftime('%d/%m/%y')
+    sessions=""
+    title_en=""
+    agendas=""
+    subjects=""
+    tcodes=""
 
-      for bib in BibSet.from_query(query):
-          document_symbol=bib.get_values('191', 'a')
-          distribution=bib.get_value('091', 'a')
-          publication_date=bib.get_value('269','a')
-          release_date=datetime.now().strftime('%d/%m/%y')
-          sessions=' '.join(bib.get_values('191','c'))
-          if publication_date !='':
-            publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%d/%m/%y') 
-          title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')
-          agendas=' '.join(bib.get_values('991','b'))
-          tcodes=','.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
-          datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
-                  "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
-          lst.append(datamodel)
-      
-      return lst
+    for bib in BibSet.from_query(query):
+        document_symbol=bib.get_values('191', 'a')
+        distribution=bib.get_value('091', 'a')
+        publication_date=bib.get_value('269','a')
+        release_date=datetime.now().strftime('%d/%m/%y')
+        sessions=' '.join(bib.get_values('191','c'))
+        print(publication_date)
+        if publication_date !='':
+          try:
+            publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%d/%m/%y')
+          except:
+            publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%y')
+        title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')
+        agendas=' '.join(bib.get_values('991','b'))
+        tcodes=','.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
+        datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
+                "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
+        lst.append(datamodel)
     
-    except:
+    return lst
+  
+  except:
 
-      return lst
+    return lst
 ########################################################################
 # create / update metadata  
 ########################################################################
@@ -275,14 +354,17 @@ def ods_create_update_metadata(my_symbol):
   
   # call the api to know if this symbol exists already (1 if the symbol exists 0 otherwise)
   my_matche=ods_get_loading_symbol(my_symbol)["body"]["meta"]["matches"]
+  print(f"the match value is {my_matche}")
   
   if ods_get_loading_symbol(my_symbol)["body"]["data"]:
     my_job_numbers=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["job_numbers"]
+
   
   if my_matche==0: # the symbol is new we can create 
-  
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
+    print(f"len of datamodel {len(datamodel)}")
+    print(datamodel)
     
     if len(datamodel)>0:
     
@@ -383,20 +465,24 @@ def ods_create_update_metadata(my_symbol):
       }
 
       res = requests.post(url, headers=headers,files=files,verify=False)
-      return res.json()
+      data=res.json()
+      print(f"the value is {res}")
+      print(data)
+      data["status"]=1
+      data["update"]=False 
+      return data
         
     else :
       result={}
       result["status"]=0
+      result["update"]=False
       return result
 
   else : # the symbol is not new it's an update
-    
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     
     if len(datamodel)>0:
-    
       # assign the values from central database to local variables
       my_symbol=datamodel[0]["symbol"]
       my_distribution=datamodel[0]["distribution"]
@@ -487,11 +573,15 @@ def ods_create_update_metadata(my_symbol):
       }
 
       res = requests.post(url, headers=headers,files=files,verify=False)
-      return res.json()
+      data=res.json()
+      data["status"]=2 #update
+      data["update"]=True #update
+      return data
         
     else :
       result={}
       result["status"]=0
+      result["update"]=False
       return result
 
 
@@ -503,6 +593,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   
   # get the token
   my_token=get_token()
+
 
   # definition of the header
   headers = {
@@ -528,6 +619,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   # building the request
 
   response = requests.post(url,headers=headers,files=files,verify=False)
+  print(response.json())
   
   return response.json()
 
@@ -567,113 +659,148 @@ def get_data_from_undl(docsymbol):
 ########################################################################
 
 def download_file_and_send_to_ods(docsymbol):
-  
+    
   # define the report list
   report=[]
-  
-  # connect to the database
-  DB.connect(Config.connect_string, database="undlFiles")
-
-  # query the database according to the document symbol
-  query = Query.from_string(f"191__a:/^{docsymbol}/")
-  
-  # download the files in all languages
-  for bib in BibSet.from_query(query):
-
-    document_symbol=bib.get_value('191', 'a')
-    distribution=bib.get_value('091', 'a')
-    # document_symbol=docsymbol
     
-    for language in LANGUAGES : 
-      
-      filename = document_symbol.replace("/", "_") + f"-{language}.pdf"  
-      
-      path=""
-      
-      if platform.os.name in ['windows','nt'] :
-        path='ods\\temp'
+  # call the api to know if this symbol exists already (1 if the symbol exists 0 otherwise)
+  my_matche=ods_get_loading_symbol(docsymbol)["body"]["meta"]["matches"]
+  
+  if my_matche!=0: # the symbol is new we can create 
     
-      if platform.os.name == 'linux':
-        path='ods/temp'
-        
+    # connect to the database
+    DB.connect(Config.connect_string, database="undlFiles")
+
+    # query the database according to the document symbol
+    query = Query.from_string(f"191__a:/^{docsymbol}/")
+    
+    # store  not used jobnumbers
+    used_jobnumbers=[]
+    
+    # download the files in all languages
+    for bib in BibSet.from_query(query):
+      my_jobnumber=""
+      document_symbol=bib.get_value('191', 'a')
       
-      filepath = os.path.join(path, filename)
-      
-      # getting the file
-      f = File.latest_by_identifier_language(Identifier('symbol', document_symbol), f'{language}')
-
-      if f is not None:
-        uri = f.uri
-        response = requests.get("https://"+uri, stream=True)
-
-        # download the file on the temp folder
-        with open(filepath, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    file.write(chunk)
-
-      # write the report and send the file to ODS
-      recup1=""
-      if f is not None:
-        result=ods_get_loading_symbol(docsymbol)
+      # fixing some issues with the regex returning values 
+      if len(document_symbol)==len(docsymbol):
+        distribution=bib.get_value('091', 'a')
+        for language in LANGUAGES : 
+          
+          filename = document_symbol.replace("/", "_") + f"-{language}.pdf"  
+          
+          path=""
+          
+          if platform.os.name in ['windows','nt'] :
+            path='ods\\temp'
         
-        recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-        
-                
-        if language=="AR":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
+          if platform.os.name == 'linux':
+            path='ods/temp'
+            
           
-        if language=="ZH":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
+          filepath = os.path.join(path, filename)
           
-        if language=="EN":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
-          
-        if language=="FR":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
-          
-        if language=="RU":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath)
-          
-        if language=="ES":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath)    
-          
-        if language=="DE":
-          recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath)    
+          # getting the file
+          f = File.latest_by_identifier_language(Identifier('symbol', document_symbol), f'{language}')
 
-        if recup1["status"]==1:    
-          report.append({
+          if f is not None:
+            uri = f.uri
+            response = requests.get("https://"+uri, stream=True)
+
+            # download the file on the temp folder
+            with open(filepath, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        file.write(chunk)
+
+          # write the report and send the file to ODS
+          recup1=""
+
+          if f is not None:
+            result=ods_get_loading_symbol(docsymbol)
+            recup_job_numbers=result["body"]["data"][0]["job_numbers"]
+                    
+            if language=="AR":
+              my_jobnumber=recup_job_numbers[0]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
+              
+            if language=="ZH":
+              my_jobnumber=recup_job_numbers[1]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
+              
+            if language=="EN":
+              my_jobnumber=recup_job_numbers[2]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
+              
+            if language=="FR":
+              my_jobnumber=recup_job_numbers[3]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
+              
+            if language=="RU":
+              my_jobnumber=recup_job_numbers[4]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath)
+              
+            if language=="ES":
+              my_jobnumber=recup_job_numbers[5]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath)    
+              
+            if language=="DE":
+              my_jobnumber=recup_job_numbers[6]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath)    
+
+            if recup1["status"]==1:
+              used_jobnumbers.append(my_jobnumber)    
+              report.append({
+                              "filename":filename,
+                              "docsymbol":docsymbol,
+                              "language":language,
+                              "jobnumber":my_jobnumber,
+                              "result":"downloaded and sent successfully!!!"
+                              })
+            else:
+              report.append({
+                            "filename":filename,
+                            "docsymbol":docsymbol,
+                            "language":language,
+                            "jobnumber":"",
+                            "result":"not sent to ODS!!!"
+                          })
+          
+          else :
+              report.append({
                           "filename":filename,
                           "docsymbol":docsymbol,
                           "language":language,
-                          "result":"downloaded and sent successfully!!!"
+                          "jobnumber":"",
+                          "result":"file not downloaded!!!"
                           })
-        else:
-          report.append({
-                        "filename":filename,
-                        "docsymbol":docsymbol,
-                        "language":language,
-                        "result":"not sent to ODS!!!"
-                      })
-      
-      else :
-          report.append({
-                      "filename":filename,
-                      "docsymbol":docsymbol,
-                      "language":language,
-                      "result":"file not downloaded!!!"
-                      })
-  
-  # clean temp folder
-  files = os.listdir(path)
-  
-  # Iterate over each file and delete it
-  for file in files:
-      file_path = os.path.join(path, file)
-      os.remove(file_path)
-      
+          time.sleep(7)
+
+    # release not used jobnumbers
+    not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
+    for jb in not_used_jobnumbers:
+      release_job_number(jb)
+
+    # clean temp folder
+    files = os.listdir(path)
+    
+    # Iterate over each file and delete it
+    for file in files:
+        file_path = os.path.join(path, file)
+        os.remove(file_path)
+        
+  else :
+
+    report.append({
+                "filename":"",
+                "docsymbol":docsymbol,
+                "language":"",
+                "jobnumber":"",
+                "result":"docsymbol does not exist!!!"
+                })
+
   # return the report
   return report
 
 
-
+print(check_if_job_number_exists("N1542792"))
