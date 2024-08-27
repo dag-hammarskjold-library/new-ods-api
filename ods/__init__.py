@@ -2,12 +2,27 @@
 ##########  IMPORTS
 ##############################################################################################
 
+from werkzeug.security import check_password_hash, generate_password_hash
 import json
+import datetime
 import os
 import ods.ods_rutines
-from flask import Flask,render_template,request
+from flask import Flask,render_template,request,redirect,session
+from decouple import config
+from pymongo import MongoClient
 
 return_data=""
+
+########################################################################
+# definition of the credentials of the ODS API
+########################################################################
+
+base_url = config("base_url")
+username = config("username")
+password = config("password")
+client_id = config("client_id")
+client_secret = config("client_secret")
+
 
 ##############################################################################################
 ##########  APP INIZIALISATION
@@ -32,12 +47,85 @@ def create_app(test_config=None):
         os.makedirs(app.instance_path)
     except OSError:
         pass
+    
+    ############################################################################
+    # MAIN ROUTE
+    ############################################################################
+    
+    @app.route('/',methods=["GET","POST"])
+    def login():
+        
+        error=None
+        
+        # check the method called
+        if request.method=="GET":
+
+            # just render the login
+            return render_template("login.html")
+        
+        if request.method=="POST":
+            
+            # check if it's the special user
+            if request.form.get("email")==config("default_username"):
+
+                if request.form.get("password")==config("default_password"):
+                    
+                    # special user
+                    ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
+                    
+                    # add the username to the session
+                    session['username'] = config("default_username")
+                    
+                    #return render_template('index.html',user_connected=config("DEFAULT_USER_NAME"))
+                    return redirect('index')
+
+            
+            # check if the user exists in the database with the good password
+            client = MongoClient(config("CONN"))
+            my_database = client["undlFiles"] 
+            my_collection = my_database["ods_action_users_collection"]
+
+
+            user = {
+                "email": request.form.get("email"),
+            }
+
+            results= list(my_collection.find(user))
+            find_record=False
+
+            if (len(results)==0):
+                # user not found
+                error="User not found in the database!!!"
+                return render_template("login.html",error=error)
+            else :
+                        
+                for result in results:
+                    if check_password_hash(result["password"],request.form.get("password")):
+                
+                        # user found
+                        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
+                        
+                        # add the username to the session
+                        session['username'] = result["name"]
+                        
+                        find_record=True
+
+                        if session['username']!="":
+                            return redirect('index')
+                        else:
+                            return redirect("login.html")
+                        
+                if find_record==False:
+                    
+                    # user not found
+                    error="User not found in the database!!!"
+                    return render_template("login.html",error=error)
 
     ############################################################################
     # MAIN ROUTE
     ############################################################################
     
-    @app.route('/')
+    @app.route('/index')
     def index_vue():
         return render_template('index_vue.html')
 

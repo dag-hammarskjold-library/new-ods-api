@@ -1,23 +1,27 @@
 Vue.component('ods', {
     template: `
-                <div class="card" style="margin: auto;height:775px;width:1150px;">
-                        <div class="card-header">
-                            <ul class="nav nav-tabs card-header-tabs">
-                                <li class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true">Display metadata from ODS</button></li>
-                                <li class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false">Create/Update existing metadata to ODS</button></li>
-                                <li class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false">Send files to ODS</button></li>
+                <div class="card mt-5 ml-5" style="margin:auto;height:700px;width:1150px;">
+                        <div class="mt-3 d-flex justify-content-center">
+                            <h1> ODS ACTIONS </h1> 
+                        </div>
+                        <div class="card-header mt-5 mb-1 bg-white">
+                            <ul class="nav nav-tabs card-header-tabs bg-white">
+                                <li class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
+                                <li class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false"><strong>Create/Update existing metadata to ODS</strong></button></li>
+                                <li class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Send files to ODS</strong></button></li>
+                                <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>
+                                <li class="nav-item"> <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false"><strong>Parameters</strong></button></li>
                             </ul>
                         </div>
                         
                         <!-- <div class="card-body " style="margin-top: 1px;margin-left:10px;"> -->
                         
-                        
-                            <div class="tab-content mt-3" >
-                                
+                            <div class="tab-content">
+                            
                                 <!-- First Tab -->	
-                                <div class="tab-pane fade show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
+                                <div class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
                                     <form class="form-inline" @submit.prevent>
-                                        <textarea id="docsymbols" class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin: 20px auto;border-radius: 10px;color: #c8c7c7;" name="docsymbols" v-model="docsymbols"></textarea>
+                                        <textarea id="docsymbols" class="col-11" style="margin:20px auto;border-radius:10px;color:#c8c7c7; border-color: #A8A8A8;border-style:1 rem solid;border-width: 2px;"  placeholder="Paste the list of symbols here (space separated)" name="docsymbols" v-model="docsymbols"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  id="toggleButton" style="margin: 10px auto;padding: 10px;" @click="displayMetaData(docsymbols);">Apply</button>
                                     </form>    
                                         <div id="displayProgress1" class="mt-3" v-if="displayProgress1">
@@ -92,7 +96,7 @@ Vue.component('ods', {
                                 <!-- Second Tab -->	
                                 <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
-                                        <textarea id="docsymbols1" class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin: 20px auto;border-radius: 10px;color: #c8c7c7;" name="docsymbols1" v-model="docsymbols1"></textarea>
+                                        <textarea id="docsymbols1" class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin:20px auto;border-radius:10px;color:#c8c7c7; border-color: #A8A8A8;border-style:1 rem solid;border-width: 2px;" name="docsymbols1" v-model="docsymbols1"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" @click="displayResultCreateUpdate(docsymbols1);">Send</button>
                                     </form>
                                    <div id="displayProgress2" class="mt-3" v-if="displayProgress2">
@@ -152,7 +156,7 @@ Vue.component('ods', {
                                 <!-- Third Tab -->	
                                 <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
-                                        <textarea class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin: 20px auto;border-radius: 10px;color: #c8c7c7;" name="docsymbols2" v-model="docsymbols2"></textarea>
+                                        <textarea class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin:20px auto;border-radius:10px;color:#c8c7c7; border-color: #A8A8A8;border-style:1 rem solid;border-width: 2px;" name="docsymbols2" v-model="docsymbols2"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" v-if="displayResult2==false"  @click="displayResultSendFile(docsymbols2)">Send</button> 
                                     </form>
                                     <div id="displayProgress3" class="mt-3" v-if="displayProgress3">
@@ -223,6 +227,92 @@ Vue.component('ods', {
                                 
                                 </div>
                                 <!-- End Third Tab -->	
+                                <!-- Parameters Tab -->	
+                                    <div class="tab-pane fade show" id="parameters" role="tabpanel">
+
+                                        <div class="accordion" id="accordionExample">
+                                            <div class="accordion-item" id="users">
+                                                <h2 class="accordion-header" id="headingOne">
+                                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                                    <strong>Users Management</strong>
+                                                </button>
+                                                </h2>
+                                                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                                <div class="accordion-body">
+                                                    <strong>Please fill the fields below.</strong>
+                                                    <hr>
+                                                    <form>
+                                                        <select class="form-select" aria-label="Default select example">
+                                                            <option selected>Please select the site</option>
+                                                            <option value="1">NYC</option>
+                                                            <option value="2">GEN</option>
+                                                        </select>
+                                                        <div class="mb-3">
+                                                            <label for="exampleInputEmail1" class="form-label">Email address</label>
+                                                            <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+                                                            <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="exampleInputPassword1" class="form-label">Password</label>
+                                                            <input type="password" class="form-control" id="exampleInputPassword1">
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox1" value="option1">
+                                                            <label class="form-check-label" for="inlineCheckbox1">Display metadata access</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
+                                                            <label class="form-check-label" for="inlineCheckbox2">Create/ Update metadata access</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
+                                                            <label class="form-check-label" for="inlineCheckbox2">Send files to ODS access</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
+                                                            <label class="form-check-label" for="inlineCheckbox2">Job numbers management access</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
+                                                            <label class="form-check-label" for="inlineCheckbox2">Parameters</label>
+                                                        </div>
+                                                        <div class="mt-2">
+                                                            <button type="submit" class="btn btn-primary">Create the user</button>
+                                                        <div>
+                                                    </form>
+        
+                                                </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="headingTwo">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                                   <strong>Job numbers Management </strong>
+                                                </button>
+                                                </h2>
+                                                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+                                                <div class="accordion-body">
+                                                    <strong>This is the second item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+                                                </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="headingThree">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                                    <strong>Logs</strong>
+                                                </button>
+                                                </h2>
+                                                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
+                                                <div class="accordion-body">
+                                                    <strong>This is the third item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+                                                </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        
+                                    </div>
+                                <!-- End parameters Tab -->	
                             
                             </div>
                         
