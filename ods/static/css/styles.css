@@ -24,8 +24,8 @@
   border: none;
 }
 
-.my_textarea {
-  margin:20px auto;border-radius:20px;color:#c8c7c7; border-color: blue;border-style:1 rem solid;
+textarea {
+  margin: 20px auto; border-radius: 10px; color:black
 }
 
 th {
