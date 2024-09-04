@@ -54,4 +54,4 @@ werkzeug==3.0.3
 xlrd==1.2.0
 xmldiff==2.4
 xmltodict==0.13.0
-zipp==3.17.0
+zipp==3.19.1
