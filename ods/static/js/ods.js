@@ -374,7 +374,7 @@ data: function () {
         dataset.append('docsymbols',this.docsymbols)
     
         // loading all the data
-        const my_response = await fetch("/loading_symbol",{
+        const my_response = await fetch("loading_symbol",{
             "method":"POST",
             "body":dataset
             });
@@ -420,7 +420,7 @@ data: function () {
 
         
             // loading all the data
-            const my_response = await fetch("/create_metadata_ods",{
+            const my_response = await fetch("create_metadata_ods",{
                 "method":"POST",
                 "body":dataset
                 });
