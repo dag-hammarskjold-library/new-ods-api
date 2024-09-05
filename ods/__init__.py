@@ -179,3 +179,5 @@ def create_app(test_config=None):
         return json.dumps(result)
         
     return app
+
+app = create_app()
