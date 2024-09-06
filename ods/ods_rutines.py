@@ -861,7 +861,7 @@ def download_file_and_send_to_ods(docsymbol):
                           "jobnumber":"",
                           "result":"file not downloaded!!!"
                           })
-          time.sleep(2)
+          time.sleep(3)
 
     # release not used jobnumbers
     not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
