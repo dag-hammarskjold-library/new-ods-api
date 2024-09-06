@@ -772,13 +772,15 @@ def download_file_and_send_to_ods(docsymbol):
           
           filename = document_symbol.replace("/", "_") + f"-{language}.pdf"  
           
-          path=""
+          # setting a default for *nix systems should be safer than testing explicitly
+          # for the platform name
+          path="ods/tmp"
           
           if platform.os.name in ['windows','nt'] :
             path='ods\\temp'
         
-          if platform.os.name == 'linux':
-            path='ods/temp'
+          #if platform.os.name == 'linux':
+          #  path='ods/temp'
             
           
           filepath = os.path.join(path, filename)
