@@ -774,7 +774,7 @@ def download_file_and_send_to_ods(docsymbol):
           
           # setting a default for *nix systems should be safer than testing explicitly
           # for the platform name
-          path="ods/tmp"
+          path="./ods/tmp"
           
           if platform.os.name in ['windows','nt'] :
             path='ods\\temp'
