@@ -18,6 +18,7 @@ import os
 import platform
 import base64
 import time
+from pathlib import Path
 
 ########################################################################
 # setup urllib3
@@ -783,7 +784,8 @@ def download_file_and_send_to_ods(docsymbol):
           #  path='ods/temp'
             
           
-          filepath = os.path.join(path, filename)
+          filepath = Path(os.path.join(path, filename))
+          filepath.parent.mkdir(parents=True, exist_ok=True)
           
           # getting the file
           f = File.latest_by_identifier_language(Identifier('symbol', document_symbol), f'{language}')
