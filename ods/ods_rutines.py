@@ -298,6 +298,7 @@ def ods_get_loading_symbol(my_param:str):
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
   
   # return the response
+  print(response.json())
   return response.json()
 
 ######################################################################################
@@ -390,7 +391,7 @@ def get_data_from_cb(symbols):
                 "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
         
         lst.append(datamodel)
-        print(f"the list is {lst}")
+        #print(f"the list is {lst}")
     return lst
   
   except:
@@ -428,7 +429,7 @@ def ods_create_update_metadata(my_symbol):
       my_subjects=datamodel[0]["subjects"]
       my_tcodes=[]
       my_tcodes=datamodel[0]["tcodes"]
-      print(f"tcodes are {my_tcodes}")
+      #print(f"tcodes are {my_tcodes}")
 
       # get the token
       my_token=get_token()
@@ -515,13 +516,15 @@ def ods_create_update_metadata(my_symbol):
       files = {
         'data': (None,json.dumps(payload),'application/json'),
       }
-      print(f"data sent is {json.dumps(payload)} /// ")
+      #print(f"data sent is {json.dumps(payload)} /// ")
       res = requests.post(url, headers=headers,files=files,verify=False)
       
       data=res.json()
-      print(f"creating metadata data is {data} and the url is {url}")
-      data["status"]=1
-      data["update"]=False 
+      #print(f"creating metadata data is {data} and the url is {url}")
+      if data["status"]==-1:
+        print(data["message"])
+      if data["status"]==1:
+        data["update"]=False 
       return data
         
     else :
@@ -663,13 +666,17 @@ def ods_create_update_metadata(my_symbol):
       files = {
         'data': (None,json.dumps(payload),'application/json'),
       }
-      print(f"data sent is {json.dumps(payload)} /// ")
+      #print(f"data sent is {json.dumps(payload)} /// ")
       res = requests.post(url, headers=headers,files=files,verify=False)
       data=res.json()
-      print(f"updating metadata data is {data} and the url is {url}")
-      data["status"]=2 #update
-      data["update"]=True #update
-      return data
+      #print(f"updating metadata data is {data} and the url is {url}")
+      if data["status"]==-1:
+        print(data["message"])
+      if data["status"]==1:
+        data["update"]=False 
+        data["status"]=2 #update
+        data["update"]=True #update
+        return data
         
     else :
       result={}
