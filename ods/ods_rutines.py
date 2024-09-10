@@ -357,7 +357,7 @@ def get_data_from_cb(symbols):
   try:
     DB.connect(Config.connect_string, database="undlFiles")
     symbol=escape_characters(symbols,"()")
-    query = Query.from_string("symbol:/^"+symbol+"$/") 
+    query = Query.from_string("191__a:/^"+symbol+"$/") 
     document_symbol=""
     distribution=""
     area="UNDOC"
@@ -380,7 +380,7 @@ def get_data_from_cb(symbols):
           try:
             publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%d/%m/%y')
           except:
-            publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%y')
+            publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y')
         title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')
         agendas=' '.join(bib.get_values('991','b'))
         tcodes=','.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
