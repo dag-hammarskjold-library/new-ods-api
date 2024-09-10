@@ -358,6 +358,7 @@ def get_data_from_cb(symbols):
     DB.connect(Config.connect_string, database="undlFiles")
     symbol=escape_characters(symbols,"()")
     query = Query.from_string("191__a:/^"+symbol+"$/") 
+    #print(f'query is 191__a:/^"{symbol}"$/"')
     document_symbol=""
     distribution=""
     area="UNDOC"
@@ -378,16 +379,18 @@ def get_data_from_cb(symbols):
         
         if publication_date !='':
           try:
-            publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%d/%m/%y')
+            publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%Y-%m-%dT%H:%M:%SZ')
           except:
-            publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y')
+            publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y-%m-%dT%H:%M:%SZ')
         title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')
         agendas=' '.join(bib.get_values('991','b'))
-        tcodes=','.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
+        #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
+        tcodes=[get_tcodes(subject) for subject in bib.get_values('650','a')]                    
         datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
                 "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
+        
         lst.append(datamodel)
-
+        print(f"the list is {lst}")
     return lst
   
   except:
@@ -416,15 +419,17 @@ def ods_create_update_metadata(my_symbol):
       my_symbol=datamodel[0]["symbol"]
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
-      my_publication_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_publication_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      my_publication_date= datamodel[0]["publication_date"]
       my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
       my_agendas=datamodel[0]["agendas"]
       my_subjects=datamodel[0]["subjects"]
       my_tcodes=[]
-      my_tcodes.append(datamodel[0]["tcodes"])
-      
+      my_tcodes=datamodel[0]["tcodes"]
+      print(f"tcodes are {my_tcodes}")
+
       # get the token
       my_token=get_token()
 
@@ -510,9 +515,11 @@ def ods_create_update_metadata(my_symbol):
       files = {
         'data': (None,json.dumps(payload),'application/json'),
       }
-
+      print(f"data sent is {json.dumps(payload)} /// ")
       res = requests.post(url, headers=headers,files=files,verify=False)
+      
       data=res.json()
+      print(f"creating metadata data is {data} and the url is {url}")
       data["status"]=1
       data["update"]=False 
       return data
@@ -532,14 +539,14 @@ def ods_create_update_metadata(my_symbol):
       my_symbol=datamodel[0]["symbol"]
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
-      my_publication_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      my_publication_date= datamodel[0]["publication_date"]
       my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
       my_agendas=datamodel[0]["agendas"]
       my_subjects=datamodel[0]["subjects"]
       my_tcodes=[]
-      my_tcodes.append(datamodel[0]["tcodes"])
+      my_tcodes=datamodel[0]["tcodes"]
       
       # get the token
       my_token=get_token()
@@ -656,9 +663,10 @@ def ods_create_update_metadata(my_symbol):
       files = {
         'data': (None,json.dumps(payload),'application/json'),
       }
-
+      print(f"data sent is {json.dumps(payload)} /// ")
       res = requests.post(url, headers=headers,files=files,verify=False)
       data=res.json()
+      print(f"updating metadata data is {data} and the url is {url}")
       data["status"]=2 #update
       data["update"]=True #update
       return data
