@@ -21,7 +21,7 @@ Vue.component('ods', {
                                 <!-- First Tab -->	
                                 <div class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
                                     <form class="form-inline" @submit.prevent>
-                                        <textarea id="docsymbols" class="col-11" style=""  placeholder="Paste the list of symbols here (space separated)" name="docsymbols" v-model="docsymbols"></textarea>
+                                        <textarea id="docsymbols" class="col-11" rows="7" style=""  placeholder="Paste the list of symbols here (new line separated)" name="docsymbols" v-model="docsymbols"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  id="toggleButton" style="margin: 10px auto;padding: 10px;" @click="displayMetaData(docsymbols);">Apply</button>
                                     </form>    
                                         <div id="displayProgress1" class="mt-3" v-if="displayProgress1">
@@ -96,7 +96,7 @@ Vue.component('ods', {
                                 <!-- Second Tab -->	
                                 <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
-                                        <textarea id="docsymbols1" class="col-11" placeholder="Paste the list of symbols here (space separated)" style="" name="docsymbols1" v-model="docsymbols1"></textarea>
+                                        <textarea id="docsymbols1" rows="7" class="col-11" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols1" v-model="docsymbols1"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" @click="displayResultCreateUpdate(docsymbols1);">Send</button>
                                     </form>
                                    <div id="displayProgress2" class="mt-3" v-if="displayProgress2">
@@ -156,7 +156,7 @@ Vue.component('ods', {
                                 <!-- Third Tab -->	
                                 <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
-                                        <textarea class="col-11" placeholder="Paste the list of symbols here (space separated)" style="" name="docsymbols2" v-model="docsymbols2"></textarea>
+                                        <textarea class="col-11" rows="7" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols2" v-model="docsymbols2"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" v-if="displayResult2==false"  @click="displayResultSendFile(docsymbols2)">Send</button> 
                                     </form>
                                     <div id="displayProgress3" class="mt-3" v-if="displayProgress3">
