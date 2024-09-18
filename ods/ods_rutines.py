@@ -358,7 +358,7 @@ def get_data_from_cb(symbols):
   try:
     DB.connect(Config.connect_string, database="undlFiles")
     symbol=escape_characters(symbols,"()")
-    query = Query.from_string("191__a:/^"+symbol+"$/") 
+    query = Query.from_string("191__a:'"+symbol+"'") 
     #print(f'query is 191__a:/^"{symbol}"$/"')
     document_symbol=""
     distribution=""
@@ -727,7 +727,7 @@ def get_data_from_undl(docsymbol):
   
   DB.connect(Config.connect_string, database="undlFiles")
   docsymbol_formatted=docsymbol.replace("/","\/")
-  query = Query.from_string(f"191__a:/^"+ docsymbol_formatted +"$/") 
+  query = Query.from_string(f"191__a:'"+ docsymbol_formatted +"'") 
   lst=[]
   document_symbol=""
   distribution=""
@@ -771,7 +771,7 @@ def download_file_and_send_to_ods(docsymbol):
     DB.connect(Config.connect_string, database="undlFiles")
 
     # query the database according to the document symbol
-    query = Query.from_string(f"191__a:/^{docsymbol}$/")
+    query = Query.from_string(f"191__a:'{docsymbol}'")
     
     # store  not used jobnumbers
     used_jobnumbers=[]
