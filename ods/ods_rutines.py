@@ -284,7 +284,7 @@ def ods_get_loading_symbol(my_param:str):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/symbol?s=" + my_param
+  url1=config("base_url") + "api/loading/symbol?s=" + my_param+"&em=true"
   
   # build the payload
   payload={}
@@ -298,7 +298,7 @@ def ods_get_loading_symbol(my_param:str):
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
   
   # return the response
-  print(response.json())
+  #print(response.json())
   return response.json()
 
 ######################################################################################
@@ -311,7 +311,7 @@ def ods_get_loading_search(my_param):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/search?k=" + my_param
+  url1=config("base_url") + "api/loading/search?k=" + my_param+"&em=true"
   
   # build the payload
   payload={}
@@ -359,7 +359,8 @@ def get_data_from_cb(symbols):
     DB.connect(Config.connect_string, database="undlFiles")
     symbol=escape_characters(symbols,"()")
     query = Query.from_string("191__a:'"+symbol+"'") 
-    #print(f'query is 191__a:/^"{symbol}"$/"')
+    #print(f'query is 191__a:'''{symbol}'')
+    print(query.to_json)
     document_symbol=""
     distribution=""
     area="UNDOC"
