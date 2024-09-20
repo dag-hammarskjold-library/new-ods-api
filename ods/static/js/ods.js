@@ -372,7 +372,13 @@ data: function () {
         this.listOfRecordsDiplayMetaData=[]
         
         let dataset = new FormData()
-        dataset.append('docsymbols',this.docsymbols)
+        let cleanedDocSymbols = this.docsymbols.toUpperCase(); 
+        dataset.append('docsymbols',cleanedDocSymbols)
+        //let dataset = new FormData();
+        //alert(this.docsymbols)
+        //let cleanedDocSymbols = this.docsymbols..toUpperCase(); 
+        //alert(cleanedDocSymbols)
+        //dataset.append('docsymbols', cleanedDocSymbols);
     
         // loading all the data
         const my_response = await fetch("loading_symbol",{
@@ -381,6 +387,7 @@ data: function () {
             });
             
         const my_data = await my_response.json();
+        console.log(my_data);
         
         // loading data
         try {        

@@ -131,12 +131,40 @@ def check_if_job_number_exists(my_job_number:str):
     find_occurence=True
   
   return find_occurence
+
+####################################################################################################################################        
+# find job numbers using a batch
+#################################################################################################################################### 
+def find_update_job_numbers(my_docsymbol:str,my_language:str):
+  # get the token
+  my_token=get_token()
   
+  # build the url
+  url1=config("base_url") + "api/loading/symbol?s=" +my_docsymbol.upper()+"&em=true"
+  
+  # build the payload
+  payload={}
+  
+  # build the header
+  headers = {
+          "authorization":  "Access {}".format(my_token),
+          }
+  
+  # get the response 
+  response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
+  #print(f"job numbers in ODS are {response['body']['data'][0]['job_numbers']}")
+  # return the response
+  #print(response.json())
+  return response.json()['body']['data'][0]['job_numbers']
+
+
+
+
 ####################################################################################################################################        
 # create a job number using a batch
 ####################################################################################################################################        
 
-def get_job_number(my_docsymbol:str,my_language:str)->dict:
+def get_new_job_number(my_docsymbol:str,my_language:str)->dict:
 
   try:
 
@@ -284,7 +312,7 @@ def ods_get_loading_symbol(my_param:str):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/symbol?s=" + my_param+"&em=true"
+  url1=config("base_url") + "api/loading/symbol?s=" + my_param.upper()+"&em=true"
   
   # build the payload
   payload={}
@@ -311,7 +339,7 @@ def ods_get_loading_search(my_param):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/search?k=" + my_param+"&em=true"
+  url1=config("base_url") + "api/loading/search?k=" + my_param.upper()+"&em=true"
   
   # build the payload
   payload={}
@@ -360,7 +388,7 @@ def get_data_from_cb(symbols):
     symbol=escape_characters(symbols,"()")
     query = Query.from_string("191__a:'"+symbol+"'") 
     #print(f'query is 191__a:'''{symbol}'')
-    print(query.to_json)
+    print(query.to_json())
     document_symbol=""
     distribution=""
     area="UNDOC"
@@ -405,9 +433,10 @@ def get_data_from_cb(symbols):
 def ods_create_update_metadata(my_symbol):
   
   # a refactoring should be done to avoid DRY
-  
+  my_collection = my_database["ods_jobnumber_collection"]
   # call the api to know if this symbol exists already (1 if the symbol exists 0 otherwise)
   my_matche=ods_get_loading_symbol(my_symbol)["body"]["meta"]["matches"]
+  print(f'my_matche is {my_matche}')
   
   if ods_get_loading_symbol(my_symbol)["body"]["data"]:
     my_job_numbers=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["job_numbers"]
@@ -453,10 +482,11 @@ def ods_create_update_metadata(my_symbol):
       jobnumbers=[]
       counter=0
       for counter in range(7):
-        recup=get_job_number(my_symbol,LANGUAGES[counter])
+        recup=get_new_job_number(my_symbol,LANGUAGES[counter])
         jobnumbers.append(recup["jobnumber_value"])
       
       print(jobnumbers)
+      #print(find_update_job_numbers(my_symbol,"AR"))
 
       # define payload
       payload ={
@@ -537,7 +567,7 @@ def ods_create_update_metadata(my_symbol):
   else : # the symbol is not new it's an update
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
-    
+    print(datamodel)
     if len(datamodel)>0:
       # assign the values from central database to local variables
       my_symbol=datamodel[0]["symbol"]
@@ -570,8 +600,9 @@ def ods_create_update_metadata(my_symbol):
       
       
       # retrieving jobnumber for the ones existing and if not exist the system will create it
-      jobnumbers=check_if_docsymbol_exists(my_symbol)[1]
-      
+      print(f'my_symbol is {my_symbol}')
+      jobnumbers=check_if_docsymbol_exists(my_symbol)[1] #in ods
+      print(f'jobnumners are {jobnumbers}')
       # generate values for jobnumbers missing if it's the case
       my_final_job_numbers=["xxx","xxx","xxx","xxx","xxx","xxx","xxx"]
      
@@ -583,30 +614,26 @@ def ods_create_update_metadata(my_symbol):
       my_language=0
       
       for i in range(len(my_final_job_numbers)):
+        #if jobnumber doesn't exist in ODS we will generate a next one avaialable
         if my_final_job_numbers[i]=="":
-
-          if i==0:
-            recup=get_job_number(my_symbol,"AR")
-            my_final_job_numbers[i]=recup["jobnumber_value"]
-          if i==1:
-            recup=get_job_number(my_symbol,"ZH")
-            my_final_job_numbers[i]=recup["jobnumber_value"]
-          if i==2:
-            recup=get_job_number(my_symbol,"EN")
-            my_final_job_numbers[i]=recup["jobnumber_value"]
-          if i==3:
-            recup=get_job_number(my_symbol,"FR")
-            my_final_job_numbers[i]=recup["jobnumber_value"]
-          if i==4:
-            recup=get_job_number(my_symbol,"RU")
-            my_final_job_numbers[i]=recup["jobnumber_value"]
-          if i==5:
-            recup=get_job_number(my_symbol,"ES")
-            my_final_job_numbers[i]=recup["jobnumber_value"]                     
-          if i==6:
-            recup=get_job_number(my_symbol,"DE")
-            my_final_job_numbers[i]=recup["jobnumber_value"]  
-        my_language+=1
+          recup=get_new_job_number(my_symbol,LANGUAGES[i])
+          my_final_job_numbers[i]=recup["jobnumber_value"]
+          # if the jobnumbers exist in the ODS we will reuse it and store that job number from the ODS into our collection of jobnumbers
+        else:
+          print(my_final_job_numbers[i])
+          data1 = {
+                  "created_date": datetime.now(), 
+                  "jobnumber_value":my_final_job_numbers[i],
+                  "docsymbol": my_symbol,
+                  "language":LANGUAGES[i]
+              }
+              # save the record in the database
+          new_value={"$set":data1}
+          resultat=my_collection.update_one({"jobnumber_value":my_final_job_numbers[i]},new_value,upsert=True)
+          if resultat:
+            print('updated jobnumner in our coll')
+          #my_final_job_numbers[i]=recup["jobnumber_value"]
+        #my_language+=1
         
       # define payload
       payload ={
@@ -672,8 +699,11 @@ def ods_create_update_metadata(my_symbol):
       data=res.json()
       #print(f"updating metadata data is {data} and the url is {url}")
       if data["status"]==-1:
+        data["update"]=False
+        data["status"]=0
         print(data["message"])
-      if data["status"]==1:
+        return data
+      elif data["status"]==1:
         data["update"]=False 
         data["status"]=2 #update
         data["update"]=True #update
