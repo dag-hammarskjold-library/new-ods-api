@@ -449,7 +449,7 @@ data: function () {
                 })
                 
             } catch (error) {
-                alert(error)
+                //alert(error)
             }
             finally{
                 // display Progress bar
