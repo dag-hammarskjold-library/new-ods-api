@@ -86,7 +86,7 @@ Vue.component('ods', {
                                             </tbody>
                                         </table>
                                         <button class="btn btn-primary mb-2 mr-2 align-items-center" v-if="displayResult==true" type="button" @click="docsymbols='';displayResult=false;listOfRecordsDiplayMetaData=[];">Clear List</button>
-                                        <button class="btn btn-success mb-2  ml-1 align-items-center" v-if="displayResult==true" type="button" @click="exportExcel('MyTable')">Export to csv</button>
+                                        <button class="btn btn-success mb-2  ml-1 align-items-center" v-if="displayResult==true" type="button" @click="exportTableToCSV('MyTable')">Export to csv</button>
                                     </div>
                                 
                                 </div>
@@ -146,7 +146,7 @@ Vue.component('ods', {
                                     </div>
                                     
                                     <button type="submit" class="btn btn-primary mr-2 align-items-center" v-if="displayResult1==true" @click="docsymbols1='';displayResult1=false;listOfResult1=[];">Clear List</button>
-                                    <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult1==true" type="button" @click="exportExcel('MyTable1')">Export to csv</button>
+                                    <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult1==true" type="button" @click="exportTableToCSV('MyTable1')">Export to csv</button>
                                     
                                 
                                 </div>
@@ -222,7 +222,7 @@ Vue.component('ods', {
                                     </div>
 
                                         <button type="submit" class="btn btn-primary mr-2 align-items-center" v-if="displayResult2==true" @click="docsymbols2='';displayResult2=false;listOfResult2=[];">Clear List</button>
-                                        <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult2==true" type="button" @click="exportExcel('MyTable2')">Export to csv</button>
+                                        <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult2==true" type="button" @click="exportTableToCSV('MyTable2')">Export to csv</button>
                                     
                                 
                                 </div>
@@ -504,8 +504,47 @@ data: function () {
                 if (this.listOfResult2.length!=0){
                     this.displayResult2=true;
                     }
-                },
-
+            },
+        downloadCSV(csv) {
+                    let csvFile;
+                    let downloadLink;
+                
+                    // CSV file
+                    csvFile = new Blob([csv], {type: "text/csv"});
+                
+                    // Download link
+                    downloadLink = document.createElement("a");
+                
+                    // File name
+                    downloadLink.download = "export.csv";
+                
+                    // Create a link to the file
+                    downloadLink.href = window.URL.createObjectURL(csvFile);
+                
+                    // Hide the link
+                    downloadLink.style.display = "none";
+                
+                    // Add the link to the DOM
+                    document.body.appendChild(downloadLink);
+                
+                    // Click the link
+                    downloadLink.click();
+        },
+        exportTableToCSV(tableName) {
+            let csv = [];
+            let rows = document.getElementById(tableName).rows;
+        
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+        
+                for (let j = 0; j < cols.length; j++) 
+                    row.push(cols[j].innerText);
+        
+                csv.push(row.join(","));
+            }
+            // Download CSV file
+            this.downloadCSV(csv.join("\n"));
+        },
         exportExcel(tableName) {
             const uri = 'data:application/vnd.ms-excel;base64,',
             template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>',
