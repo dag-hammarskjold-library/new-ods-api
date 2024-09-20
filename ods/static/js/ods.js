@@ -354,6 +354,7 @@ data: function () {
         displayProgress1:false,
         displayProgress2:false,
         displayProgress3:false,
+        displayErrorTab1:[]
     }
     },
         
@@ -393,22 +394,27 @@ data: function () {
             my_data.forEach(element => {
             if (element["body"]["data"].length!==0)    
                 this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
-            else {
-                alert("No data found for this docsymbol, maybe it is not created!!!!")
-            }
+            // else {
+            //     let message=`No data found for {element}, maybe it is not created!!!!`
+            //     alert(message)
+            //     //displayErrorTab1.push(f)
+            // }
             })
             
         } catch (error) {
-            console.log(error)
+            alert(error)
+            // remove Progress bar
+            this.displayProgress1=false
         }
         finally{
-            // display Progress bar
+            // remove Progress bar
             this.displayProgress1=false
         }
 
         // display Results
         if (this.listOfRecordsDiplayMetaData.length>=1)
             this.displayResult=true;
+
         },
               
         async displayResultCreateUpdate(){
