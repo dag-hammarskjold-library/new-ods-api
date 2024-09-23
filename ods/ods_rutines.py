@@ -600,13 +600,13 @@ def ods_create_update_metadata(my_symbol):
       
       
       # retrieving jobnumber for the ones existing and if not exist the system will create it
-      print(f'my_symbol is {my_symbol}')
+      print(f'my_symbol is {my_symbol} my_title is {my_title}')
       jobnumbers=check_if_docsymbol_exists(my_symbol)[1] #in ods
-      print(f'jobnumners are {jobnumbers}')
+      print(f'updating metadata - jobnumbers in ODS are {jobnumbers}')
       # generate values for jobnumbers missing if it's the case
       my_final_job_numbers=["xxx","xxx","xxx","xxx","xxx","xxx","xxx"]
      
-      # copy the jobnumbers list in my_final_job_numbers
+      # copy the jobnumbers list from ODS into my_final_job_numbers
       for i in range(len(jobnumbers)):
         my_final_job_numbers[i]=jobnumbers[i]
      
@@ -620,7 +620,7 @@ def ods_create_update_metadata(my_symbol):
           my_final_job_numbers[i]=recup["jobnumber_value"]
           # if the jobnumbers exist in the ODS we will reuse it and store that job number from the ODS into our collection of jobnumbers
         else:
-          print(my_final_job_numbers[i])
+          print(f'job number for this update action for {LANGUAGES[i]} are {my_final_job_numbers[i]}')
           data1 = {
                   "created_date": datetime.now(), 
                   "jobnumber_value":my_final_job_numbers[i],
@@ -631,7 +631,7 @@ def ods_create_update_metadata(my_symbol):
           new_value={"$set":data1}
           resultat=my_collection.update_one({"jobnumber_value":my_final_job_numbers[i]},new_value,upsert=True)
           if resultat:
-            print('updated jobnumner in our coll')
+            print('updated jobnumber in our coll')
           #my_final_job_numbers[i]=recup["jobnumber_value"]
         #my_language+=1
         
@@ -648,7 +648,7 @@ def ods_create_update_metadata(my_symbol):
                   LANGUAGES[0]: { 
                           "jobNumber": my_final_job_numbers[0],
                           "releaseDate": my_release_date, 
-                          "title": my_title,
+                          "title": "",
                           "fullText":""
                           },
                   LANGUAGES[1]: { 
@@ -660,7 +660,7 @@ def ods_create_update_metadata(my_symbol):
                   LANGUAGES[2]: { 
                           "jobNumber": my_final_job_numbers[2],
                           "releaseDate":my_release_date, 
-                          "title":""  ,
+                          "title":my_title  ,
                           "fullText":""
                           },  
                   LANGUAGES[3]: { 
@@ -802,8 +802,9 @@ def download_file_and_send_to_ods(docsymbol):
     DB.connect(Config.connect_string, database="undlFiles")
 
     # query the database according to the document symbol
+    time1=time.time()
     query = Query.from_string(f"191__a:'{docsymbol}'")
-    
+    print(f' time for finding the symbol in CDB is {time.time()-time1}')
     # store  not used jobnumbers
     used_jobnumbers=[]
     
@@ -813,6 +814,7 @@ def download_file_and_send_to_ods(docsymbol):
       document_symbol=bib.get_value('191', 'a')
       
       # fixing some issues with the regex returning values 
+      time0=time.time()
       if len(document_symbol)==len(docsymbol):
         distribution=bib.get_value('091', 'a')
         for language in LANGUAGES : 
@@ -832,7 +834,7 @@ def download_file_and_send_to_ods(docsymbol):
           
           filepath = Path(os.path.join(path, filename))
           filepath.parent.mkdir(parents=True, exist_ok=True)
-          
+          timeFile=time.time()
           # getting the file
           f = File.latest_by_identifier_language(Identifier('symbol', document_symbol), f'{language}')
 
@@ -845,10 +847,10 @@ def download_file_and_send_to_ods(docsymbol):
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         file.write(chunk)
-
+            print(f'time to download {filename} from CDB is {time.time()-timeFile}')
           # write the report and send the file to ODS
           recup1=""
-
+          time2=time.time()
           if f is not None:
             result=ods_get_loading_symbol(docsymbol)
             recup_job_numbers=result["body"]["data"][0]["job_numbers"]
@@ -856,7 +858,8 @@ def download_file_and_send_to_ods(docsymbol):
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
-              
+              print(f' upload of the first file to ODS in {time.time()-time2}')
+              print(f'  elapsed time for upload of the first file in {time.time()-time0}')
             if language=="ZH":
               my_jobnumber=recup_job_numbers[1]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
@@ -864,7 +867,8 @@ def download_file_and_send_to_ods(docsymbol):
             if language=="EN":
               my_jobnumber=recup_job_numbers[2]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
-              
+              print(f' upload of the third file to ODS in {time.time()-time2}')
+              print(f'  elapsed time for upload of the third file in {time.time()-time0}')
             if language=="FR":
               my_jobnumber=recup_job_numbers[3]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
@@ -890,6 +894,8 @@ def download_file_and_send_to_ods(docsymbol):
                               "jobnumber":my_jobnumber,
                               "result":"downloaded and sent successfully!!!"
                               })
+              print(f'   elapsed time for upload of all files in {time.time()-time0}')
+              time.sleep(3)
             else:
               report.append({
                             "filename":filename,
@@ -898,7 +904,7 @@ def download_file_and_send_to_ods(docsymbol):
                             "jobnumber":"",
                             "result":"not sent to ODS!!!"
                           })
-          
+            
           else :
               report.append({
                           "filename":filename,
@@ -907,7 +913,8 @@ def download_file_and_send_to_ods(docsymbol):
                           "jobnumber":"",
                           "result":"file not downloaded!!!"
                           })
-          time.sleep(3)
+          #time.sleep(3)
+          time2=time.time()
 
     # release not used jobnumbers
     not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
