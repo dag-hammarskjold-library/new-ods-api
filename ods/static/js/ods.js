@@ -9,7 +9,7 @@ Vue.component('ods', {
                                 <li class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
                                 <li class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false"><strong>Create/Update existing metadata to ODS</strong></button></li>
                                 <li class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Send files to ODS</strong></button></li>
-                                <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>
+                                <!-- <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>-->
                                 <li class="nav-item"> <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false"><strong>Parameters</strong></button></li>
                             </ul>
                         </div>
@@ -227,6 +227,8 @@ Vue.component('ods', {
                                 
                                 </div>
                                 <!-- End Third Tab -->	
+
+                                  
                                 <!-- Parameters Tab -->	
                                     <div class="tab-pane fade show" id="parameters" role="tabpanel">
 
@@ -250,29 +252,28 @@ Vue.component('ods', {
                                                         <div class="mb-3">
                                                             <label for="exampleInputEmail1" class="form-label">Email address</label>
                                                             <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
-                                                            <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="exampleInputPassword1" class="form-label">Password</label>
                                                             <input type="password" class="form-control" id="exampleInputPassword1">
                                                         </div>
-                                                        <div class="form-check form-check-inline">
+                                                        <div class="form-check form-check">
                                                             <input class="form-check-input" type="checkbox" id="inlineCheckbox1" value="option1">
-                                                            <label class="form-check-label" for="inlineCheckbox1">Display metadata access</label>
+                                                            <label class="form-check-label" for="inlineCheckbox1">Execute Display metadata</label>
                                                         </div>
-                                                        <div class="form-check form-check-inline">
+                                                        <div class="form-check form-check">
                                                             <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2">Create/ Update metadata access</label>
+                                                            <label class="form-check-label" for="inlineCheckbox2"> Execute Create/ Update metadata</label>
                                                         </div>
-                                                        <div class="form-check form-check-inline">
+                                                        <div class="form-check form-check">
                                                             <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2">Send files to ODS access</label>
+                                                            <label class="form-check-label" for="inlineCheckbox2">Execute Send files to ODS </label>
                                                         </div>
-                                                        <div class="form-check form-check-inline">
+                                                        <div class="form-check form-check">
                                                             <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2">Job numbers management access</label>
+                                                            <label class="form-check-label" for="inlineCheckbox2">Execute Job numbers management</label>
                                                         </div>
-                                                        <div class="form-check form-check-inline">
+                                                        <div class="form-check form-check">
                                                             <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
                                                             <label class="form-check-label" for="inlineCheckbox2">Parameters</label>
                                                         </div>
@@ -281,18 +282,6 @@ Vue.component('ods', {
                                                         <div>
                                                     </form>
         
-                                                </div>
-                                                </div>
-                                            </div>
-                                            <div class="accordion-item">
-                                                <h2 class="accordion-header" id="headingTwo">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                                   <strong>Job numbers Management </strong>
-                                                </button>
-                                                </h2>
-                                                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
-                                                <div class="accordion-body">
-                                                    <strong>This is the second item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
                                                 </div>
                                                 </div>
                                             </div>
@@ -402,7 +391,7 @@ data: function () {
             })
             
         } catch (error) {
-            alert(error)
+            //alert(error)
             // remove Progress bar
             this.displayProgress1=false
         }

@@ -45,9 +45,10 @@ client_secret = config("client_secret")
 ########################################################################
 # management of the JobNumber
 ########################################################################
-
+print("-"*50)
+print(config("CONN"))
 client = MongoClient(config("CONN"))
-my_database = client["undlFiles"] 
+my_database = client["odsActions"] 
 
 ########################################################################
 # function managing the creation of the logs depending of the context
@@ -58,7 +59,7 @@ def add_log(date_log:str,user_connected:str,action_log:str)-> int:
     try:
         
         # setup the database and the collection
-        my_collection = my_database["ods_action_logs_collection"]
+        my_collection = my_database["ods_actions_logs_collection"]
 
         # creation of the log object
         my_log = {
@@ -169,7 +170,7 @@ def get_new_job_number(my_docsymbol:str,my_language:str)->dict:
   try:
 
     # get the collection
-    my_collection = my_database["ods_jobnumber_collection"]
+    my_collection = my_database["ods_actions_jobnumbers_collection"]
     
     # get the last value
     number_of_records=my_collection.estimated_document_count()

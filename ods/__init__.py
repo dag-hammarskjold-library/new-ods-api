@@ -22,6 +22,7 @@ username = config("username")
 password = config("password")
 client_id = config("client_id")
 client_secret = config("client_secret")
+database_conn=config("CONN")
 
 
 ##############################################################################################
@@ -32,7 +33,7 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY='dev'
+        SECRET_KEY='h@454325hdhdbhdb'
     )
 
     if test_config is None:
@@ -75,15 +76,14 @@ def create_app(test_config=None):
                     
                     # add the username to the session
                     session['username'] = config("default_username")
-                    
-                    #return render_template('index.html',user_connected=config("DEFAULT_USER_NAME"))
+
                     return redirect('index')
 
             
             # check if the user exists in the database with the good password
-            client = MongoClient(config("CONN"))
-            my_database = client["undlFiles"] 
-            my_collection = my_database["ods_action_users_collection"]
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_users_collection"]
 
 
             user = {
@@ -127,7 +127,11 @@ def create_app(test_config=None):
     
     @app.route('/index')
     def index_vue():
-        return render_template('index_vue.html')
+        if session:
+            if session['username']!="":
+                return render_template('index_vue.html',session_username=session['username'])
+        else:
+            return redirect("/")
 
 
     ############################################################################
@@ -137,8 +141,9 @@ def create_app(test_config=None):
     @app.route('/loading_symbol',methods=['POST'])
     def loading_symbol():
         docsymbols = request.form["docsymbols"].split("\r\n")
-        print(docsymbols)
         data= [ ods.ods_rutines.ods_get_loading_symbol(docsymbol)  for docsymbol in docsymbols ]   
+        # create log
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
         return data
         
     ############################################################################
@@ -165,6 +170,8 @@ def create_app(test_config=None):
                 "text":text
                 }
             data.append(summary)
+        # create log
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
         return data
     
     ############################################################################
@@ -177,9 +184,9 @@ def create_app(test_config=None):
         result=[]
         for record in data_send_multiple:
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
-        
+        # create log
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
         return json.dumps(result)
-        
+    
     return app
-
 app = create_app()
