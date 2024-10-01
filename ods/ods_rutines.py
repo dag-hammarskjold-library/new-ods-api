@@ -227,7 +227,7 @@ def get_new_job_number(my_docsymbol:str,my_language:str,prefix_jobnumber:str)->d
           found_number=True
         else:
           last_record=last_record+1
-          jobnumber_to_insert=prefix_jobnumbers + str(last_record)        
+          jobnumber_to_insert=prefix_jobnumber + str(last_record)        
       
       data = {
           "created_date": datetime.now(), 
