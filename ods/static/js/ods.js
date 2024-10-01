@@ -449,7 +449,7 @@ data: function () {
         dataset.append('docsymbols',cleanedDocSymbols)
     
         // loading all the data
-        const my_response = await fetch("loading_symbol",{
+        const my_response = await fetch("./loading_symbol",{
             "method":"POST",
             "body":dataset
             });
@@ -494,7 +494,7 @@ data: function () {
 
         
             // loading all the data
-            const my_response = await fetch("create_metadata_ods",{
+            const my_response = await fetch("./create_metadata_ods",{
                 "method":"POST",
                 "body":dataset
                 });
@@ -540,7 +540,7 @@ data: function () {
                 dataset.append('docsymbols2',this.docsymbols2)
             
                 // loading all the data
-                const my_response = await fetch("exporttoodswithfile",{
+                const my_response = await fetch("./exporttoodswithfile",{
                     "method":"POST",
                     "body":dataset
                     });
@@ -618,7 +618,7 @@ data: function () {
                     dataset.append('show_parameters',this.show_parameters)
 
                     // loading all the data
-                    const my_response = await fetch("add_user",{
+                    const my_response = await fetch("./add_user",{
                         "method":"POST",
                         "body":dataset
                         });
@@ -652,7 +652,7 @@ data: function () {
                     dataset.append('prefix_site',this.prefix_site)
 
                     // loading all the data
-                    const my_response = await fetch("add_site",{
+                    const my_response = await fetch("./add_site",{
                         "method":"POST",
                         "body":dataset
                         });
