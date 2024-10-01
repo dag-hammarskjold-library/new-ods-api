@@ -7,9 +7,10 @@ import json
 import datetime
 import os
 import ods.ods_rutines
-from flask import Flask,render_template,request,redirect,session
+from flask import Flask, jsonify,render_template,request,redirect,session
 from decouple import config
 from pymongo import MongoClient
+from bson import json_util
 
 return_data=""
 
@@ -50,7 +51,7 @@ def create_app(test_config=None):
         pass
     
     ############################################################################
-    # MAIN ROUTE
+    # LOGIN
     ############################################################################
     
     @app.route('/',methods=["GET","POST"])
@@ -76,6 +77,9 @@ def create_app(test_config=None):
                     
                     # add the username to the session
                     session['username'] = config("default_username")
+                    
+                    # add the prefix to the session
+                    session["prefix_site"]="NX"
 
                     return redirect('index')
 
@@ -106,7 +110,10 @@ def create_app(test_config=None):
                         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
                         
                         # add the username to the session
-                        session['username'] = result["name"]
+                        session['username'] = result["email"]
+                        
+                        # add the prefix to the session
+                        session["prefix_site"]=get_prefix_from_site(result["site"])
                         
                         find_record=True
 
@@ -132,6 +139,123 @@ def create_app(test_config=None):
                 return render_template('index_vue.html',session_username=session['username'])
         else:
             return redirect("/")
+    
+    ############################################################################
+    # LIST SITE ROUTE
+    ############################################################################
+    
+    @app.route("/list_sites",methods=['GET'])
+    def list_sites():
+
+        client = MongoClient(database_conn)
+        my_database = client["odsActions"] 
+        my_collection = my_database["ods_actions_sites_collection"]
+        
+        # get all the logs
+        my_sites=my_collection.find(sort=[( "creation_date", -1 )])
+            
+        # just render the logs
+        return json.loads(json_util.dumps(my_sites))    
+        
+    ############################################################################
+    # CREATE SITE ROUTE
+    ############################################################################
+    
+    @app.route("/add_site", methods=["POST"])
+    def add_site():
+    
+        try :    
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_sites_collection"]
+
+            site = {
+                "code_site":request.form.get("code_site"),
+                "Label_site":request.form.get("label_site"),
+                "prefix_site":request.form.get("prefix_site"),
+                "creation_date": datetime.datetime.now(tz=datetime.timezone.utc)
+            }
+            
+            # save the site in the database
+            my_site=my_collection.insert_one(site)
+            
+            # create log
+            ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
+            
+            if (my_site.inserted_id):
+                result={
+                    "status" : "OK",
+                    "message" : "Site created!!!"
+                }
+                return jsonify(result)
+
+            else :
+                result={
+                    "status" : "NOK",
+                    "message" : "Site not created!!!"
+                }
+                return jsonify(result)
+            
+        except:
+            result={
+                "status" : "NOK",
+                "message" : "Site not created!!!"
+            }
+            return jsonify(result)
+            
+    ############################################################################
+    # CREATE USER ROUTE
+    ############################################################################
+    
+    @app.route("/add_user", methods=["POST"])
+    def add_user():
+    
+        try :    
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_users_collection"]
+
+            # converting password to array of bytes 
+            pwd = generate_password_hash(request.form.get("password"))
+
+            user = {
+                "site":request.form.get("site"),
+                "email": request.form.get("email"),
+                "password": pwd,
+                "show_display": request.form.get("show_display"),
+                "show_create_update": request.form.get("show_create_update"),
+                "show_send_file": request.form.get("show_send_file"),
+                "show_jobnumbers_management": request.form.get("show_jobnumbers_management"),
+                "show_parameters": request.form.get("show_parameters"),
+                "creation_date": datetime.datetime.now(tz=datetime.timezone.utc)
+            }
+            
+            # save the user in the database
+            my_user=my_collection.insert_one(user)
+            
+            # create log
+            ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
+            
+            if (my_user.inserted_id):
+                result={
+                    "status" : "OK",
+                    "message" : "User created!!!"
+                }
+                return jsonify(result)
+
+            else :
+                result={
+                    "status" : "NOK",
+                    "message" : "User not created!!!"
+                }
+                return jsonify(result)
+            
+        except:
+            result={
+                "status" : "NOK",
+                "message" : "User not created!!!"
+            }
+            return jsonify(result)
 
 
     ############################################################################
@@ -146,6 +270,28 @@ def create_app(test_config=None):
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
         return data
         
+        
+        
+    ####################################################################################################################################        
+    # return prefix from the database
+    ####################################################################################################################################        
+    def get_prefix_from_site(my_site:str)->str:
+
+        try:
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_sites_collection"]
+            site = {
+                "code_site": my_site,
+            }
+
+            results= list(my_collection.find(site))
+
+            return results[0]["prefix_site"]
+        
+        except:
+
+            return ""    
     ############################################################################
     # CREATE / UPDATE METADATA
     ############################################################################
@@ -155,9 +301,11 @@ def create_app(test_config=None):
 
         docsymbols = request.form["docsymbols1"].replace("\r","").split("\n")
         data=[]
+        prefix=session["prefix_site"]
+        print(prefix)
         
         for docsymbol in docsymbols:
-            result=ods.ods_rutines.ods_create_update_metadata(docsymbol)
+            result=ods.ods_rutines.ods_create_update_metadata(docsymbol,prefix)
             text="-1 this is default value"
             if (result["status"]== 0 and result["update"]==False):
                 text="Metadata not found in the Central DB/ME"
@@ -188,5 +336,31 @@ def create_app(test_config=None):
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
         return json.dumps(result)
     
+    ############################################################################
+    # LOGOUT
+    ############################################################################
+    @app.route('/logout')
+    def logout():
+        # create log
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
+        print("inside")
+        # remove the username from the session if it is there
+        session.pop('username', None)
+        return redirect('/')
+    
+    
+    @app.route("/display_logs",methods=['GET'])
+    def display_logs():
+
+        client = MongoClient(database_conn)
+        my_database = client["odsActions"] 
+        my_collection = my_database["ods_actions_logs_collection"]
+        
+        # get all the logs
+        my_logs=my_collection.find(sort=[( "date", -1 )])
+            
+        # just render the logs
+        return json.loads(json_util.dumps(my_logs))    
+        
     return app
 app = create_app()

@@ -2,8 +2,12 @@ Vue.component('ods', {
     template: `
                 <div class="card mt-5 ml-5" style="margin:auto;height:700px;width:1150px;">
                         <div class="mt-3 d-flex justify-content-center">
-                            <h1> ODS ACTIONS </h1> 
+                            <a href="/logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
                         </div>
+                        <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
+                            <h1> ODS ACTIONS </h1>
+                        </div>
+
                         <div class="card-header mt-5 mb-1 bg-white">
                             <ul class="nav nav-tabs card-header-tabs bg-white">
                                 <li class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
@@ -232,53 +236,94 @@ Vue.component('ods', {
                                 <!-- Parameters Tab -->	
                                     <div class="tab-pane fade show" id="parameters" role="tabpanel">
 
-                                        <div class="accordion" id="accordionExample">
+                                    <div class="accordion" id="accordionExample">
+                                        <div class="accordion-item" id="sites">
+                                                <h2 class="accordion-header" id="headingOne0">
+                                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne0" aria-expanded="true" aria-controls="collapseOne0">
+                                                        <strong>Sites Management</strong>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseOne0" class="accordion-collapse collapse " aria-labelledby="headingOne0" data-bs-parent="#accordionExample">
+                                                <div class="accordion-body">
+                                                    <strong>Please fill the fields below.</strong>
+                                                    <hr>
+                                                    <form>
+                            
+                                                        <div class="mb-3">
+                                                            <label for="" class="form-label"><strong>Code Site</strong></label>
+                                                            <input type="text" class="form-control" id="code_site" value="code_site" aria-describedby="code_site_help" v-model="code_site">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="" class="form-label"><strong>Label Site</strong></label>
+                                                            <input type="text" class="form-control" id="label_site" value="label_site" aria-describedby="label_site" v-model="label_site">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="" class="form-label"><strong>Prefix Site</strong></label>
+                                                            <input type="text" class="form-control" id="prefix_site" value="prefix_site" aria-describedby="prefix_site" v-model="prefix_site">
+                                                        </div>                                                                                                                
+                                                        <hr>
+                                                        <div class="mt-2">
+                                                            <button type="button" class="btn btn-primary" @click="addSite()">Create</button>
+                                                            <!-- <button type="button" class="btn btn-secondary" @click="">Edit</button> -->
+                                                        <div>
+                                                    </form>
+        
+                                                </div>
+                                                </div>
+                                            </div>
                                             <div class="accordion-item" id="users">
                                                 <h2 class="accordion-header" id="headingOne">
                                                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
                                                     <strong>Users Management</strong>
                                                 </button>
                                                 </h2>
-                                                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                                <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
                                                     <strong>Please fill the fields below.</strong>
                                                     <hr>
                                                     <form>
-                                                        <select class="form-select" aria-label="Default select example">
-                                                            <option selected>Please select the site</option>
-                                                            <option value="1">NYC</option>
-                                                            <option value="2">GEN</option>
-                                                        </select>
                                                         <div class="mb-3">
-                                                            <label for="exampleInputEmail1" class="form-label">Email address</label>
-                                                            <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+                                                            <label for="" class="form-label"><strong>Site</strong></label>
+                                                            <select id="site" class="form-select" v-model="site">
+                                                                <option value="NYC" selected>NYC</option>
+                                                                <option value="GEN">GEN</option>
+                                                            </select>
                                                         </div>
                                                         <div class="mb-3">
-                                                            <label for="exampleInputPassword1" class="form-label">Password</label>
-                                                            <input type="password" class="form-control" id="exampleInputPassword1">
+                                                            <label for="" class="form-label"><strong>Email</strong></label>
+                                                            <input type="email" class="form-control" id="email" value="email" aria-describedby="emailHelp" v-model="email">
                                                         </div>
-                                                        <div class="form-check form-check">
-                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox1" value="option1">
-                                                            <label class="form-check-label" for="inlineCheckbox1">Execute Display metadata</label>
+                                                        <div class="mb-3">
+                                                            <label for="" class="form-label"><strong>Password</strong></label>
+                                                            <input type="password" class="form-control" id="password" value="password" v-model="password">
                                                         </div>
-                                                        <div class="form-check form-check">
-                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2"> Execute Create/ Update metadata</label>
+                                                        <div class="mb-3">
+                                                            <label for="" class="form-label"><strong>Select the tab(s) to display</strong></label>
+                                                            <div class="form-check form-check">
+                                                                <input class="form-check-input" type="checkbox" id="show_display" value="show_display" v-model="show_display">
+                                                                <label class="form-check-label" for="inlineCheckbox1">Show Display metadata</label>
+                                                            </div>
+                                                            <div class="form-check form-check">
+                                                                <input class="form-check-input" type="checkbox" id="show_create_update" value="show_create_update" v-model="show_create_update">
+                                                                <label class="form-check-label" for="inlineCheckbox2"> Show Create/ Update metadata</label>
+                                                            </div>
+                                                            <div class="form-check form-check">
+                                                                <input class="form-check-input" type="checkbox" id="show_send_file" value="show_send_file" v-model="show_send_file">
+                                                                <label class="form-check-label" for="inlineCheckbox2">Show Send files to ODS </label>
+                                                            </div>
+                                                            <div class="form-check form-check">
+                                                                <input class="form-check-input" type="checkbox" id="show_jobnumbers_management" value="show_jobnumbers_management" v-model="show_jobnumbers_management">
+                                                                <label class="form-check-label" for="inlineCheckbox2">Show Job numbers management</label>
+                                                            </div>
+                                                            <div class="form-check form-check">
+                                                                <input class="form-check-input" type="checkbox" id="show_parameters" value="show_parameters" v-model="show_parameters">
+                                                                <label class="form-check-label" for="inlineCheckbox2">Show Parameters</label>
+                                                            </div>
                                                         </div>
-                                                        <div class="form-check form-check">
-                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2">Execute Send files to ODS </label>
-                                                        </div>
-                                                        <div class="form-check form-check">
-                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2">Execute Job numbers management</label>
-                                                        </div>
-                                                        <div class="form-check form-check">
-                                                            <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2">
-                                                            <label class="form-check-label" for="inlineCheckbox2">Parameters</label>
-                                                        </div>
+                                                        <hr>
                                                         <div class="mt-2">
-                                                            <button type="submit" class="btn btn-primary">Create the user</button>
+                                                            <button type="button" class="btn btn-primary" @click="addUser()">Create</button>
+                                                            <!-- <button type="button" class="btn btn-secondary" @click="alert('edit')">Edit</button> -->
                                                         <div>
                                                     </form>
         
@@ -293,7 +338,26 @@ Vue.component('ods', {
                                                 </h2>
                                                 <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
-                                                    <strong>This is the third item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+                                                    <button type="submit" class="btn btn-success ml-1 align-items-center" type="button" @click="exportTableToCSV('listlogs')">Export all the logs in csv</button>
+                                                    <div class="shadow">
+                                                        <table class="table table-striped tableau" id="listlogs">
+                                                        <thead>
+                                                            <tr>
+                                                            <th scope="col">User</th>
+                                                            <th scope="col">Action</th>
+                                                            <th scope="col">Date</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr v-for="field in listOfLogs">
+                                                                <th scope="row"> {{field.user}} </th>
+                                                                <td>{{field.action}}</td>
+                                                                <td>{{field.date.$date}}</td>
+                                                            </tr>
+                                                        </tbody>
+                                                        </table>       
+                                                    </div>
+
                                                 </div>
                                                 </div>
                                             </div>
@@ -325,7 +389,14 @@ Vue.component('ods', {
                     });
                     </script>
              `,
-created: async function(){
+created:async function(){
+    const my_response = await fetch("/display_logs",{
+        "method":"GET",
+        });
+    const my_data = await my_response.json();
+    my_data.forEach(element => {
+        this.listOfLogs.push(element)
+    });
     },
 
 data: function () {
@@ -343,7 +414,20 @@ data: function () {
         displayProgress1:false,
         displayProgress2:false,
         displayProgress3:false,
-        displayErrorTab1:[]
+        displayErrorTab1:[],
+        site:"",
+        email:"",
+        password:"",
+        show_display:false,
+        show_create_update:false,
+        show_send_file:false,
+        show_jobnumbers_management:false,
+        show_parameters:false,
+        creation_date:"",
+        listOfLogs:[],
+        code_site:"",
+        label_site:"",
+        prefix_site:"",
     }
     },
         
@@ -363,11 +447,6 @@ data: function () {
         let dataset = new FormData()
         let cleanedDocSymbols = this.docsymbols.toUpperCase(); 
         dataset.append('docsymbols',cleanedDocSymbols)
-        //let dataset = new FormData();
-        //alert(this.docsymbols)
-        //let cleanedDocSymbols = this.docsymbols..toUpperCase(); 
-        //alert(cleanedDocSymbols)
-        //dataset.append('docsymbols', cleanedDocSymbols);
     
         // loading all the data
         const my_response = await fetch("loading_symbol",{
@@ -376,22 +455,15 @@ data: function () {
             });
             
         const my_data = await my_response.json();
-        console.log(my_data);
         
         // loading data
         try {        
             my_data.forEach(element => {
             if (element["body"]["data"].length!==0)    
                 this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
-            // else {
-            //     let message=`No data found for {element}, maybe it is not created!!!!`
-            //     alert(message)
-            //     //displayErrorTab1.push(f)
-            // }
             })
             
         } catch (error) {
-            //alert(error)
             // remove Progress bar
             this.displayProgress1=false
         }
@@ -494,6 +566,111 @@ data: function () {
                     this.displayResult2=true;
                     }
             },
+        checkInput(){
+            // init the variable
+            let result=true;
+
+            // check the checkboxes
+            if (this.show_display == false && this.show_create_update == false && this.show_send_file == false && this.show_jobnumbers_management == false && this.show_parameters == false)
+                result=false
+
+            // check the inputs
+            if (this.site =="") result=false
+            if (this.email =="") result=false
+            if (this.password =="") result=false
+
+            // check valid email
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (regex.test(this.email)==false) result=false
+
+            // send the result of the validation
+            return result
+        },
+        checkInput1(){
+            // init the variable
+            let result=true;
+
+            // check the inputs
+            if (this.code_sitesite =="" || this.code_site.length!==3) result=false
+            if (this.label_site =="") result=false
+            if (this.prefix_site =="" || this.prefix_site.length!==2) result=false
+
+            // send the result of the validation
+            return result
+        },
+        async addUser(){
+            
+            let result=this.checkInput()
+
+            if (result==true)
+                {
+                    // define the dataset
+                    let dataset = new FormData()
+
+                    // add the fields to the dataset
+                    dataset.append('site',this.site)
+                    dataset.append('email',this.email)
+                    dataset.append('password',this.password)
+                    dataset.append('show_display',this.show_display)
+                    dataset.append('show_create_update',this.show_create_update)
+                    dataset.append('show_send_file',this.show_send_file)
+                    dataset.append('show_jobnumbers_management',this.show_jobnumbers_management)
+                    dataset.append('show_parameters',this.show_parameters)
+
+                    // loading all the data
+                    const my_response = await fetch("add_user",{
+                        "method":"POST",
+                        "body":dataset
+                        });
+                                    
+                    const my_data = await my_response.json()
+                    try 
+                        {        
+                        alert(my_data.message)
+                        }
+                        
+                    catch (error) {
+                        alert(error)
+                    }
+                }
+            else{
+                alert("please check the inputs!!!!") 
+            }        
+        },
+        async addSite(){
+            
+            let result=this.checkInput1()
+
+            if (result==true)
+                {
+                    // define the dataset
+                    let dataset = new FormData()
+
+                    // add the fields to the dataset
+                    dataset.append('code_site',this.code_site)
+                    dataset.append('label_site',this.label_site)
+                    dataset.append('prefix_site',this.prefix_site)
+
+                    // loading all the data
+                    const my_response = await fetch("add_site",{
+                        "method":"POST",
+                        "body":dataset
+                        });
+                                    
+                    const my_data = await my_response.json()
+                    try 
+                        {        
+                        alert(my_data.message)
+                        }
+                        
+                    catch (error) {
+                        alert(error)
+                    }
+                }
+            else{
+                alert("please check the inputs!!!!") 
+            }        
+        },
         downloadCSV(csv) {
                     let csvFile;
                     let downloadLink;
