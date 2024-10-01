@@ -7,7 +7,7 @@ import json
 import datetime
 import os
 import ods.ods_rutines
-from flask import Flask, jsonify,render_template,request,redirect,session
+from flask import Flask, jsonify,render_template,request,redirect,session, url_for
 from decouple import config
 from pymongo import MongoClient
 from bson import json_util
@@ -343,10 +343,9 @@ def create_app(test_config=None):
     def logout():
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
-        print("inside")
         # remove the username from the session if it is there
         session.pop('username', None)
-        return redirect('/')
+        return redirect(url_for("index_vue"))
     
     
     @app.route("/display_logs",methods=['GET'])
