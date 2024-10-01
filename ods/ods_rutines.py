@@ -45,8 +45,7 @@ client_secret = config("client_secret")
 ########################################################################
 # management of the JobNumber
 ########################################################################
-print("-"*50)
-print(config("CONN"))
+
 client = MongoClient(config("CONN"))
 my_database = client["odsActions"] 
 
@@ -158,14 +157,11 @@ def find_update_job_numbers(my_docsymbol:str,my_language:str):
   #print(response.json())
   return response.json()['body']['data'][0]['job_numbers']
 
-
-
-
 ####################################################################################################################################        
 # create a job number using a batch
 ####################################################################################################################################        
 
-def get_new_job_number(my_docsymbol:str,my_language:str)->dict:
+def get_new_job_number(my_docsymbol:str,my_language:str,prefix_jobnumber:str)->dict:
 
   try:
 
@@ -186,7 +182,7 @@ def get_new_job_number(my_docsymbol:str,my_language:str)->dict:
       # loop to check if the number exists
       while found_number==False:
 
-        jobnumber_to_insert="NX" + str(my_number)
+        jobnumber_to_insert=prefix_jobnumber + str(my_number)
         result=check_if_job_number_exists(jobnumber_to_insert)
         if (result==False):
           found_number=True
@@ -220,7 +216,7 @@ def get_new_job_number(my_docsymbol:str,my_language:str)->dict:
 
       last_record =int(last_record_number[2:]) + 1
       found_number=False
-      jobnumber_to_insert="NX" + str(last_record)
+      jobnumber_to_insert=prefix_jobnumber + str(last_record)
       
       # loop to check if the number exists
       while found_number==False:
@@ -231,7 +227,7 @@ def get_new_job_number(my_docsymbol:str,my_language:str)->dict:
           found_number=True
         else:
           last_record=last_record+1
-          jobnumber_to_insert="NX" + str(last_record)        
+          jobnumber_to_insert=prefix_jobnumbers + str(last_record)        
       
       data = {
           "created_date": datetime.now(), 
@@ -431,7 +427,7 @@ def get_data_from_cb(symbols):
 # create / update metadata  
 ########################################################################
 
-def ods_create_update_metadata(my_symbol):
+def ods_create_update_metadata(my_symbol,prefix_jobnumber):
   
   # a refactoring should be done to avoid DRY
   my_collection = my_database["ods_jobnumber_collection"]
@@ -483,11 +479,8 @@ def ods_create_update_metadata(my_symbol):
       jobnumbers=[]
       counter=0
       for counter in range(7):
-        recup=get_new_job_number(my_symbol,LANGUAGES[counter])
+        recup=get_new_job_number(my_symbol,LANGUAGES[counter],prefix_jobnumber)
         jobnumbers.append(recup["jobnumber_value"])
-      
-      print(jobnumbers)
-      #print(find_update_job_numbers(my_symbol,"AR"))
 
       # define payload
       payload ={
@@ -617,7 +610,7 @@ def ods_create_update_metadata(my_symbol):
       for i in range(len(my_final_job_numbers)):
         #if jobnumber doesn't exist in ODS we will generate a next one avaialable
         if my_final_job_numbers[i]=="":
-          recup=get_new_job_number(my_symbol,LANGUAGES[i])
+          recup=get_new_job_number(my_symbol,LANGUAGES[i],prefix_jobnumber)
           my_final_job_numbers[i]=recup["jobnumber_value"]
           # if the jobnumbers exist in the ODS we will reuse it and store that job number from the ODS into our collection of jobnumbers
         else:
@@ -942,8 +935,3 @@ def download_file_and_send_to_ods(docsymbol):
 
   # return the report
   return report
-
-# print(check_if_docsymbol_exists("A/RES/70/11"))
-# ods_create_update_metadata("A/CONF.94/9")
-# get_data_from_cb("A/CONF.94/9")
-# get_job_number("A/CONF.94/9")
