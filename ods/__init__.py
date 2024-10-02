@@ -81,7 +81,7 @@ def create_app(test_config=None):
                     # add the prefix to the session
                     session["prefix_site"]="NX"
 
-                    return redirect('index')
+                    return redirect(url_for("index_vue"))
 
             
             # check if the user exists in the database with the good password
@@ -118,9 +118,9 @@ def create_app(test_config=None):
                         find_record=True
 
                         if session['username']!="":
-                            return redirect('index')
+                            return redirect(url_for("index_vue"))
                         else:
-                            return redirect("login.html")
+                            return redirect(url_for("login"))
                         
                 if find_record==False:
                     
@@ -138,7 +138,7 @@ def create_app(test_config=None):
             if session['username']!="":
                 return render_template('index_vue.html',session_username=session['username'])
         else:
-            return redirect("/")
+            return  redirect(url_for("login"))
     
     ############################################################################
     # LIST SITE ROUTE
@@ -270,7 +270,20 @@ def create_app(test_config=None):
         # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
         return data
         
+    @app.route("/get_sites",methods=['GET'])
+    def get_sites():
+
+        client = MongoClient(database_conn)
+        my_database = client["odsActions"] 
+        my_collection = my_database["ods_actions_sites_collection"]
         
+        # get all the logs
+        my_sites=my_collection.find(sort=[( "creation_date", -1 )])
+        
+        print(my_sites)
+            
+        # just render the logs
+        return json.loads(json_util.dumps(my_sites))        
         
     ####################################################################################################################################        
     # return prefix from the database
@@ -345,7 +358,7 @@ def create_app(test_config=None):
         # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
         # remove the username from the session if it is there
         session.pop('username', None)
-        return redirect(url_for("index_vue"))
+        return redirect(url_for("login"))
     
     
     @app.route("/display_logs",methods=['GET'])
