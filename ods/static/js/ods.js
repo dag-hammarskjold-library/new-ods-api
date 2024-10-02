@@ -5,7 +5,7 @@ Vue.component('ods', {
                             <a href="/logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
                         </div>
                         <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
-                            <h1> ODS ACTIONS </h1>
+                            <h1> <span class="sofadi-one-regular"> ODS ACTIONS </span></h1>
                         </div>
 
                         <div class="card-header mt-5 mb-1 bg-white">
@@ -284,9 +284,8 @@ Vue.component('ods', {
                                                     <form>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Site</strong></label>
-                                                            <select id="site" class="form-select" v-model="site">
-                                                                <option value="NYC" selected>NYC</option>
-                                                                <option value="GEN">GEN</option>
+                                                            <select id="site" class="form-select"  @click="">
+                                                                <option v-for="my_site in site"  value=my_site selected>{{my_site}}</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
@@ -390,13 +389,8 @@ Vue.component('ods', {
                     </script>
              `,
 created:async function(){
-    const my_response = await fetch("/display_logs",{
-        "method":"GET",
-        });
-    const my_data = await my_response.json();
-    my_data.forEach(element => {
-        this.listOfLogs.push(element)
-    });
+    this.loadLogs()
+    this.loadSites()
     },
 
 data: function () {
@@ -415,7 +409,7 @@ data: function () {
         displayProgress2:false,
         displayProgress3:false,
         displayErrorTab1:[],
-        site:"",
+        site:[],
         email:"",
         password:"",
         show_display:false,
@@ -433,6 +427,27 @@ data: function () {
         
     methods:{
 
+        async loadLogs(){
+        // loading the logs
+        const my_response = await fetch("./display_logs",{
+            "method":"GET",
+            });
+        const my_data = await my_response.json();
+        my_data.forEach(element => {
+            this.listOfLogs.push(element)
+        });
+        },
+        async loadSites(){
+
+        // loading the sites
+        const my_response1 = await fetch("./get_sites",{
+            "method":"GET",
+            });
+        const my_data1 = await my_response1.json();
+        my_data1.forEach(element => {
+            this.site.push(element["code_site"])
+        });
+        },
         async displayMetaData(){
 
         // just in case
@@ -647,9 +662,9 @@ data: function () {
                     let dataset = new FormData()
 
                     // add the fields to the dataset
-                    dataset.append('code_site',this.code_site)
+                    dataset.append('code_site',this.code_site.toUpperCase())
                     dataset.append('label_site',this.label_site)
-                    dataset.append('prefix_site',this.prefix_site)
+                    dataset.append('prefix_site',this.prefix_site.toUpperCase())
 
                     // loading all the data
                     const my_response = await fetch("./add_site",{
@@ -669,7 +684,8 @@ data: function () {
                 }
             else{
                 alert("please check the inputs!!!!") 
-            }        
+            }
+            window.location.reload();      
         },
         downloadCSV(csv) {
                     let csvFile;
