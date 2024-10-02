@@ -161,95 +161,99 @@ def find_update_job_numbers(my_docsymbol:str,my_language:str):
 # create a job number using a batch
 ####################################################################################################################################        
 
-def get_new_job_number(my_docsymbol:str,my_language:str,prefix_jobnumber:str)->dict:
+def get_new_job_number(my_docsymbol:str,my_language:str,my_prefix_jobnumber:str)->dict:
 
-  try:
+  # try:
 
-    # get the collection
-    my_collection = my_database["ods_actions_jobnumbers_collection"]
+  print(my_docsymbol)
+  print(my_language)
+  print(my_prefix_jobnumber)
+  
+  # get the collection
+  my_collection = my_database["ods_actions_jobnumbers_collection"]
+  
+  # get the last value
+  number_of_records=my_collection.estimated_document_count()
+
+  # if the collection is empty        
+  if number_of_records == 0:
+
+    my_number=900000
     
-    # get the last value
-    number_of_records=my_collection.estimated_document_count()
-
-    # if the collection is empty        
-    if number_of_records == 0:
-
-      my_number=900000
-      
-      found_number=False
-      jobnumber_to_insert=""
-      
-      # loop to check if the number exists
-      while found_number==False:
-
-        jobnumber_to_insert=prefix_jobnumber + str(my_number)
-        result=check_if_job_number_exists(jobnumber_to_insert)
-        if (result==False):
-          found_number=True
-        else:
-          my_number=my_number+1
-                    
-      # the collection is empty
-      data = {
-          "created_date": datetime.now(), 
-          "jobnumber_value":jobnumber_to_insert,
-          "docsymbol": my_docsymbol,
-          "language":my_language
-      }
-
-      # save the record in the database
-      resultat=my_collection.insert_one(data)
-
-      # return the jobnumber
-      return data
+    found_number=False
+    jobnumber_to_insert=""
     
-    # if the collection is not empty     
-    if number_of_records !=0:
+    # loop to check if the number exists
+    while found_number==False:
 
-      # get the job number of the last record
-      last_record=my_collection.find().limit(1).sort([('$natural',-1)])
-      
-      # retrieve last_record_number value
-      last_record_number=0 
-      for doc in last_record:
-          last_record_number=doc["jobnumber_value"]
-
-      last_record =int(last_record_number[2:]) + 1
-      found_number=False
-      jobnumber_to_insert=prefix_jobnumber + str(last_record)
-      
-      # loop to check if the number exists
-      while found_number==False:
-
-        result= check_if_job_number_exists(jobnumber_to_insert)
-
-        if result==False:
-          found_number=True
-        else:
-          last_record=last_record+1
-          jobnumber_to_insert=prefix_jobnumber + str(last_record)        
-      
-      data = {
-          "created_date": datetime.now(), 
-          "jobnumber_value":jobnumber_to_insert,
-          "docsymbol": my_docsymbol,
-          "language":my_language
-      }
-        
-                    
-      # save the log in the database
-      my_collection.insert_one(data)
-      return data
-      
-  except:
-    
-    result={
-        "result":"NOK",
-        "jobnumber":"",
-        "id":""
+      jobnumber_to_insert=my_prefix_jobnumber + str(my_number)
+      result=check_if_job_number_exists(jobnumber_to_insert)
+      if (result==False):
+        found_number=True
+      else:
+        my_number=my_number+1
+                  
+    # the collection is empty
+    data = {
+        "created_date": datetime.now(), 
+        "jobnumber_value":jobnumber_to_insert,
+        "docsymbol": my_docsymbol,
+        "language":my_language
     }
 
-    return result
+    # save the record in the database
+    resultat=my_collection.insert_one(data)
+
+    # return the jobnumber
+    return data
+  
+  # if the collection is not empty     
+  if number_of_records !=0:
+
+    # get the job number of the last record
+    last_record=my_collection.find().limit(1).sort([('$natural',-1)])
+    
+    # retrieve last_record_number value
+    last_record_number=0 
+    for doc in last_record:
+        last_record_number=doc["jobnumber_value"]
+
+    last_record =int(last_record_number[2:]) + 1
+    found_number=False
+    jobnumber_to_insert=my_prefix_jobnumber + str(last_record)
+    
+    # loop to check if the number exists
+    while found_number==False:
+
+      result= check_if_job_number_exists(jobnumber_to_insert)
+
+      if result==False:
+        found_number=True
+      else:
+        last_record=last_record+1
+        jobnumber_to_insert=my_prefix_jobnumber + str(last_record)        
+    
+    data = {
+        "created_date": datetime.now(), 
+        "jobnumber_value":jobnumber_to_insert,
+        "docsymbol": my_docsymbol,
+        "language":my_language
+    }
+      
+                  
+    # save the log in the database
+    my_collection.insert_one(data)
+    return data
+      
+  # except:
+    
+  #   result={
+  #       "result":"NOK",
+  #       "jobnumber":"",
+  #       "id":""
+  #   }
+
+  #   return result
 
 ####################################################################################################################################                
 #release job number not used
@@ -480,6 +484,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       counter=0
       for counter in range(7):
         recup=get_new_job_number(my_symbol,LANGUAGES[counter],prefix_jobnumber)
+        print(recup)
         jobnumbers.append(recup["jobnumber_value"])
 
       # define payload
