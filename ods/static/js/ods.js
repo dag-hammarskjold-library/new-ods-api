@@ -284,8 +284,8 @@ Vue.component('ods', {
                                                     <form>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Site</strong></label>
-                                                            <select id="site" class="form-select"  @click="">
-                                                                <option v-for="my_site in site"  value=my_site selected>{{my_site}}</option>
+                                                            <select id="site" class="form-select" v-model="code_site">
+                                                                <option v-for="my_site in site">{{my_site}}</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
@@ -614,6 +614,9 @@ data: function () {
             return result
         },
         async addUser(){
+
+            let my_site= document.getElementById("site")
+            let my_value=my_site.value
             
             let result=this.checkInput()
 
@@ -623,7 +626,7 @@ data: function () {
                     let dataset = new FormData()
 
                     // add the fields to the dataset
-                    dataset.append('site',this.site)
+                    dataset.append('site',my_value)
                     dataset.append('email',this.email)
                     dataset.append('password',this.password)
                     dataset.append('show_display',this.show_display)
