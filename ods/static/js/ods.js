@@ -2,7 +2,7 @@ Vue.component('ods', {
     template: `
                 <div class="card mt-5 ml-5" style="margin:auto;height:700px;width:1150px;">
                         <div class="mt-3 d-flex justify-content-center">
-                            <a href="/logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
+                            <a href="./logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
                         </div>
                         <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
                             <h1> <span class="sofadi-one-regular"> ODS ACTIONS </span></h1>
@@ -388,343 +388,339 @@ Vue.component('ods', {
                     });
                     </script>
              `,
-created:async function(){
-    this.loadLogs()
-    this.loadSites()
+    created: async function () {
+        this.loadLogs()
+        this.loadSites()
     },
 
-data: function () {
-    return {
-        // Management of the display of the # divs
-        displayResult:false,
-        displayResult1:false,
-        displayResult2:false,
-        listOfRecordsDiplayMetaData:[],
-        listOfResult1:[],
-        listOfResult2:[],
-        docsymbols:"",
-        docsymbols1:"",
-        docsymbols2:"",
-        displayProgress1:false,
-        displayProgress2:false,
-        displayProgress3:false,
-        displayErrorTab1:[],
-        site:[],
-        email:"",
-        password:"",
-        show_display:false,
-        show_create_update:false,
-        show_send_file:false,
-        show_jobnumbers_management:false,
-        show_parameters:false,
-        creation_date:"",
-        listOfLogs:[],
-        code_site:"",
-        label_site:"",
-        prefix_site:"",
-    }
+    data: function () {
+        return {
+            // Management of the display of the # divs
+            displayResult: false,
+            displayResult1: false,
+            displayResult2: false,
+            listOfRecordsDiplayMetaData: [],
+            listOfResult1: [],
+            listOfResult2: [],
+            docsymbols: "",
+            docsymbols1: "",
+            docsymbols2: "",
+            displayProgress1: false,
+            displayProgress2: false,
+            displayProgress3: false,
+            displayErrorTab1: [],
+            site: [],
+            email: "",
+            password: "",
+            show_display: false,
+            show_create_update: false,
+            show_send_file: false,
+            show_jobnumbers_management: false,
+            show_parameters: false,
+            creation_date: "",
+            listOfLogs: [],
+            code_site: "",
+            label_site: "",
+            prefix_site: "",
+        }
     },
-        
-    methods:{
 
-        async loadLogs(){
-        // loading the logs
-        const my_response = await fetch("./display_logs",{
-            "method":"GET",
+    methods: {
+
+        async loadLogs() {
+            // loading the logs
+            const my_response = await fetch("./display_logs", {
+                "method": "GET",
             });
-        const my_data = await my_response.json();
-        my_data.forEach(element => {
-            this.listOfLogs.push(element)
-        });
-        },
-        async loadSites(){
-
-        // loading the sites
-        const my_response1 = await fetch("./get_sites",{
-            "method":"GET",
-            });
-        const my_data1 = await my_response1.json();
-        my_data1.forEach(element => {
-            this.site.push(element["code_site"])
-        });
-        },
-        async displayMetaData(){
-
-        // just in case
-        this.displayResult=false;
-
-        // display Progress bar
-        this.displayProgress1=true
-
-        // Just to refresh the UI
-        this.listOfRecordsDiplayMetaData=[]
-        
-        let dataset = new FormData()
-        let cleanedDocSymbols = this.docsymbols.toUpperCase(); 
-        dataset.append('docsymbols',cleanedDocSymbols)
-    
-        // loading all the data
-        const my_response = await fetch("./loading_symbol",{
-            "method":"POST",
-            "body":dataset
-            });
-            
-        const my_data = await my_response.json();
-        
-        // loading data
-        try {        
+            const my_data = await my_response.json();
             my_data.forEach(element => {
-            if (element["body"]["data"].length!==0)    
-                this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
-            })
-            
-        } catch (error) {
-            // remove Progress bar
-            this.displayProgress1=false
-        }
-        finally{
-            // remove Progress bar
-            this.displayProgress1=false
-        }
-
-        // display Results
-        if (this.listOfRecordsDiplayMetaData.length>=1)
-            this.displayResult=true;
-
+                this.listOfLogs.push(element)
+            });
         },
-              
-        async displayResultCreateUpdate(){
+        async loadSites() {
+
+            // loading the sites
+            const my_response1 = await fetch("./get_sites", {
+                "method": "GET",
+            });
+            const my_data1 = await my_response1.json();
+            my_data1.forEach(element => {
+                this.site.push(element["code_site"])
+            });
+        },
+        async displayMetaData() {
 
             // just in case
-            this.displayResult1=false;
+            this.displayResult = false;
 
             // display Progress bar
-            this.displayProgress2=true
+            this.displayProgress1 = true
 
             // Just to refresh the UI
-            this.listOfResult1=[]
-            
-            let dataset = new FormData()
-            dataset.append('docsymbols1',this.docsymbols1)
+            this.listOfRecordsDiplayMetaData = []
 
-        
+            let dataset = new FormData()
+            let cleanedDocSymbols = this.docsymbols.toUpperCase();
+            dataset.append('docsymbols', cleanedDocSymbols)
+
             // loading all the data
-            const my_response = await fetch("./create_metadata_ods",{
-                "method":"POST",
-                "body":dataset
-                });
-            
-        
-           
+            const my_response = await fetch("./loading_symbol", {
+                "method": "POST",
+                "body": dataset
+            });
+
             const my_data = await my_response.json();
 
-            try {        
+            // loading data
+            try {
+                my_data.forEach(element => {
+                    if (element["body"]["data"].length !== 0)
+                        this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
+                })
+
+            } catch (error) {
+                // remove Progress bar
+                this.displayProgress1 = false
+            }
+            finally {
+                // remove Progress bar
+                this.displayProgress1 = false
+            }
+
+            // display Results
+            if (this.listOfRecordsDiplayMetaData.length >= 1)
+                this.displayResult = true;
+
+        },
+
+        async displayResultCreateUpdate() {
+
+            // just in case
+            this.displayResult1 = false;
+
+            // display Progress bar
+            this.displayProgress2 = true
+
+            // Just to refresh the UI
+            this.listOfResult1 = []
+
+            let dataset = new FormData()
+            dataset.append('docsymbols1', this.docsymbols1)
+
+
+            // loading all the data
+            const my_response = await fetch("./create_metadata_ods", {
+                "method": "POST",
+                "body": dataset
+            });
+
+
+
+            const my_data = await my_response.json();
+
+            try {
                 my_data.forEach(elements => {
                     //console.log(typeof(elements))
-                    this.listOfResult1=this.listOfResult1.concat(elements)
+                    this.listOfResult1 = this.listOfResult1.concat(elements)
                 })
-                
+
             } catch (error) {
                 //alert(error)
             }
-            finally{
+            finally {
                 // display Progress bar
-                this.displayProgress2=false
+                this.displayProgress2 = false
             }
 
             //this.listOfResult1.push(my_data)
 
-    
+
             // hide Progress bar
             //this.displayProgress2=false
 
             // display the results of the query
-            this.displayResult1=true;
-            
-            },
+            this.displayResult1 = true;
 
-            async displayResultSendFile(){
+        },
 
-                // just in case
-                this.displayResult2=false;
+        async displayResultSendFile() {
 
+            // just in case
+            this.displayResult2 = false;
+
+            // display Progress bar
+            this.displayProgress3 = true
+
+            let dataset = new FormData()
+            dataset.append('docsymbols2', this.docsymbols2)
+
+            // loading all the data
+            const my_response = await fetch("./exporttoodswithfile", {
+                "method": "POST",
+                "body": dataset
+            });
+
+            const my_data = await my_response.json()
+            // console.log(my_data)
+            // loading data
+            try {
+                my_data.forEach(elements => {
+                    //console.log(typeof(elements))
+                    this.listOfResult2 = this.listOfResult2.concat(elements)
+                })
+
+            } catch (error) {
+                alert(error)
+            }
+            finally {
                 // display Progress bar
-                this.displayProgress3=true
-                
-                let dataset = new FormData()
-                dataset.append('docsymbols2',this.docsymbols2)
-            
-                // loading all the data
-                const my_response = await fetch("./exporttoodswithfile",{
-                    "method":"POST",
-                    "body":dataset
-                    });
-                                   
-                const my_data = await my_response.json()
-                // console.log(my_data)
-                // loading data
-                try {        
-                    my_data.forEach(elements => {
-                        //console.log(typeof(elements))
-                        this.listOfResult2=this.listOfResult2.concat(elements)
-                    })
-                    
-                } catch (error) {
-                    alert(error)
-                }
-                finally{
-                    // display Progress bar
-                    this.displayProgress3=false
-                }
+                this.displayProgress3 = false
+            }
 
-                if (this.listOfResult2.length!=0){
-                    this.displayResult2=true;
-                    }
-            },
-        checkInput(){
+            if (this.listOfResult2.length != 0) {
+                this.displayResult2 = true;
+            }
+        },
+        checkInput() {
             // init the variable
-            let result=true;
+            let result = true;
 
             // check the checkboxes
             if (this.show_display == false && this.show_create_update == false && this.show_send_file == false && this.show_jobnumbers_management == false && this.show_parameters == false)
-                result=false
+                result = false
 
             // check the inputs
-            if (this.site =="") result=false
-            if (this.email =="") result=false
-            if (this.password =="") result=false
+            if (this.site == "") result = false
+            if (this.email == "") result = false
+            if (this.password == "") result = false
 
             // check valid email
             const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (regex.test(this.email)==false) result=false
+            if (regex.test(this.email) == false) result = false
 
             // send the result of the validation
             return result
         },
-        checkInput1(){
+        checkInput1() {
             // init the variable
-            let result=true;
+            let result = true;
 
             // check the inputs
-            if (this.code_sitesite =="" || this.code_site.length!==3) result=false
-            if (this.label_site =="") result=false
-            if (this.prefix_site =="" || this.prefix_site.length!==2) result=false
+            if (this.code_sitesite == "" || this.code_site.length !== 3) result = false
+            if (this.label_site == "") result = false
+            if (this.prefix_site == "" || this.prefix_site.length !== 2) result = false
 
             // send the result of the validation
             return result
         },
-        async addUser(){
+        async addUser() {
 
-            let my_site= document.getElementById("site")
-            let my_value=my_site.value
-            
-            let result=this.checkInput()
+            let my_site = document.getElementById("site")
+            let my_value = my_site.value
 
-            if (result==true)
-                {
-                    // define the dataset
-                    let dataset = new FormData()
+            let result = this.checkInput()
 
-                    // add the fields to the dataset
-                    dataset.append('site',my_value)
-                    dataset.append('email',this.email)
-                    dataset.append('password',this.password)
-                    dataset.append('show_display',this.show_display)
-                    dataset.append('show_create_update',this.show_create_update)
-                    dataset.append('show_send_file',this.show_send_file)
-                    dataset.append('show_jobnumbers_management',this.show_jobnumbers_management)
-                    dataset.append('show_parameters',this.show_parameters)
+            if (result == true) {
+                // define the dataset
+                let dataset = new FormData()
 
-                    // loading all the data
-                    const my_response = await fetch("./add_user",{
-                        "method":"POST",
-                        "body":dataset
-                        });
-                                    
-                    const my_data = await my_response.json()
-                    try 
-                        {        
-                        alert(my_data.message)
-                        }
-                        
-                    catch (error) {
-                        alert(error)
-                    }
+                // add the fields to the dataset
+                dataset.append('site', my_value)
+                dataset.append('email', this.email)
+                dataset.append('password', this.password)
+                dataset.append('show_display', this.show_display)
+                dataset.append('show_create_update', this.show_create_update)
+                dataset.append('show_send_file', this.show_send_file)
+                dataset.append('show_jobnumbers_management', this.show_jobnumbers_management)
+                dataset.append('show_parameters', this.show_parameters)
+
+                // loading all the data
+                const my_response = await fetch("./add_user", {
+                    "method": "POST",
+                    "body": dataset
+                });
+
+                const my_data = await my_response.json()
+                try {
+                    alert(my_data.message)
                 }
-            else{
-                alert("please check the inputs!!!!") 
-            }        
-        },
-        async addSite(){
-            
-            let result=this.checkInput1()
 
-            if (result==true)
-                {
-                    // define the dataset
-                    let dataset = new FormData()
-
-                    // add the fields to the dataset
-                    dataset.append('code_site',this.code_site.toUpperCase())
-                    dataset.append('label_site',this.label_site)
-                    dataset.append('prefix_site',this.prefix_site.toUpperCase())
-
-                    // loading all the data
-                    const my_response = await fetch("./add_site",{
-                        "method":"POST",
-                        "body":dataset
-                        });
-                                    
-                    const my_data = await my_response.json()
-                    try 
-                        {        
-                        alert(my_data.message)
-                        }
-                        
-                    catch (error) {
-                        alert(error)
-                    }
+                catch (error) {
+                    alert(error)
                 }
-            else{
-                alert("please check the inputs!!!!") 
             }
-            window.location.reload();      
+            else {
+                alert("please check the inputs!!!!")
+            }
+        },
+        async addSite() {
+
+            let result = this.checkInput1()
+
+            if (result == true) {
+                // define the dataset
+                let dataset = new FormData()
+
+                // add the fields to the dataset
+                dataset.append('code_site', this.code_site.toUpperCase())
+                dataset.append('label_site', this.label_site)
+                dataset.append('prefix_site', this.prefix_site.toUpperCase())
+
+                // loading all the data
+                const my_response = await fetch("./add_site", {
+                    "method": "POST",
+                    "body": dataset
+                });
+
+                const my_data = await my_response.json()
+                try {
+                    alert(my_data.message)
+                }
+
+                catch (error) {
+                    alert(error)
+                }
+            }
+            else {
+                alert("please check the inputs!!!!")
+            }
+            window.location.reload();
         },
         downloadCSV(csv) {
-                    let csvFile;
-                    let downloadLink;
-                
-                    // CSV file
-                    csvFile = new Blob([csv], {type: "text/csv"});
-                
-                    // Download link
-                    downloadLink = document.createElement("a");
-                
-                    // File name
-                    downloadLink.download = "export.csv";
-                
-                    // Create a link to the file
-                    downloadLink.href = window.URL.createObjectURL(csvFile);
-                
-                    // Hide the link
-                    downloadLink.style.display = "none";
-                
-                    // Add the link to the DOM
-                    document.body.appendChild(downloadLink);
-                
-                    // Click the link
-                    downloadLink.click();
+            let csvFile;
+            let downloadLink;
+
+            // CSV file
+            csvFile = new Blob([csv], { type: "text/csv" });
+
+            // Download link
+            downloadLink = document.createElement("a");
+
+            // File name
+            downloadLink.download = "export.csv";
+
+            // Create a link to the file
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+
+            // Hide the link
+            downloadLink.style.display = "none";
+
+            // Add the link to the DOM
+            document.body.appendChild(downloadLink);
+
+            // Click the link
+            downloadLink.click();
         },
         exportTableToCSV(tableName) {
             let csv = [];
             let rows = document.getElementById(tableName).rows;
-        
+
             for (let i = 0; i < rows.length; i++) {
                 let row = [], cols = rows[i].querySelectorAll("td, th");
-        
-                for (let j = 0; j < cols.length; j++) 
+
+                for (let j = 0; j < cols.length; j++)
                     row.push(cols[j].innerText);
-        
+
                 csv.push(row.join(","));
             }
             // Download CSV file
@@ -732,19 +728,19 @@ data: function () {
         },
         exportExcel(tableName) {
             const uri = 'data:application/vnd.ms-excel;base64,',
-            template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>',
-            base64 = function(s) {
-            return window.btoa(unescape(encodeURIComponent(s)))
-            },
-            format = function(s, c) {
-            return s.replace(/{(\w+)}/g, function(m, p) {
-            return c[p];
-            })
-            }
+                template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>',
+                base64 = function (s) {
+                    return window.btoa(unescape(encodeURIComponent(s)))
+                },
+                format = function (s, c) {
+                    return s.replace(/{(\w+)}/g, function (m, p) {
+                        return c[p];
+                    })
+                }
             var toExcel = document.getElementById(tableName).innerHTML;
             var ctx = {
-            worksheet: name || '',
-            table: toExcel
+                worksheet: name || '',
+                table: toExcel
             };
             var link = document.createElement("a");
             link.download = "export.xls";
@@ -753,7 +749,7 @@ data: function () {
         },
     },
 })
-  
+
 let app_ods = new Vue({
-  el: '#ods_component'
+    el: '#ods_component'
 })
