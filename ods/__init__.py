@@ -354,7 +354,7 @@ def create_app(test_config=None):
     @app.route('/logout')
     def logout():
         # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),"username","Disconnected from the system!!!")
         
         # remove the username from the session if it is there
         session.pop('username', None)
