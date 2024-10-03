@@ -2,7 +2,7 @@ Vue.component('ods', {
     template: `
                 <div class="card mt-5 ml-5" style="margin:auto;height:700px;width:1150px;">
                         <div class="mt-3 d-flex justify-content-center">
-                            <a href="/logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
+                            <a href="./logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
                         </div>
                         <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
                             <h1> <span class="sofadi-one-regular"> ODS ACTIONS </span></h1>
