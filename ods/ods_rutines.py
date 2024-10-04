@@ -163,11 +163,7 @@ def find_update_job_numbers(my_docsymbol:str,my_language:str):
 
 def get_new_job_number(my_docsymbol:str,my_language:str,my_prefix_jobnumber:str)->dict:
 
-  # try:
-
-  print(my_docsymbol)
-  print(my_language)
-  print(my_prefix_jobnumber)
+  # try
   
   # get the collection
   my_collection = my_database["ods_actions_jobnumbers_collection"]
