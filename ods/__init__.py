@@ -80,6 +80,14 @@ def create_app(test_config=None):
                     
                     # add the prefix to the session
                     session["prefix_site"]="NX"
+                    
+                    # management of the access to the tabs
+                    session["show_display"]=True
+                    session["show_create_update"]=True
+                    session["show_send_file"]=True
+                    session["show_jobnumbers_management"]=True
+                    session["show_parameters"]=True
+                    
 
                     return redirect(url_for("index_vue"))
 
@@ -107,13 +115,20 @@ def create_app(test_config=None):
                     if check_password_hash(result["password"],request.form.get("password")):
                 
                         # user found
-                        #ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
+                        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
                         
                         # add the username to the session
                         session['username'] = result["email"]
                         
                         # add the prefix to the session
                         session["prefix_site"]=get_prefix_from_site(result["site"])
+                        
+                         # management of the access to the tabs
+                        session["show_display"]=result["show_display"]
+                        session["show_create_update"]=result["show_create_update"]
+                        session["show_send_file"]=result["show_send_file"]
+                        session["show_jobnumbers_management"]=result["show_jobnumbers_management"]
+                        session["show_parameters"]=result["show_parameters"]
                         
                         find_record=True
 
@@ -136,7 +151,22 @@ def create_app(test_config=None):
     def index_vue():
         if session:
             if session['username']!="":
-                return render_template('index_vue.html',session_username=session['username'])
+
+                session_username=session['username']
+                session_show_display=session["show_display"]
+                session_show_create_update=session["show_create_update"]
+                session_show_send_file=session["show_send_file"]
+                session_show_jobnumbers_management=session["show_jobnumbers_management"]
+                session_show_parameters=session["show_parameters"]
+
+                return render_template('index_vue.html',
+                                       session_username=session_username,
+                                       session_show_display=session_show_display,
+                                       session_show_create_update=session_show_create_update,
+                                       session_show_send_file=session_show_send_file,
+                                       session_show_jobnumbers_management=session_show_jobnumbers_management,
+                                       session_show_parameters=session_show_parameters
+                                       )
         else:
             return  redirect(url_for("login"))
     
@@ -180,7 +210,7 @@ def create_app(test_config=None):
             my_site=my_collection.insert_one(site)
             
             # create log
-            # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
+            ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
             
             if (my_site.inserted_id):
                 result={
@@ -234,7 +264,7 @@ def create_app(test_config=None):
             my_user=my_collection.insert_one(user)
             
             # create log
-            # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
+            ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
             
             if (my_user.inserted_id):
                 result={
@@ -266,8 +296,10 @@ def create_app(test_config=None):
     def loading_symbol():
         docsymbols = request.form["docsymbols"].split("\r\n")
         data= [ ods.ods_rutines.ods_get_loading_symbol(docsymbol)  for docsymbol in docsymbols ]   
+        
         # create log
-        # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+        
         return data
         
     @app.route("/get_sites",methods=['GET'])
@@ -279,9 +311,7 @@ def create_app(test_config=None):
         
         # get all the logs
         my_sites=my_collection.find(sort=[( "creation_date", -1 )])
-        
-        print(my_sites)
-            
+           
         # just render the logs
         return json.loads(json_util.dumps(my_sites))        
         
@@ -315,7 +345,6 @@ def create_app(test_config=None):
         docsymbols = request.form["docsymbols1"].replace("\r","").split("\n")
         data=[]
         prefix=session["prefix_site"]
-        print(prefix)
         
         for docsymbol in docsymbols:
             result=ods.ods_rutines.ods_create_update_metadata(docsymbol,prefix)
@@ -332,7 +361,8 @@ def create_app(test_config=None):
                 }
             data.append(summary)
         # create log
-        # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
+        
         return data
     
     ############################################################################
@@ -346,7 +376,8 @@ def create_app(test_config=None):
         for record in data_send_multiple:
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
         # create log
-        #ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        
         return json.dumps(result)
     
     ############################################################################
@@ -355,9 +386,14 @@ def create_app(test_config=None):
     @app.route('/logout')
     def logout():
         # create log
-        # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
+        
         # remove the username from the session if it is there
         session.pop('username', None)
+        session.pop('session_show_display', None)
+        session.pop('session_show_send_file', None)
+        session.pop('session_show_jobnumbers_management', None)
+        session.pop('session_show_parameters', None)
         return redirect(url_for("login"))
     
     
