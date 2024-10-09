@@ -73,7 +73,7 @@ def create_app(test_config=None):
                 if request.form.get("password")==config("default_password"):
                     
                     # special user
-                    # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
+                    ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
                     
                     # add the username to the session
                     session['username'] = config("default_username")
@@ -107,7 +107,7 @@ def create_app(test_config=None):
                     if check_password_hash(result["password"],request.form.get("password")):
                 
                         # user found
-                        #ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
+                        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
                         
                         # add the username to the session
                         session['username'] = result["email"]
@@ -180,7 +180,7 @@ def create_app(test_config=None):
             my_site=my_collection.insert_one(site)
             
             # create log
-            # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
+            ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
             
             if (my_site.inserted_id):
                 result={
@@ -234,7 +234,7 @@ def create_app(test_config=None):
             my_user=my_collection.insert_one(user)
             
             # create log
-            # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
+            ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
             
             if (my_user.inserted_id):
                 result={
@@ -267,7 +267,7 @@ def create_app(test_config=None):
         docsymbols = request.form["docsymbols"].split("\r\n")
         data= [ ods.ods_rutines.ods_get_loading_symbol(docsymbol)  for docsymbol in docsymbols ]   
         # create log
-        # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
         return data
         
     @app.route("/get_sites",methods=['GET'])
@@ -332,7 +332,7 @@ def create_app(test_config=None):
                 }
             data.append(summary)
         # create log
-        # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
         return data
     
     ############################################################################
@@ -346,7 +346,7 @@ def create_app(test_config=None):
         for record in data_send_multiple:
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
         # create log
-        #ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
         return json.dumps(result)
     
     ############################################################################
@@ -355,7 +355,7 @@ def create_app(test_config=None):
     @app.route('/logout')
     def logout():
         # create log
-        # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
         # remove the username from the session if it is there
         session.pop('username', None)
         return redirect(url_for("login"))
