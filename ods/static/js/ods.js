@@ -7,14 +7,16 @@ Vue.component('ods', {
                         <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
                             <h1> <span class="sofadi-one-regular"> ODS ACTIONS </span></h1>
                         </div>
-
-                        <div class="card-header mt-5 mb-1 bg-white">
+                        <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
+                            <h5> <span> <i class="fas fa-user"></i> connected : {{session_username}} </span></h5>
+                        </div>
+                        <div class="card-header mt-5 mb-1 bg-white"> 
                             <ul class="nav nav-tabs card-header-tabs bg-white">
-                                <li class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
-                                <li class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false"><strong>Create/Update existing metadata to ODS</strong></button></li>
-                                <li class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Send files to ODS</strong></button></li>
-                                <!-- <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>-->
-                                <li class="nav-item"> <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false"><strong>Parameters</strong></button></li>
+                                <li v-if="session_show_display=='true'" class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
+                                <li v-if="session_show_create_update=='true'"  class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false"><strong>Send metadata to ODS</strong></button></li>
+                                <li v-if="session_show_send_file=='true'" class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Send files to ODS</strong></button></li>
+                                <!--v-if="session_show_jobnumbers_management=='true'"  <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>-->
+                                <li v-if="session_show_parameters=='true'"  class="nav-item"> <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false"><strong>Parameters</strong></button></li>
                             </ul>
                         </div>
                         
@@ -23,7 +25,8 @@ Vue.component('ods', {
                             <div class="tab-content">
                             
                                 <!-- First Tab -->	
-                                <div class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
+                                
+                                <div v-if="session_show_display=='true'" class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
                                     <form class="form-inline" @submit.prevent>
                                         <textarea id="docsymbols" class="col-11" rows="7" style=""  placeholder="Paste the list of symbols here (new line separated)" name="docsymbols" v-model="docsymbols"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  id="toggleButton" style="margin: 10px auto;padding: 10px;" @click="displayMetaData(docsymbols);">Apply</button>
@@ -98,7 +101,7 @@ Vue.component('ods', {
                                     
                         
                                 <!-- Second Tab -->	
-                                <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
+                                <div v-if="session_show_create_update=='true'" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
                                         <textarea id="docsymbols1" rows="7" class="col-11" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols1" v-model="docsymbols1"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" @click="displayResultCreateUpdate(docsymbols1);">Send</button>
@@ -158,7 +161,7 @@ Vue.component('ods', {
                                 
                             
                                 <!-- Third Tab -->	
-                                <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
+                                <div v-if="session_show_send_file=='true'" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
                                         <textarea class="col-11" rows="7" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols2" v-model="docsymbols2"></textarea>
                                         <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" v-if="displayResult2==false"  @click="displayResultSendFile(docsymbols2)">Send</button> 
@@ -234,7 +237,7 @@ Vue.component('ods', {
 
                                   
                                 <!-- Parameters Tab -->	
-                                    <div class="tab-pane fade show" id="parameters" role="tabpanel">
+                                    <div v-if="session_show_parameters=='true'" class="tab-pane fade show" id="parameters" role="tabpanel">
 
                                     <div class="accordion" id="accordionExample">
                                         <div class="accordion-item" id="sites">
@@ -392,7 +395,7 @@ created:async function(){
     this.loadLogs()
     this.loadSites()
     },
-
+props: ['session_username','session_show_display','session_show_create_update','session_show_send_file','session_show_jobnumbers_management','session_show_parameters'],
 data: function () {
     return {
         // Management of the display of the # divs
