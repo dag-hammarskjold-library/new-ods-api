@@ -50,6 +50,12 @@ client = MongoClient(config("CONN"))
 my_database = client["odsActions"] 
 
 ########################################################################
+# Connect to Central DB
+########################################################################
+
+DB.connect(Config.connect_string, database="undlFiles")
+
+########################################################################
 # function managing the creation of the logs depending of the context
 ########################################################################
 
@@ -69,6 +75,34 @@ def add_log(date_log:str,user_connected:str,action_log:str)-> int:
         
         # save the log in the database
         my_collection.insert_one(my_log)
+        
+        return 0
+        
+    except:
+
+        return -1
+
+########################################################################
+# function managing the creation of the logs depending of the context
+########################################################################
+
+def add_analytics(date_analytics:str,user_connected:str,action_analytics:str,data:list)-> int:
+    
+    try:
+        
+        # setup the database and the collection
+        my_collection = my_database["ods_actions_analytics_collection"]
+
+        # creation of the log object
+        my_analytics = {
+            "user": user_connected,
+            "action": action_analytics,
+            "date": date_analytics,
+            "data":data
+        }
+        
+        # save the log in the database
+        my_collection.insert_one(my_analytics)
         
         return 0
         
@@ -381,7 +415,7 @@ def get_data_from_cb(symbols):
   
   lst=[]
   try:
-    DB.connect(Config.connect_string, database="undlFiles")
+    # DB.connect(Config.connect_string, database="undlFiles")
     symbol=escape_characters(symbols,"()")
     query = Query.from_string("191__a:'"+symbol+"'") 
     #print(f'query is 191__a:'''{symbol}'')
@@ -562,7 +596,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
   else : # the symbol is not new it's an update
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
-    print(datamodel)
+
     if len(datamodel)>0:
       # assign the values from central database to local variables
       my_symbol=datamodel[0]["symbol"]
@@ -751,7 +785,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
 
 def get_data_from_undl(docsymbol):
   
-  DB.connect(Config.connect_string, database="undlFiles")
+  # DB.connect(Config.connect_string, database="undlFiles")
   docsymbol_formatted=docsymbol.replace("/","\/")
   query = Query.from_string(f"191__a:'"+ docsymbol_formatted +"'") 
   lst=[]
@@ -793,8 +827,8 @@ def download_file_and_send_to_ods(docsymbol):
   
   if my_matche!=0: # the symbol is new we can create 
     
-    # connect to the database
-    DB.connect(Config.connect_string, database="undlFiles")
+    # # connect to the database
+    # DB.connect(Config.connect_string, database="undlFiles")
 
     # query the database according to the document symbol
     time1=time.time()
@@ -890,7 +924,7 @@ def download_file_and_send_to_ods(docsymbol):
                               "result":"downloaded and sent successfully!!!"
                               })
               print(f'   elapsed time for upload of all files in {time.time()-time0}')
-              time.sleep(3)
+              # time.sleep(3)
             else:
               report.append({
                             "filename":filename,

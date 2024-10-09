@@ -299,6 +299,10 @@ def create_app(test_config=None):
         
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+        
+        # create analytics
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",data)
+        
         return data
         
     @app.route("/get_sites",methods=['GET'])
@@ -361,6 +365,10 @@ def create_app(test_config=None):
             data.append(summary)
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
+        
+        # create analytics
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"creating_updating_endpoint",data)
+        
         return data
     
     ############################################################################
@@ -375,6 +383,10 @@ def create_app(test_config=None):
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        
+        # create analytics
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"send_file_endpoint",result)
+        
         return json.dumps(result)
     
     ############################################################################
