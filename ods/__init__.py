@@ -73,7 +73,7 @@ def create_app(test_config=None):
                 if request.form.get("password")==config("default_password"):
                     
                     # special user
-                    # ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
+                    ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
                     
                     # add the username to the session
                     session['username'] = config("default_username")
@@ -299,7 +299,6 @@ def create_app(test_config=None):
         
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
-        
         return data
         
     @app.route("/get_sites",methods=['GET'])
@@ -362,7 +361,6 @@ def create_app(test_config=None):
             data.append(summary)
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
-        
         return data
     
     ############################################################################
@@ -377,7 +375,6 @@ def create_app(test_config=None):
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
-        
         return json.dumps(result)
     
     ############################################################################
@@ -387,7 +384,7 @@ def create_app(test_config=None):
     def logout():
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
-        
+
         # remove the username from the session if it is there
         session.pop('username', None)
         session.pop('session_show_display', None)
