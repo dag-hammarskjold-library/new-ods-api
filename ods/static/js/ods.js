@@ -1,6 +1,6 @@
 Vue.component('ods', {
     template: `
-                <div class="card mt-5 ml-5" style="margin:auto;height:700px;width:1150px;">
+                <div class="card mt-5 ml-5" style="margin:auto;height:1000px;width:1150px;">
                         <div class="mt-3 d-flex justify-content-center">
                             <a href="./logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
                         </div>
@@ -57,9 +57,9 @@ Vue.component('ods', {
                                                 <span class="visually-hidden">Loading...</span>
                                             </div>
                                         </div>
-                                    <div class="table-responsive col-11" style="margin: 20px auto;" v-if="displayResult">
+                                    <div class="col-11" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult">
                                        
-                                        <table id="MyTable" class="table table-bordered table-responsive ">
+                                        <table id="MyTable" class="table table-bordered table-responsive table-striped ">
                                             <thead class="table-light">
                                             <tr>
                                                 <th scope="col">Document Symbol</th>
@@ -132,9 +132,9 @@ Vue.component('ods', {
                                                 <span class="visually-hidden">Loading...</span>
                                             </div>
                                         </div>
-                                    <div class="table-responsive col-11" style="margin: 20px auto;" v-if="displayResult1">
+                                    <div class="table-responsive col-11" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult1">
                                        
-                                        <table id="MyTable1" class="table">
+                                        <table id="MyTable1" class="table table-striped">
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>Document Symbol</th>
@@ -192,10 +192,10 @@ Vue.component('ods', {
                                                 <span class="visually-hidden">Loading...</span>
                                             </div>
                                         </div>
-                                    <div class="table-responsive col-11 shadow" style="margin: 20px auto;" v-if="displayResult2">
+                                    <div class="table-responsive col-11 shadow" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult2">
                                 
-                                        <table id="MyTable2" class="table">
-                                            <thead class="table-light">
+                                        <table style="height:400px;overflow:auto;margin: 20px auto;" id="MyTable2" class="table">
+                                            <thead class="table-light table-striped">
                                                 <tr>
                                                     <th>Filename </th>
                                                     <th>Document symbol</th>
@@ -341,7 +341,7 @@ Vue.component('ods', {
                                                 <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
                                                     <button type="submit" class="btn btn-success ml-1 align-items-center" type="button" @click="exportTableToCSV('listlogs')">Export all the logs in csv</button>
-                                                    <div class="shadow">
+                                                    <div class="shadow" style="height:400px;overflow:auto;margin: 20px auto;">
                                                         <table class="table table-striped tableau" id="listlogs">
                                                         <thead>
                                                             <tr>
@@ -472,16 +472,53 @@ data: function () {
             "body":dataset
             });
             
-        const my_data = await my_response.json();
-        
+        const my_data = await my_response.json()
+
         // loading data
-        try {        
+        try {     
             my_data.forEach(element => {
-            if (element["body"]["data"].length!==0)    
-                this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
+
+                // check the length of the data array to see if we found the information
+                
+                // use case 1 : we found the data
+                if (element["body"]["data"].length!==0) 
+                    this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
+
+                // use case 2 : we did not find the data
+                if (element["body"]["data"].length===0) {
+                    // creation of the object
+                    this.listOfRecordsDiplayMetaData.push(
+                        [{
+                            symbol:element["docsymbol"],
+                            agendas:"Not found",
+                            sessions:"Not found",
+                            distribution:"Not found",
+                            area:"Not found",
+                            subjects:"Not found",
+                            job_numbers:"Not found",
+                            title_en:"Not found",
+                            publication_date:"Not found",
+                            agenpublication_datedas:"Not found",
+                            release_dates:"Not found"
+                        }])
+                }
+
             })
-            
-        } catch (error) {
+
+            //     let docsymbol=element[1]
+            //     // console.log(element[0])
+
+
+            //         if (data[0]["body"]["data"][0].length!==0)  
+            //             {  
+            //             this.listOfRecordsDiplayMetaData.push(data[0]["body"]["data"][0])
+            //             }
+
+            //         //implement case where nothing is returned , docsymbol does not exits
+                    // if (element["body"]["data"].length==0)  
+                    // })
+                } 
+        catch (error) {
             // remove Progress bar
             this.displayProgress1=false
         }

@@ -295,15 +295,20 @@ def create_app(test_config=None):
     @app.route('/loading_symbol',methods=['POST'])
     def loading_symbol():
         docsymbols = request.form["docsymbols"].split("\r\n")
-        data= [ ods.ods_rutines.ods_get_loading_symbol(docsymbol)  for docsymbol in docsymbols ]   
+        final=[]
+        
+        for docsymbol in docsymbols:
+            result=ods.ods_rutines.ods_get_loading_symbol(docsymbol)
+            result["docsymbol"]=docsymbol
+            final.append(result)
         
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
         
         # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",data)
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",final)
         
-        return data
+        return final
         
     @app.route("/get_sites",methods=['GET'])
     def get_sites():
