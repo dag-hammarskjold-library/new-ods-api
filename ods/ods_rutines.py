@@ -356,8 +356,8 @@ def ods_get_loading_symbol(my_param:str):
   # get the response 
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
   
+
   # return the response
-  #print(response.json())
   return response.json()
 
 ######################################################################################
@@ -477,11 +477,10 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     datamodel=get_data_from_cb(my_symbol)
     
     if len(datamodel)>0:
-      # assign the values from central database to local variables
+      
       my_symbol=datamodel[0]["symbol"]
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
-      #my_publication_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
       my_publication_date= datamodel[0]["publication_date"]
       my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
       my_sessions=datamodel[0]["sessions"]
@@ -490,7 +489,6 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_subjects=datamodel[0]["subjects"]
       my_tcodes=[]
       my_tcodes=datamodel[0]["tcodes"]
-      #print(f"tcodes are {my_tcodes}")
 
       # get the token
       my_token=get_token()
@@ -508,7 +506,6 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       sessions= [f"{my_sessions}","",""]
       agendas=  [f"{my_agendas}","",""]   
 
-      
       # setting the jubnumbers for each language dynamycally
       jobnumbers=[]
       counter=0
