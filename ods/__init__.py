@@ -299,6 +299,13 @@ def create_app(test_config=None):
         
         for docsymbol in docsymbols:
             result=ods.ods_rutines.ods_get_loading_symbol(docsymbol)
+            try:
+                tcodes=result["body"]["data"][0]["tcodes"]
+                #print(tcodes)
+                subjects=[ods.ods_rutines.get_subject(tcode) for tcode in tcodes]
+                result["body"]["data"][0]["subjects"]=subjects
+            except:
+                pass
             result["docsymbol"]=docsymbol
             final.append(result)
         

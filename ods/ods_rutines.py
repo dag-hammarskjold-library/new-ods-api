@@ -397,19 +397,22 @@ def escape_characters(input_string, chars_to_escape):
   return input_string
 
 def get_tcodes(subject):
-  query = Query(
-            Condition(
-                tag='150',
-                subfields={'a': re.compile(str(subject).upper())}
-                )
-          )
-
+  query = Query.from_string("150__a:'"+subject.upper()+"'")
   authset = AuthSet.from_query(query, projection={'035':1,'150':1})
 
   for auth in authset:
       val_035a=auth.get_values('035','a')
       val_035a=''.join([str for str in val_035a if str[0] in {'T', 'P'}] )
   return val_035a
+
+def get_subject(tcode):
+    query = Query.from_string("035__a:'"+tcode.upper()+"'") 
+    authset = AuthSet.from_query(query, projection={'035':1,'150':1})
+
+    for auth in authset:
+        val_150a=auth.get_values('150','a')
+        val_150a=''.join([str for str in val_150a] )
+    return val_150a
 
 def get_data_from_cb(symbols):
   
