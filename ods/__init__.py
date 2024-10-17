@@ -103,6 +103,8 @@ def create_app(test_config=None):
             }
 
             results= list(my_collection.find(user))
+            #print(results)
+           
             find_record=False
 
             if (len(results)==0):
@@ -131,7 +133,7 @@ def create_app(test_config=None):
                         session["show_parameters"]=result["show_parameters"]
                         
                         find_record=True
-
+                        print(session)
                         if session['username']!="":
                             return redirect(url_for("index_vue"))
                         else:
@@ -415,6 +417,9 @@ def create_app(test_config=None):
         session.pop('session_show_send_file', None)
         session.pop('session_show_jobnumbers_management', None)
         session.pop('session_show_parameters', None)
+        print(session)
+        session.clear()
+        print(session)
         return redirect(url_for("login"))
     
     
