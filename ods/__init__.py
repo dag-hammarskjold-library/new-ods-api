@@ -76,6 +76,7 @@ def create_app(test_config=None):
                     ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
                     
                     # add the username to the session
+                    
                     session['username'] = config("default_username")
                     
                     # add the prefix to the session
@@ -118,7 +119,8 @@ def create_app(test_config=None):
                 
                         # user found
                         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
-                        
+                        session.clear()
+                        print(f'sessioncleared {session}')
                         # add the username to the session
                         session['username'] = result["email"]
                         
@@ -133,7 +135,7 @@ def create_app(test_config=None):
                         session["show_parameters"]=result["show_parameters"]
                         
                         find_record=True
-                        print(session)
+                        print(f"username is {session['username']}")
                         if session['username']!="":
                             return redirect(url_for("index_vue"))
                         else:
@@ -417,9 +419,9 @@ def create_app(test_config=None):
         session.pop('session_show_send_file', None)
         session.pop('session_show_jobnumbers_management', None)
         session.pop('session_show_parameters', None)
-        print(session)
-        session.clear()
-        print(session)
+        print(f'logout from {session}')
+        #session.clear()
+        #print(session)
         return redirect(url_for("login"))
     
     
