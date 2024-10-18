@@ -119,8 +119,8 @@ def create_app(test_config=None):
                 
                         # user found
                         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
-                        session.clear()
-                        print(f'sessioncleared {session}')
+                        #session.clear()
+                        print(f'session b4 login {session}')
                         # add the username to the session
                         session['username'] = result["email"]
                         
@@ -135,6 +135,7 @@ def create_app(test_config=None):
                         session["show_parameters"]=result["show_parameters"]
                         
                         find_record=True
+                        print(f'session after login {session}')
                         print(f"username is {session['username']}")
                         if session['username']!="":
                             return redirect(url_for("index_vue"))
@@ -412,13 +413,17 @@ def create_app(test_config=None):
     def logout():
         # create log
         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Disconnected from the system!!!")
-
+        print(f'session b4 logout {session}')
         # remove the username from the session if it is there
         session.pop('username', None)
-        session.pop('session_show_display', None)
-        session.pop('session_show_send_file', None)
-        session.pop('session_show_jobnumbers_management', None)
-        session.pop('session_show_parameters', None)
+        session.pop('show_display', None)
+        session.pop('show_create_update',None)
+        session.pop('show_send_file', None)
+        session.pop('show_jobnumbers_management', None)
+        session.pop('show_parameters', None)
+        session.pop('prefix_site',None)
+        
+
         print(f'logout from {session}')
         #session.clear()
         #print(session)
