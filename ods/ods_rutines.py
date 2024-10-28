@@ -941,7 +941,7 @@ def download_file_and_send_to_ods(docsymbol):
                           "docsymbol":docsymbol,
                           "language":language,
                           "jobnumber":"",
-                          "result":"file not downloaded!!!"
+                          "result":"file not found in ME/CDB!"
                           })
           #time.sleep(3)
           recup_job_numbers=[]
