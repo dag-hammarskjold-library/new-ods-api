@@ -884,7 +884,7 @@ def download_file_and_send_to_ods(docsymbol):
           if f is not None:
             result=ods_get_loading_symbol(docsymbol)
             recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-                    
+            print(f'jns {recup_job_numbers}')        
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
@@ -944,6 +944,7 @@ def download_file_and_send_to_ods(docsymbol):
                           "result":"file not downloaded!!!"
                           })
           #time.sleep(3)
+          recup_job_numbers=[]
           time2=time.time()
 
     # release not used jobnumbers
