@@ -596,7 +596,8 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
   else : # the symbol is not new it's an update
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
-
+    my_release_dates=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["release_dates"]
+    #print(my_release_dates)
     if len(datamodel)>0:
       # assign the values from central database to local variables
       my_symbol=datamodel[0]["symbol"]
@@ -676,43 +677,43 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
                 "perLanguage": {
                   LANGUAGES[0]: { 
                           "jobNumber": my_final_job_numbers[0],
-                          "releaseDate": my_release_date, 
+                          "releaseDate": my_release_dates[0], 
                           "title": "",
                           "fullText":""
                           },
                   LANGUAGES[1]: { 
                           "jobNumber": my_final_job_numbers[1],
-                          "releaseDate": my_release_date, 
+                          "releaseDate": my_release_dates[1], 
                           "title": "" ,
                           "fullText":""
                           },  
                   LANGUAGES[2]: { 
                           "jobNumber": my_final_job_numbers[2],
-                          "releaseDate":my_release_date, 
+                          "releaseDate":my_release_dates[2], 
                           "title":my_title  ,
                           "fullText":""
                           },  
                   LANGUAGES[3]: { 
                           "jobNumber": my_final_job_numbers[3],
-                          "releaseDate":my_release_date, 
+                          "releaseDate":my_release_dates[3], 
                           "title": "" ,
                           "fullText":""
                           },  
                   LANGUAGES[4]: { 
                           "jobNumber": my_final_job_numbers[4],
-                          "releaseDate":my_release_date, 
+                          "releaseDate":my_release_dates[4], 
                           "title": "" ,
                           "fullText":""
                           },  
                   LANGUAGES[5]: { 
                           "jobNumber": my_final_job_numbers[5],
-                          "releaseDate":my_release_date, 
+                          "releaseDate":my_release_dates[5], 
                           "title": "" ,
                           "fullText":""
                           },
                   LANGUAGES[6]: { 
                           "jobNumber": my_final_job_numbers[6],
-                          "releaseDate":my_release_date,
+                          "releaseDate":my_release_dates[6],
                           "title": "" ,
                           "fullText":""
                           }    
@@ -883,7 +884,7 @@ def download_file_and_send_to_ods(docsymbol):
           if f is not None:
             result=ods_get_loading_symbol(docsymbol)
             recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-                    
+            print(f'jns {recup_job_numbers}')        
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
@@ -940,9 +941,10 @@ def download_file_and_send_to_ods(docsymbol):
                           "docsymbol":docsymbol,
                           "language":language,
                           "jobnumber":"",
-                          "result":"file not downloaded!!!"
+                          "result":"file not found in ME/CDB!"
                           })
           #time.sleep(3)
+          recup_job_numbers=[]
           time2=time.time()
 
     # release not used jobnumbers
