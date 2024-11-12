@@ -33,3 +33,14 @@ jobs:
             echo "Pushing image to ECR..."
             docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
             echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+        - name: Deploy to Lightsail
+          id: deploy-lightsail
+          env:
+            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+            ECR_REPOSITORY: ${{ secrets.REPO_NAME }}
+            IMAGE_TAG: latest
+          run: |
+            aws lightsail create-container-service-deployment \
+            --service-name container-service-1 \
+            --containers '{"ods":{"image":"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG","command":[],"environment":{"AWS_ACCESS_KEY_ID": "${{secrets.AWS_ACCESS_KEY_ID}}","AWS_DEFAULT_REGION": "${{secrets.AWS_REGION}}","AWS_SECRET_ACCESS_KEY": "${{secrets.AWS_SECRET_ACCESS_KEY}}"},"ports":{"5000":"HTTP"}}}''
