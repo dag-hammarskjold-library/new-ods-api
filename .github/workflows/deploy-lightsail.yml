@@ -46,7 +46,6 @@ jobs:
             ECR_REPOSITORY: ${{ secrets.REPO_NAME }}
             IMAGE_TAG: latest
           run: |
-            aws lightsail push-container-image --service-name container-service-1 --label ods --image ${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:${{env.IMAGE_TAG}}
             aws lightsail create-container-service-deployment \
             --service-name container-service-1 \
             --containers '{"ods":{"image":"${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:${{env.IMAGE_TAG}}","command":[],"environment":{"AWS_ACCESS_KEY_ID": "${{secrets.AWS_ACCESS_KEY_ID}}","AWS_DEFAULT_REGION": "${{secrets.AWS_REGION}}","AWS_SECRET_ACCESS_KEY": "${{secrets.AWS_SECRET_ACCESS_KEY}}"},"ports":{"5000":"HTTP"}}}' \
