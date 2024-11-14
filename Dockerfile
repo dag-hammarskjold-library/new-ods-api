@@ -22,3 +22,5 @@ RUN pip install gunicorn
 
 # add app
 COPY . /usr/src/app
+
+CMD ["gunicorn", "--bind", ":5000", "--timeout", "900", "ods:app"]

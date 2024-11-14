@@ -1,4 +1,4 @@
-name: Build and push container to ECR and Fargate
+name: Build and push container to ECR and Fargate on release
 on:
     release:
         types: [released]
@@ -32,12 +32,7 @@ jobs:
             docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
             echo "Pushing image to ECR..."
             docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-            echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" 
-          
-        - name: install lightsail ctl
-          run: |
-           sudo curl "https://s3.us-west-2.amazonaws.com/lightsailctl/latest/linux-amd64/lightsailctl" -o "/usr/local/bin/lightsailctl"
-           sudo chmod +x /usr/local/bin/lightsailctl 
+            echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
         - name: Deploy to Lightsail
           id: deploy-lightsail
@@ -48,5 +43,4 @@ jobs:
           run: |
             aws lightsail create-container-service-deployment \
             --service-name container-service-1 \
-            --containers '{"ods":{"image":"${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:${{env.IMAGE_TAG}}","command":[],"environment":{"AWS_ACCESS_KEY_ID": "${{secrets.AWS_ACCESS_KEY_ID}}","AWS_DEFAULT_REGION": "${{secrets.AWS_REGION}}","AWS_SECRET_ACCESS_KEY": "${{secrets.AWS_SECRET_ACCESS_KEY}}"},"ports":{"5000":"HTTP"}}}' \
-            --public-endpoint '{"containerName": "ods","containerPort": 5000,"healthCheck": {"healthyThreshold": 2,"unhealthyThreshold": 2,"timeoutSeconds": 60,"intervalSeconds": 120,"path": "/","successCodes": "200-499"}}'
+            --containers '{"ods": {"image": "${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:latest","command": [],"environment": {"AWS_ACCESS_KEY_ID": "${{secrets.AWS_ACCESS_KEY_ID}}","AWS_DEFAULT_REGION": "${{secrets.AWS_REGION}}","AWS_SECRET_ACCESS_KEY": "${{secrets.AWS_SECRET_ACCESS_KEY}}"},"ports": {"5000": "HTTP"}}}' --public-endpoint '{"containerName": "ods","containerPort": 5000,"healthCheck": {"healthyThreshold": 2,"unhealthyThreshold": 2,"timeoutSeconds": 60,"intervalSeconds": 120,"path": "/","successCodes": "200-499"}}'
