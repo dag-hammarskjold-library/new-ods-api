@@ -18,11 +18,11 @@ return_data=""
 # definition of the credentials of the ODS API
 ########################################################################
 
-base_url = config("base_url")
-username = config("username")
-password = config("password")
-client_id = config("client_id")
-client_secret = config("client_secret")
+base_url = config("BASE_URL")
+username = config("USERNAME")
+password = config("PASSWORD")
+client_id = config("CLIENT_ID")
+client_secret = config("CLIENT_SECRET")
 database_conn=config("CONN")
 
 
@@ -68,16 +68,16 @@ def create_app(test_config=None):
         if request.method=="POST":
             
             # check if it's the special user
-            if request.form.get("email")==config("default_username"):
+            if request.form.get("email")==config("DEFAULT_USERNAME"):
 
-                if request.form.get("password")==config("default_password"):
+                if request.form.get("password")==config("DEFAULT_PASSWORD"):
                     
                     # special user
-                    ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("default_username"),"Connected to the system!!!")
+                    ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),config("DEFAULT_USERNAME"),"Connected to the system!!!")
                     
                     # add the username to the session
                     
-                    session['username'] = config("default_username")
+                    session['username'] = config("DEFAULT_USERNAME")
                     
                     # add the prefix to the session
                     session["prefix_site"]="NX"
