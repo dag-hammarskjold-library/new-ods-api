@@ -6,6 +6,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import json
 import datetime
 import os
+import requests
 import ods.ods_rutines
 from flask import Flask, jsonify,render_template,request,redirect,session, url_for
 from decouple import config
@@ -442,6 +443,14 @@ def create_app(test_config=None):
             
         # just render the logs
         return json.loads(json_util.dumps(my_logs))    
+    
+    '''
+    Display the IP address a remote resource sees in its logs. Necessary for firewall updates.
+    '''
+    @app.route("/ip")
+    def get_ip():
+        data = requests.get("https://api.ipify.org?format=json")
+        return data.json()
         
     return app
 app = create_app()
