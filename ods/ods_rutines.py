@@ -485,7 +485,9 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
       my_publication_date= datamodel[0]["publication_date"]
-      my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      my_release_date="0001-01-01T00:00:00Z"
+      #my_release_date = datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
       my_agendas=datamodel[0]["agendas"]
@@ -597,6 +599,15 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     my_release_dates=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["release_dates"]
+    print(my_release_dates)
+    for i in range(7):
+      if my_release_dates[i]=="0001-01-01T00:00:00Z":
+        pass
+        #my_release_dates[i]="2099-01-01T00:00:00Z"
+        #my_release_dates[i]=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        #my_release_dates[i]==datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
     #print(my_release_dates)
     if len(datamodel)>0:
       # assign the values from central database to local variables
@@ -604,7 +615,9 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
       my_publication_date= datamodel[0]["publication_date"]
-      my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_release_date = datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
+      my_release_date="0001-01-01T00:00:00Z"
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
       my_agendas=datamodel[0]["agendas"]
@@ -766,7 +779,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
         "symbol":my_symbol,
         "area": "UNDOC", 
         "distribution": my_distribution, 
-        "perLanguage": {f"{my_language}": { "jobNumber": f"{my_jobnumber}"} }
+        "perLanguage": {f"{my_language}": { "jobNumber": f"{my_jobnumber}","releaseDate": datetime.now().strftime('%d/%m/%y') } }
       }
   # creation of the file dict
   files={
@@ -834,7 +847,7 @@ def download_file_and_send_to_ods(docsymbol):
     # query the database according to the document symbol
     time1=time.time()
     query = Query.from_string(f"191__a:'{docsymbol}'")
-    print(f' time for finding the symbol in CDB is {time.time()-time1}')
+    #print(f' time for finding the symbol in CDB is {time.time()-time1}')
     # store  not used jobnumbers
     used_jobnumbers=[]
     
@@ -884,12 +897,12 @@ def download_file_and_send_to_ods(docsymbol):
           if f is not None:
             result=ods_get_loading_symbol(docsymbol)
             recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-            print(f'jns {recup_job_numbers}')        
+            #print(f'jns {recup_job_numbers}')        
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
-              print(f' upload of the first file to ODS in {time.time()-time2}')
-              print(f'  elapsed time for upload of the first file in {time.time()-time0}')
+              #print(f' upload of the first file to ODS in {time.time()-time2}')
+              #print(f'  elapsed time for upload of the first file in {time.time()-time0}')
             if language=="ZH":
               my_jobnumber=recup_job_numbers[1]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
@@ -897,8 +910,8 @@ def download_file_and_send_to_ods(docsymbol):
             if language=="EN":
               my_jobnumber=recup_job_numbers[2]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
-              print(f' upload of the third file to ODS in {time.time()-time2}')
-              print(f'  elapsed time for upload of the third file in {time.time()-time0}')
+              #print(f' upload of the third file to ODS in {time.time()-time2}')
+              #print(f'  elapsed time for upload of the third file in {time.time()-time0}')
             if language=="FR":
               my_jobnumber=recup_job_numbers[3]
               recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
