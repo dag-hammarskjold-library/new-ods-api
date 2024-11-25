@@ -759,6 +759,37 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       return result
 
 
+#######################################################################
+# Update one metadata field
+#######################################################################
+
+def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
+  
+  # get the token
+  my_token=get_token()
+
+
+  # definition of the header
+  headers = {
+          "authorization":  "Access {}".format(my_token),
+          }
+
+  # creation the data
+  payload = {
+        "symbol":my_symbol,
+        "fieldName": fieldName, 
+        "fieldValue": fieldValue,
+        "lang":lang      }
+  
+  # build the url
+  url=config("base_url") + "api/loading/symbol"
+
+  # building the request
+
+  response = requests.patch(url,headers=headers,data=payload,verify=False)
+  #print(f'path result is{response.json()}')
+  return response.json()
+
 ########################################################################
 # Send file to ODS
 ########################################################################
@@ -793,7 +824,10 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   # building the request
 
   response = requests.post(url,headers=headers,files=files,verify=False)
- 
+  #print(response.json())
+  if response.json()["status"]==1:
+    response1=update_one_metadata(my_symbol, "releaseDate",datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),my_language)
+  #print(f'patch update is {response1}')
   return response.json()
 
 
