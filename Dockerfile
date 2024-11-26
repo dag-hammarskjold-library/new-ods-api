@@ -1,11 +1,5 @@
 FROM python:3.11-slim-buster
 
-# install dependencies
-#RUN apk update && \
-#    apk add --virtual build-deps gcc python-dev musl-dev && \
-#    apk add postgresql-dev && \
-#    apk add netcat-openbsd
-
 # set environment varibles
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -22,3 +16,5 @@ RUN pip install gunicorn
 
 # add app
 COPY . /usr/src/app
+
+CMD ["gunicorn", "--bind", ":5000", "--timeout", "900", "ods:app"]

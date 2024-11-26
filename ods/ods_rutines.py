@@ -36,11 +36,11 @@ LANGUAGES=["AR","ZH","EN","FR","RU","ES","DE"]
 # definition of the credentials of the ODS API
 ########################################################################
 
-base_url = config("base_url")
-username = config("username")
-password = config("password")
-client_id = config("client_id")
-client_secret = config("client_secret")
+base_url = config("BASE_URL")
+username = config("USERNAME")
+password = config("PASSWORD")
+client_id = config("CLIENT_ID")
+client_secret = config("CLIENT_SECRET")
 
 ########################################################################
 # management of the JobNumber
@@ -174,7 +174,7 @@ def find_update_job_numbers(my_docsymbol:str,my_language:str):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/symbol?s=" +my_docsymbol.upper()+"&em=true"
+  url1=config("BASE_URL") + "api/loading/symbol?s=" +my_docsymbol.upper()+"&em=true"
   
   # build the payload
   payload={}
@@ -343,7 +343,7 @@ def ods_get_loading_symbol(my_param:str):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/symbol?s=" + my_param.upper()+"&em=true"
+  url1=config("BASE_URL") + "api/loading/symbol?s=" + my_param.upper()+"&em=true"
   
   # build the payload
   payload={}
@@ -370,7 +370,7 @@ def ods_get_loading_search(my_param):
   my_token=get_token()
   
   # build the url
-  url1=config("base_url") + "api/loading/search?k=" + my_param.upper()+"&em=true"
+  url1=config("BASE_URL") + "api/loading/search?k=" + my_param.upper()+"&em=true"
   
   # build the payload
   payload={}
@@ -504,7 +504,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
               }
           
       # build the url
-      url = config("base_url") + "api/loading/symbol"
+      url = config("BASE_URL") + "api/loading/symbol"
 
       # retrieving the data and assignment
       symbols=  [f"{my_symbol}","",""]   
@@ -634,7 +634,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
               }
           
       # build the url
-      url = config("base_url") + "api/loading/symbol"
+      url = config("BASE_URL") + "api/loading/symbol"
 
       # retrieving the data and assignment
       symbols=  [f"{my_symbol}","",""]   
@@ -821,7 +821,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   }
 
   # build the url
-  url=config("base_url") + "api/loading/file"
+  url=config("BASE_URL") + "api/loading/file"
 
   # building the request
 

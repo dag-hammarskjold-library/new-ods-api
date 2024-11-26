@@ -1,0 +1,48 @@
+name: (Prod) Build and push container to ECR and Lightsail on release
+on:
+    push:
+      branches:
+        - production
+
+jobs:
+    deploy:
+        name: Build Docker and Deploy Lambda
+        runs-on: ubuntu-latest
+        environment: production
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v3
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with: 
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v2
+
+        - name: Build, tag, and push the image to ECR
+          id: build-image
+          env:
+            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+            ECR_REPOSITORY: ${{ secrets.REPO_NAME }}
+            IMAGE_TAG: latest
+          run: |
+            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+            echo "Pushing image to ECR..."
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+        - name: Deploy to Lightsail
+          id: deploy-lightsail
+          env:
+            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+            ECR_REPOSITORY: ${{ secrets.REPO_NAME }}
+            IMAGE_TAG: latest
+          run: |
+            aws lightsail create-container-service-deployment \
+            --service-name ods-actions \
+            --containers '{"ods": {"image": "${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:latest","command": [],"environment": {"AWS_ACCESS_KEY_ID": "${{secrets.AWS_ACCESS_KEY_ID}}","AWS_DEFAULT_REGION": "${{secrets.AWS_REGION}}","AWS_SECRET_ACCESS_KEY": "${{secrets.AWS_SECRET_ACCESS_KEY}}", "BASE_URL": "${{secrets.BASE_URL}}", "USERNAME": "${{secrets.USERNAME}}", "PASSWORD": "${{secrets.PASSWORD}}", "CLIENT_ID": "${{secrets.CLIENT_ID}}", "CLIENT_SECRET": "${{secrets.CLIENT_SECRET}}", "CONN": "${{secrets.CONN}}", "DEFAULT_USERNAME": "${{secrets.DEFAULT_USERNAME}}", "DEFAULT_PASSWORD": "${{secrets.DEFAULT_PASSWORD}}"},"ports": {"5000": "HTTP"}}}' --public-endpoint '{"containerName": "ods","containerPort": 5000,"healthCheck": {"healthyThreshold": 2,"unhealthyThreshold": 2,"timeoutSeconds": 60,"intervalSeconds": 120,"path": "/","successCodes": "200-499"}}'
