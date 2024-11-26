@@ -485,7 +485,9 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
       my_publication_date= datamodel[0]["publication_date"]
-      my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      my_release_date="0001-01-01T00:00:00Z"
+      #my_release_date = datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
       my_agendas=datamodel[0]["agendas"]
@@ -597,6 +599,15 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     my_release_dates=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["release_dates"]
+    print(my_release_dates)
+    for i in range(7):
+      if my_release_dates[i]=="0001-01-01T00:00:00Z":
+        pass
+        #my_release_dates[i]="2099-01-01T00:00:00Z"
+        #my_release_dates[i]=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        #my_release_dates[i]==datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
     #print(my_release_dates)
     if len(datamodel)>0:
       # assign the values from central database to local variables
@@ -604,7 +615,9 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
       my_publication_date= datamodel[0]["publication_date"]
-      my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_release_date= datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+      #my_release_date = datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
+      my_release_date="0001-01-01T00:00:00Z"
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
       my_agendas=datamodel[0]["agendas"]
@@ -746,11 +759,44 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       return result
 
 
+#######################################################################
+# Update one metadata field
+#######################################################################
+
+def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
+
+  # get the token
+  my_token=get_token()
+
+
+  # definition of the header
+  headers = {
+          "authorization":  "Access {}".format(my_token),
+          }
+
+  # creation the data
+  payload = {
+        "symbol":my_symbol,
+        "fieldName": fieldName, 
+        "fieldValue": fieldValue,
+        "lang":lang      }
+  
+  # build the url
+  url=config("base_url") + "api/loading/symbol"
+
+
+
+  # building the request
+
+  response = requests.patch(url,headers=headers,data=payload,verify=False)
+  #print(f'path result is{response.json()}')
+  return response.json()
+
 ########################################################################
 # Send file to ODS
 ########################################################################
 
-def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_language,my_path):
+def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_language,my_path, my_release_date):
   
   # get the token
   my_token=get_token()
@@ -780,7 +826,12 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   # building the request
 
   response = requests.post(url,headers=headers,files=files,verify=False)
- 
+  #print(response.json())
+  if my_release_date=="0001-01-01T00:00:00Z":
+    my_release_date=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+  if response.json()["status"]==1:
+    response1=update_one_metadata(my_symbol, "releaseDate",my_release_date,my_language)
+  #print(f'patch update is {response1}')
   return response.json()
 
 
@@ -834,7 +885,7 @@ def download_file_and_send_to_ods(docsymbol):
     # query the database according to the document symbol
     time1=time.time()
     query = Query.from_string(f"191__a:'{docsymbol}'")
-    print(f' time for finding the symbol in CDB is {time.time()-time1}')
+    #print(f' time for finding the symbol in CDB is {time.time()-time1}')
     # store  not used jobnumbers
     used_jobnumbers=[]
     
@@ -884,36 +935,44 @@ def download_file_and_send_to_ods(docsymbol):
           if f is not None:
             result=ods_get_loading_symbol(docsymbol)
             recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-            print(f'jns {recup_job_numbers}')        
+            release_dates=result["body"]["data"][0]["release_dates"]
+            #print(f'jns {recup_job_numbers}')        
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath)
-              print(f' upload of the first file to ODS in {time.time()-time2}')
-              print(f'  elapsed time for upload of the first file in {time.time()-time0}')
+              release_date=release_dates[0]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath, release_date)
+              #print(f' upload of the first file to ODS in {time.time()-time2}')
+              #print(f'  elapsed time for upload of the first file in {time.time()-time0}')
             if language=="ZH":
               my_jobnumber=recup_job_numbers[1]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath)
+              release_date=release_dates[1]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath, release_date)
               
             if language=="EN":
               my_jobnumber=recup_job_numbers[2]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath)
-              print(f' upload of the third file to ODS in {time.time()-time2}')
-              print(f'  elapsed time for upload of the third file in {time.time()-time0}')
+              release_date=release_dates[2]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath, release_date)
+              #print(f' upload of the third file to ODS in {time.time()-time2}')
+              #print(f'  elapsed time for upload of the third file in {time.time()-time0}')
             if language=="FR":
               my_jobnumber=recup_job_numbers[3]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath)
+              release_date=release_dates[3]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath, release_date)
               
             if language=="RU":
               my_jobnumber=recup_job_numbers[4]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath)
+              release_date=release_dates[4]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath, release_date)
               
             if language=="ES":
               my_jobnumber=recup_job_numbers[5]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath)    
+              release_date=release_dates[5]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath, release_date)    
               
             if language=="DE":
               my_jobnumber=recup_job_numbers[6]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath)    
+              release_date=release_dates[6]
+              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath, release_date)    
 
             if recup1["status"]==1:
               used_jobnumbers.append(my_jobnumber)    
