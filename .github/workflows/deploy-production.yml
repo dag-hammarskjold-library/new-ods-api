@@ -3,8 +3,13 @@ on:
   release:
       types: [published]
 
+concurrency:
+  group: release
+  cancel-in-progress: true
+
 jobs:
     deploy:
+        if: '!github.event.release.prerelease'
         name: Build Docker and Deploy Lambda
         runs-on: ubuntu-latest
         environment: production
