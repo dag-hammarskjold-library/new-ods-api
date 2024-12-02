@@ -1,15 +1,12 @@
 name: (UAT) Build and push container to ECR and Lightsail on release
 on:
-    release:
-        types: [published]
-
-concurrency:
-  group: release
-  cancel-in-progress: true
+  push:
+    tags:
+      # Only build and deploy when a new tag is created matching a semantic version.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
     deploy:
-        if: 'github.event.release.prerelease'
         name: Build Docker and Deploy Lambda
         runs-on: ubuntu-latest
         environment: UAT
