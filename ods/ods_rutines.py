@@ -821,7 +821,8 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   }
 
   # build the url
-  url=config("BASE_URL") + "api/loading/file"
+  #url=config("BASE_URL") + "api/loading/file"
+  url=base_url + "api/loading/file"
 
   # building the request
 
