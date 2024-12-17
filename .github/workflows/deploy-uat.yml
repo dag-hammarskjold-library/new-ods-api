@@ -1,7 +1,9 @@
 name: (UAT) Build and push container to ECR and Lightsail on release
 on:
-    release:
-        types: [released]
+  push:
+    tags:
+      # Only build and deploy when a new tag is created matching a semantic version.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
     deploy:
@@ -11,6 +13,9 @@ jobs:
         steps:
         - name: Checkout
           uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+            ref: ${{github.ref}}
 
         - name: Configure AWS credentials
           uses: aws-actions/configure-aws-credentials@v4

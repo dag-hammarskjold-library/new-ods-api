@@ -601,7 +601,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     my_release_dates=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["release_dates"]
     print(my_release_dates)
     for i in range(7):
-      if my_release_dates[i]=="0001-01-01T00:00:00Z":
+      if my_release_dates[i]=="0001-01-01T00:00:00Z" or my_release_dates[i]=="1900-01-01T00:00:00Z":
         pass
         #my_release_dates[i]="2099-01-01T00:00:00Z"
         #my_release_dates[i]=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -829,7 +829,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
 
   response = requests.post(url,headers=headers,files=files,verify=False)
   #print(response.json())
-  if my_release_date=="0001-01-01T00:00:00Z":
+  if my_release_date=="0001-01-01T00:00:00Z" or my_release_date=="1900-01-01T00:00:00Z":
     my_release_date=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
   if response.json()["status"]==1:
     response1=update_one_metadata(my_symbol, "releaseDate",my_release_date,my_language)
