@@ -782,7 +782,8 @@ def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
         "lang":lang      }
   
   # build the url
-  url=config("base_url") + "api/loading/symbol"
+  #url=config("base_url") + "api/loading/symbol"
+  url=base_url + "api/loading/symbol"
 
 
 
