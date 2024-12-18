@@ -544,6 +544,13 @@ data: function () {
             // Just to refresh the UI
             this.listOfResult1=[]
             
+
+
+            this.docsymbols1 = this.docsymbols1
+                .split('\n')
+                .filter(line => line.trim() !== '')
+                .join('\n');
+
             let dataset = new FormData()
             dataset.append('docsymbols1',this.docsymbols1)
 
@@ -591,6 +598,12 @@ data: function () {
                 // display Progress bar
                 this.displayProgress3=true
                 
+                this.docsymbols2 = this.docsymbols2
+                    .split('\n')
+                    .filter(line => line.trim() !== '')
+                    .join('\n');
+
+
                 let dataset = new FormData()
                 dataset.append('docsymbols2',this.docsymbols2)
             
