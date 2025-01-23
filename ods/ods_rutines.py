@@ -358,6 +358,7 @@ def ods_get_loading_symbol(my_param:str):
   
 
   # return the response
+  print(f"json is {response.json()}")
   return response.json()
 
 ######################################################################################
@@ -419,7 +420,8 @@ def get_data_from_cb(symbols):
   lst=[]
   try:
     # DB.connect(Config.connect_string, database="undlFiles")
-    symbol=escape_characters(symbols,"()")
+    #symbol=escape_characters(symbols,"()")
+    symbol=symbols
     query = Query.from_string("191__a:'"+symbol+"'") 
     #print(f'query is 191__a:'''{symbol}'')
     print(query.to_json())
@@ -841,6 +843,7 @@ def get_data_from_undl(docsymbol):
   
   # DB.connect(Config.connect_string, database="undlFiles")
   docsymbol_formatted=docsymbol.replace("/","\/")
+  #docsymbol_formatted=docsymbol
   query = Query.from_string(f"191__a:'"+ docsymbol_formatted +"'") 
   lst=[]
   document_symbol=""
