@@ -828,14 +828,14 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   url=base_url + "api/loading/file"
 
   # building the request
-
+  #print(f'payload is {payload}')
   response = requests.post(url,headers=headers,files=files,verify=False)
   #print(response.json())
   if my_release_date=="0001-01-01T00:00:00Z" or my_release_date=="1900-01-01T00:00:00Z":
     my_release_date=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
   if response.json()["status"]==1:
     response1=update_one_metadata(my_symbol, "releaseDate",my_release_date,my_language)
-  #print(f'patch update is {response1}')
+  print(f'patch update is {response1}')
   return response.json()
 
 
@@ -933,9 +933,9 @@ def download_file_and_send_to_ods(docsymbol):
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         file.write(chunk)
-            print(f'time to download {filename} from CDB is {time.time()-timeFile}')
+            #print(f'time to download {filename} from CDB is {time.time()-timeFile}')
           # write the report and send the file to ODS
-          recup1=""
+          recup1={}
           time2=time.time()
           if f is not None:
             result=ods_get_loading_symbol(docsymbol)
@@ -944,40 +944,59 @@ def download_file_and_send_to_ods(docsymbol):
             #print(f'jns {recup_job_numbers}')        
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
-              release_date=release_dates[0]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath, release_date)
-              #print(f' upload of the first file to ODS in {time.time()-time2}')
-              #print(f'  elapsed time for upload of the first file in {time.time()-time0}')
+              if my_jobnumber!="":
+                release_date=release_dates[0]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[0],language,filepath, release_date)
+                #print(f' upload of the first file to ODS in {time.time()-time2}')
+                #print(f'  elapsed time for upload of the first file in {time.time()-time0}')
+              else:
+                recup1["status"]=0
+
             if language=="ZH":
               my_jobnumber=recup_job_numbers[1]
-              release_date=release_dates[1]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath, release_date)
-              
+              if my_jobnumber!="":
+                release_date=release_dates[1]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[1],language,filepath, release_date)
+              else:
+                recup1["status"]=0
+
             if language=="EN":
               my_jobnumber=recup_job_numbers[2]
-              release_date=release_dates[2]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath, release_date)
-              #print(f' upload of the third file to ODS in {time.time()-time2}')
-              #print(f'  elapsed time for upload of the third file in {time.time()-time0}')
+              if my_jobnumber!="":
+                release_date=release_dates[2]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[2],language,filepath, release_date)
+                #print(f' upload of the third file to ODS in {time.time()-time2}')
+                #print(f'  elapsed time for upload of the third file in {time.time()-time0}')
+              else:
+                recup1["status"]=0
             if language=="FR":
               my_jobnumber=recup_job_numbers[3]
-              release_date=release_dates[3]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath, release_date)
-              
+              if my_jobnumber!="":
+                release_date=release_dates[3]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[3],language,filepath, release_date)
+              else:
+                recup1["status"]=0
             if language=="RU":
               my_jobnumber=recup_job_numbers[4]
-              release_date=release_dates[4]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath, release_date)
-              
+              if my_jobnumber!="":
+                release_date=release_dates[4]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[4],language,filepath, release_date)
+              else:
+                recup1["status"]=0
             if language=="ES":
               my_jobnumber=recup_job_numbers[5]
-              release_date=release_dates[5]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath, release_date)    
-              
+              if my_jobnumber!="":
+                release_date=release_dates[5]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[5],language,filepath, release_date)
+              else:
+                recup1["status"]=0  
             if language=="DE":
               my_jobnumber=recup_job_numbers[6]
-              release_date=release_dates[6]
-              recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath, release_date)    
+              if my_jobnumber!="":
+                release_date=release_dates[6]
+                recup1=ods_file_upload_simple_file(docsymbol,distribution,recup_job_numbers[6],language,filepath, release_date)    
+              else:
+                recup1["status"]=0
 
             if recup1["status"]==1:
               used_jobnumbers.append(my_jobnumber)    
