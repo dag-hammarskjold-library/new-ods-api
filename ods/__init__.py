@@ -375,7 +375,9 @@ def create_app(test_config=None):
             if (result["status"]== 1 and result["update"]==False) :
                 text="Metadata created!!!"
             if (result["status"]== 2 and result["update"]==True) :
-                text="Metadata updated!!!"                
+                text="Metadata updated!!!"
+            if (result["status"]==3) :
+                text="There is a duplicate symbol in ODS!!!"                
             summary={
                 "docsymbol":docsymbol,
                 "text":text

@@ -1,6 +1,6 @@
 ########################################################################
 # imports
-########################################################################
+#############################m###########################################
 
 from datetime import datetime
 import re
@@ -52,7 +52,7 @@ my_database = client["odsActions"]
 ########################################################################
 # Connect to Central DB
 ########################################################################
-
+#print(Config.connect_string)
 DB.connect(Config.connect_string, database="undlFiles")
 
 ########################################################################
@@ -356,9 +356,9 @@ def ods_get_loading_symbol(my_param:str):
   # get the response 
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
   
-
+#need to check if the response is not empty and has more than 1 record (duplicate) in ODS
   # return the response
-  print(f"json is {response.json()}")
+  #print(f"len of json is {len(response.json())}")
   return response.json()
 
 ######################################################################################
@@ -597,7 +597,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       result["update"]=False
       return result
 
-  else : # the symbol is not new it's an update
+  elif my_matche==1 : # the symbol is not new it's an update
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     my_release_dates=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["release_dates"]
@@ -759,6 +759,11 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       result["status"]=0
       result["update"]=False
       return result
+  else:
+    result={}
+    result["status"]=3
+    result["update"]=False
+    return result
 
 
 #######################################################################
@@ -829,7 +834,9 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
 
   # building the request
   #print(f'payload is {payload}')
+  response1={}
   response = requests.post(url,headers=headers,files=files,verify=False)
+  print(response.json()["status"])
   #print(response.json())
   if my_release_date=="0001-01-01T00:00:00Z" or my_release_date=="1900-01-01T00:00:00Z":
     my_release_date=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
