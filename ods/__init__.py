@@ -369,9 +369,12 @@ def create_app(test_config=None):
         
         for docsymbol in docsymbols:
             result=ods.ods_rutines.ods_create_update_metadata(docsymbol,prefix)
+            #print(result)
             text="-1 this is default value"
             if (result["status"]== 0 and result["update"]==False):
                 text="Metadata not found in the Central DB/ME"
+            if (result["status"]== -1 and result["update"]==False):
+                text=result["message"]
             if (result["status"]== 1 and result["update"]==False) :
                 text="Metadata created!!!"
             if (result["status"]== 2 and result["update"]==True) :

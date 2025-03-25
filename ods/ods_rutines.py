@@ -601,7 +601,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     # get the data from central DB
     datamodel=get_data_from_cb(my_symbol)
     my_release_dates=ods_get_loading_symbol(my_symbol)["body"]["data"][0]["release_dates"]
-    print(my_release_dates)
+    #print(my_release_dates)
     for i in range(7):
       if my_release_dates[i]=="0001-01-01T00:00:00Z" or my_release_dates[i]=="1900-01-01T00:00:00Z":
         pass
@@ -745,7 +745,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       #print(f"updating metadata data is {data} and the url is {url}")
       if data["status"]==-1:
         data["update"]=False
-        data["status"]=0
+        #data["status"]=0
         print(data["message"])
         return data
       elif data["status"]==1:
