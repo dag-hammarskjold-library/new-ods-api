@@ -836,13 +836,13 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
   #print(f'payload is {payload}')
   response1={}
   response = requests.post(url,headers=headers,files=files,verify=False)
-  print(response.json()["status"])
+  print(f'Status for upload of file with JN {my_jobnumber} is {response.json()["status"]}')
   #print(response.json())
   if my_release_date=="0001-01-01T00:00:00Z" or my_release_date=="1900-01-01T00:00:00Z":
     my_release_date=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-  if response.json()["status"]==1:
-    response1=update_one_metadata(my_symbol, "releaseDate",my_release_date,my_language)
-  print(f'patch update is {response1}')
+    if response.json()["status"]==1:
+      response1=update_one_metadata(my_symbol, "releaseDate",my_release_date,my_language)
+    print(f'patch update is {response1}')
   return response.json()
 
 
@@ -1014,7 +1014,7 @@ def download_file_and_send_to_ods(docsymbol):
                               "jobnumber":my_jobnumber,
                               "result":"downloaded and sent successfully!!!"
                               })
-              print(f'   elapsed time for upload of all files in {time.time()-time0}')
+              
               # time.sleep(3)
             else:
               report.append({
@@ -1036,7 +1036,7 @@ def download_file_and_send_to_ods(docsymbol):
           #time.sleep(3)
           recup_job_numbers=[]
           time2=time.time()
-
+      print(f'Time to upload all files for {docsymbol} is {time.time()-time0}')
     # release not used jobnumbers
     not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
     for jb in not_used_jobnumbers:
