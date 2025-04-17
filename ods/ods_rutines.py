@@ -343,7 +343,7 @@ def ods_get_loading_symbol(my_param:str):
   my_token=get_token()
   
   # build the url
-  url1=config("BASE_URL") + "api/loading/symbol?s=" + my_param.upper()+"&em=true"
+  url1=config("BASE_URL") + "api/loading/symbol?s=" + my_param.strip().upper()+"&em=true"
   
   # build the payload
   payload={}
@@ -421,7 +421,8 @@ def get_data_from_cb(symbols):
   try:
     # DB.connect(Config.connect_string, database="undlFiles")
     #symbol=escape_characters(symbols,"()")
-    symbol=symbols
+    symbol=symbols.strip()
+
     query = Query.from_string("191__a:'"+symbol+"'") 
     #print(f'query is 191__a:'''{symbol}'')
     print(query.to_json())
@@ -884,6 +885,7 @@ def get_data_from_undl(docsymbol):
 def download_file_and_send_to_ods(docsymbol):
     
   # define the report list
+  docsymbol=docsymbol.strip()
   report=[]
     
   # call the api to know if this symbol exists already (1 if the symbol exists 0 otherwise)
@@ -1036,7 +1038,7 @@ def download_file_and_send_to_ods(docsymbol):
           #time.sleep(3)
           recup_job_numbers=[]
           time2=time.time()
-      print(f'Time to upload all files for {docsymbol} is {time.time()-time0}')
+      print(f'Time to upload all files for {docsymbol} is {time.time()-time0} seconds')
     # release not used jobnumbers
     not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
     for jb in not_used_jobnumbers:
