@@ -1,5 +1,5 @@
 Babel==2.15.0
-blinker==1.7.0
+blinker==1.9.0
 colorama==0.4.6
 dlx @ git+https://github.com/dag-hammarskjold-library/dlx@v1.4.13.1
 flask==3.0.0
