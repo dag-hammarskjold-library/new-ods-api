@@ -11,4 +11,4 @@ pyOpenSSL==24.2.1
 python-decouple==3.8
 python-dotenv==1.0.1
 translate==3.6.1
-zipp==3.19.1
+zipp==3.21.0
