@@ -5,7 +5,7 @@ dlx @ git+https://github.com/dag-hammarskjold-library/dlx@v1.4.13.1
 flask==3.0.0
 importlib-metadata==7.0.1
 itsdangerous==2.1.2
-libretranslatepy==2.1.1
+libretranslatepy==2.1.4
 panda==0.3.1
 pyOpenSSL==24.2.1
 python-decouple==3.8
