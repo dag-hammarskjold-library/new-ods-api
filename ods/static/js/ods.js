@@ -1,22 +1,23 @@
 Vue.component('ods', {
     template: `
-                <div class="card mt-5 ml-5" style="margin:auto;height:1000px;width:1150px;">
-                        <div class="mt-3 d-flex justify-content-center">
-                            <a href="./logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
-                        </div>
-                        <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
-                            <h1> <span class="sofadi-one-regular"> ODS ACTIONS </span></h1>
-                        </div>
-                        <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
-                            <h5> <span> <i class="fas fa-user"></i> connected : {{session_username}} </span></h5>
-                        </div>
+                <div class="card mt-5 ml-5" style="margin:auto;height:300px;width:100%;">
                         <div class="card-header mt-5 mb-1 bg-white"> 
                             <ul class="nav nav-tabs card-header-tabs bg-white">
-                                <li v-if="session_show_display=='true'" class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
-                                <li v-if="session_show_create_update=='true'"  class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false"><strong>Send metadata to ODS</strong></button></li>
-                                <li v-if="session_show_send_file=='true'" class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Send files to ODS</strong></button></li>
-                                <!--v-if="session_show_jobnumbers_management=='true'"  <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>-->
-                                <li v-if="session_show_parameters=='true'"  class="nav-item"> <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false"><strong>Parameters</strong></button></li>
+                                <li class="nav-item" v-if="session_show_display">
+                                    <a class="nav-link active" id="display-tab" data-bs-toggle="tab" href="#display" role="tab" aria-controls="display" aria-selected="true" @click="clearFormFields">Display metadata</a>
+                                </li>
+                                <li class="nav-item" v-if="session_show_create_update">
+                                    <a class="nav-link" id="create-update-tab" data-bs-toggle="tab" href="#create-update" role="tab" aria-controls="create-update" aria-selected="false" @click="clearFormFields">Create/ Update metadata</a>
+                                </li>
+                                <li class="nav-item" v-if="session_show_send_file">
+                                    <a class="nav-link" id="send-files-tab" data-bs-toggle="tab" href="#send-files" role="tab" aria-controls="send-files" aria-selected="false" @click="clearFormFields">Send files to ODS</a>
+                                </li>
+                                <!-- <li class="nav-item" v-if="session_show_jobnumbers_management">
+                                    <a class="nav-link" id="jobnumbers-tab" data-bs-toggle="tab" href="#jobnumbers" role="tab" aria-controls="jobnumbers" aria-selected="false" @click="clearFormFields">Job numbers management</a>
+                                </li> -->
+                                <li class="nav-item" v-if="session_show_parameters">
+                                    <a class="nav-link" id="parameters-tab" data-bs-toggle="tab" href="#parameters" role="tab" aria-controls="parameters" aria-selected="false" @click="clearFormFields">Parameters</a>
+                                </li>
                             </ul>
                         </div>
                         
@@ -26,38 +27,15 @@ Vue.component('ods', {
                             
                                 <!-- First Tab -->	
                                 
-                                <div v-if="session_show_display=='true'" class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
+                                <div v-if="session_show_display" class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
                                     <form class="form-inline" @submit.prevent>
                                         <textarea id="docsymbols" class="col-11" rows="7" style=""  placeholder="Paste the list of symbols here (new line separated)" name="docsymbols" v-model="docsymbols"></textarea>
-                                        <button class="btn btn-primary col-2 btn btn-success" type="button"  id="toggleButton" style="margin: 10px auto;padding: 10px;" @click="displayMetaData(docsymbols);">Apply</button>
+                                        <button class="btn btn-primary col-2" type="button" id="toggleButton" style="margin: 10px auto;padding: 10px;" @click="displayMetaData(docsymbols);" :disabled="displayProgress1">
+                                            {{ displayProgress1 ? 'Loading...' : 'Apply' }}
+                                        </button>
                                     </form>    
-                                        <div id="displayProgress1" class="mt-3" v-if="displayProgress1">
-                                            <div class="spinner-grow text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-secondary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-success" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-danger" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-warning" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-info" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                                <div class="spinner-grow text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                            <div class="spinner-grow text-dark" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                        </div>
-                                    <div class="col-11" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult">
+                                    
+                                    <div class="col-11" style="height:300px;overflow:auto;margin: 20px auto;" v-if="displayResult">
                                        
                                         <table id="MyTable" class="table table-bordered table-responsive table-striped ">
                                             <thead class="table-light">
@@ -101,38 +79,15 @@ Vue.component('ods', {
                                     
                         
                                 <!-- Second Tab -->	
-                                <div v-if="session_show_create_update=='true'" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
+                                <div v-if="session_show_create_update" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
                                         <textarea id="docsymbols1" rows="7" class="col-11" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols1" v-model="docsymbols1"></textarea>
-                                        <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" @click="displayResultCreateUpdate(docsymbols1);">Send</button>
+                                        <button class="btn btn-primary col-2" type="button" style="margin: 10px auto;padding: 10px;" @click="displayResultCreateUpdate(docsymbols1);" :disabled="displayProgress2">
+                                            {{ displayProgress2 ? 'Loading...' : 'Send' }}
+                                        </button>
                                     </form>
-                                   <div id="displayProgress2" class="mt-3" v-if="displayProgress2">
-                                            <div class="spinner-grow text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-secondary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-success" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-danger" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-warning" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-info" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                                <div class="spinner-grow text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                            <div class="spinner-grow text-dark" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                        </div>
-                                    <div class="table-responsive col-11" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult1">
+                                    
+                                    <div class="table-responsive col-11" style="height:300px;overflow:auto;margin: 20px auto;" v-if="displayResult1">
                                        
                                         <table id="MyTable1" class="table table-striped">
                                             <thead class="table-light">
@@ -161,38 +116,20 @@ Vue.component('ods', {
                                 
                             
                                 <!-- Third Tab -->	
-                                <div v-if="session_show_send_file=='true'" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
+                                <div v-if="session_show_send_file" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
                                     <form class="form-inline" @submit.prevent>
                                         <textarea class="col-11" rows="7" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols2" v-model="docsymbols2"></textarea>
-                                        <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" v-if="displayResult2==false"  @click="displayResultSendFile(docsymbols2)">Send</button> 
+                                        <button class="btn btn-primary col-2" type="button" style="margin: 10px auto;padding: 10px;" @click="displayResultSendFile(docsymbols2)" :disabled="displayProgress3">
+                                            {{ displayProgress3 ? 'Loading...' : 'Send' }}
+                                        </button>
                                     </form>
-                                    <div id="displayProgress3" class="mt-3" v-if="displayProgress3">
-                                            <div class="spinner-grow text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-secondary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-success" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-danger" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-warning" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-info" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                                <div class="spinner-grow text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                            <div class="spinner-grow text-dark" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                                    <div id="displayProgress3" class="loader" v-if="displayProgress3">
+                                            <div class="loader-content">
+                                                <div class="loader-circle"></div>
+                                                <h2 class="loader-text">ODS Actions</h2>
                                             </div>
                                         </div>
-                                    <div class="table-responsive col-11 shadow" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult2">
+                                    <div class="table-responsive col-11 shadow" style="height:300px;overflow:auto;margin: 20px auto;" v-if="displayResult2">
                                 
                                         <table style="height:400px;overflow:auto;margin: 20px auto;" id="MyTable2" class="table">
                                             <thead class="table-light table-striped">
@@ -228,8 +165,10 @@ Vue.component('ods', {
                                         </table>
                                     </div>
 
-                                        <button type="submit" class="btn btn-primary mr-2 align-items-center" v-if="displayResult2==true" @click="docsymbols2='';displayResult2=false;listOfResult2=[];">Clear List</button>
-                                        <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult2==true" type="button" @click="exportTableToCSV('MyTable2')">Export to csv</button>
+                                        <div class="d-flex flex-column" v-if="displayResult2==true">
+                                            <button type="submit" class="btn btn-primary mb-2 align-items-center" @click="docsymbols2='';displayResult2=false;listOfResult2=[];">Clear List</button>
+                                            <button type="submit" class="btn btn-success align-items-center" type="button" @click="exportTableToCSV('MyTable2')">Export to csv</button>
+                                        </div>
                                     
                                 
                                 </div>
@@ -237,7 +176,7 @@ Vue.component('ods', {
 
                                   
                                 <!-- Parameters Tab -->	
-                                    <div v-if="session_show_parameters=='true'" class="tab-pane fade show" id="parameters" role="tabpanel">
+                                    <div v-if="session_show_parameters" class="tab-pane fade show" id="parameters" role="tabpanel">
 
                                     <div class="accordion" id="accordionExample">
                                         <div class="accordion-item" id="sites">
@@ -254,15 +193,15 @@ Vue.component('ods', {
                             
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Code Site</strong></label>
-                                                            <input type="text" class="form-control" id="code_site" value="code_site" aria-describedby="code_site_help" v-model="code_site">
+                                                            <input type="text" id="code_site" aria-describedby="code_site_help" v-model="code_site">
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Label Site</strong></label>
-                                                            <input type="text" class="form-control" id="label_site" value="label_site" aria-describedby="label_site" v-model="label_site">
+                                                            <input type="text" id="label_site" aria-describedby="label_site" v-model="label_site">
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Prefix Site</strong></label>
-                                                            <input type="text" class="form-control" id="prefix_site" value="prefix_site" aria-describedby="prefix_site" v-model="prefix_site">
+                                                            <input type="text" id="prefix_site" aria-describedby="prefix_site" v-model="prefix_site">
                                                         </div>                                                                                                                
                                                         <hr>
                                                         <div class="mt-2">
@@ -287,17 +226,17 @@ Vue.component('ods', {
                                                     <form>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Site</strong></label>
-                                                            <select id="site" class="form-select" v-model="code_site">
+                                                            <select id="site" v-model="code_site">
                                                                 <option v-for="my_site in site">{{my_site}}</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Email</strong></label>
-                                                            <input type="email" class="form-control" id="email" value="email" aria-describedby="emailHelp" v-model="email">
+                                                            <input type="email" id="email" aria-describedby="emailHelp" v-model="email">
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Password</strong></label>
-                                                            <input type="password" class="form-control" id="password" value="password" v-model="password">
+                                                            <input type="password" id="password" v-model="password">
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="" class="form-label"><strong>Select the tab(s) to display</strong></label>
@@ -341,7 +280,7 @@ Vue.component('ods', {
                                                 <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
                                                     <button type="submit" class="btn btn-success ml-1 align-items-center" type="button" @click="exportTableToCSV('listlogs')">Export all the logs in csv</button>
-                                                    <div class="shadow" style="height:400px;overflow:auto;margin: 20px auto;">
+                                                    <div class="shadow" style="height:300px;overflow:auto;margin: 20px auto;">
                                                         <table class="table table-striped tableau" id="listlogs">
                                                         <thead>
                                                             <tr>
@@ -392,9 +331,15 @@ Vue.component('ods', {
                     </script>
              `,
 created:async function(){
-    this.loadLogs()
-    this.loadSites()
-    },
+    if (this.session_username) {
+        try {
+            await this.loadLogs()
+            await this.loadSites()
+        } catch (error) {
+            console.error('Error loading data:', error)
+        }
+    }
+},
 props: ['session_username','session_show_display','session_show_create_update','session_show_send_file','session_show_jobnumbers_management','session_show_parameters'],
 data: function () {
     return {
@@ -431,14 +376,24 @@ data: function () {
     methods:{
 
         async loadLogs(){
-        // loading the logs
-        const my_response = await fetch("./display_logs",{
-            "method":"GET",
+        try {
+            // loading the logs
+            const my_response = await fetch("./display_logs",{
+                "method":"GET",
+                });
+            
+            if (!my_response.ok) {
+                throw new Error(`HTTP error! status: ${my_response.status}`);
+            }
+            
+            const my_data = await my_response.json();
+            my_data.forEach(element => {
+                this.listOfLogs.push(element)
             });
-        const my_data = await my_response.json();
-        my_data.forEach(element => {
-            this.listOfLogs.push(element)
-        });
+        } catch (error) {
+            console.error('Error loading logs:', error);
+            // Don't throw the error, just log it
+        }
         },
         async loadSites(){
 
@@ -456,75 +411,87 @@ data: function () {
         // just in case
         this.displayResult=false;
 
-        // display Progress bar
-        this.displayProgress1=true
+        // Show custom loader
+        const loader = document.querySelector('.loader');
+        if (loader) {
+            loader.style.display = 'flex';
+        }
 
         // Just to refresh the UI
         this.listOfRecordsDiplayMetaData=[]
         
-        let dataset = new FormData()
-        let cleanedDocSymbols = this.docsymbols.toUpperCase(); 
-        dataset.append('docsymbols',cleanedDocSymbols)
-    
-        // loading all the data
-        const my_response = await fetch("./loading_symbol",{
-            "method":"POST",
-            "body":dataset
-            });
-            
-        const my_data = await my_response.json()
-
-        // loading data
-        try {     
-            my_data.forEach(element => {
-
-                // check the length of the data array to see if we found the information
+        try {
+            let dataset = new FormData()
+            let cleanedDocSymbols = this.docsymbols.toUpperCase(); 
+            dataset.append('docsymbols',cleanedDocSymbols)
+        
+            // loading all the data
+            const my_response = await fetch("./loading_symbol",{
+                "method":"POST",
+                "body":dataset
+                });
                 
-                // use case 1 : we found the data
-                if (element["body"]["data"].length!==0) 
-                    this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
+            if (!my_response.ok) {
+                throw new Error(`HTTP error! status: ${my_response.status}`);
+            }
+                
+            const my_data = await my_response.json()
+            // console.log(my_data)
+            // loading data
+            try {        
+                my_data.forEach(element => {
 
-                // use case 2 : we did not find the data
-                if (element["body"]["data"].length===0) {
-                    // creation of the object
-                    this.listOfRecordsDiplayMetaData.push(
-                        [{
-                            symbol:element["docsymbol"],
-                            agendas:"Not found",
-                            sessions:"Not found",
-                            distribution:"Not found",
-                            area:"Not found",
-                            subjects:"Not found",
-                            job_numbers:"Not found",
-                            title_en:"Not found",
-                            publication_date:"Not found",
-                            agenpublication_datedas:"Not found",
-                            release_dates:"Not found"
-                        }])
-                }
+                    // check the length of the data array to see if we found the information
+                    
+                    // use case 1 : we found the data
+                    if (element["body"]["data"].length!==0) 
+                        this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
 
-            })
+                    // use case 2 : we did not find the data
+                    if (element["body"]["data"].length===0) {
+                        // creation of the object
+                        this.listOfRecordsDiplayMetaData.push(
+                            [{
+                                symbol:element["docsymbol"],
+                                agendas:"Not found",
+                                sessions:"Not found",
+                                distribution:"Not found",
+                                area:"Not found",
+                                subjects:"Not found",
+                                job_numbers:"Not found",
+                                title_en:"Not found",
+                                publication_date:"Not found",
+                                agenpublication_datedas:"Not found",
+                                release_dates:"Not found"
+                            }])
+                    }
 
-            //     let docsymbol=element[1]
-            //     // console.log(element[0])
+                })
+            } catch (error) {
+                console.error('Error processing data:', error);
+            }
 
-
-            //         if (data[0]["body"]["data"][0].length!==0)  
-            //             {  
-            //             this.listOfRecordsDiplayMetaData.push(data[0]["body"]["data"][0])
-            //             }
-
-            //         //implement case where nothing is returned , docsymbol does not exits
-                    // if (element["body"]["data"].length==0)  
-                    // })
-                } 
-        catch (error) {
-            // remove Progress bar
-            this.displayProgress1=false
-        }
-        finally{
-            // remove Progress bar
-            this.displayProgress1=false
+        } catch (error) {
+            console.error('Error loading metadata:', error);
+            // Show user-friendly error message
+            this.listOfRecordsDiplayMetaData.push([{
+                symbol: "Error",
+                agendas: "Failed to load data",
+                sessions: "Please try again",
+                distribution: "or contact administrator",
+                area: "",
+                subjects: "",
+                job_numbers: "",
+                title_en: "",
+                publication_date: "",
+                agenpublication_datedas: "",
+                release_dates: ""
+            }]);
+        } finally {
+            // Hide custom loader
+            if (loader) {
+                loader.style.display = 'none';
+            }
         }
 
         // display Results
@@ -538,8 +505,11 @@ data: function () {
             // just in case
             this.displayResult1=false;
 
-            // display Progress bar
-            this.displayProgress2=true
+            // Show custom loader
+            const loader = document.querySelector('.loader');
+            if (loader) {
+                loader.style.display = 'flex';
+            }
 
             // Just to refresh the UI
             this.listOfResult1=[]
@@ -575,8 +545,10 @@ data: function () {
                 //alert(error)
             }
             finally{
-                // display Progress bar
-                this.displayProgress2=false
+                // Hide custom loader
+                if (loader) {
+                    loader.style.display = 'none';
+                }
             }
 
             //this.listOfResult1.push(my_data)
@@ -595,8 +567,11 @@ data: function () {
                 // just in case
                 this.displayResult2=false;
 
-                // display Progress bar
-                this.displayProgress3=true
+                // Show custom loader
+                const loader = document.querySelector('.loader');
+                if (loader) {
+                    loader.style.display = 'flex';
+                }
                 
                 this.docsymbols2 = this.docsymbols2
                     .split('\n')
@@ -626,8 +601,10 @@ data: function () {
                     alert(error)
                 }
                 finally{
-                    // display Progress bar
-                    this.displayProgress3=false
+                    // Hide custom loader
+                    if (loader) {
+                        loader.style.display = 'none';
+                    }
                 }
 
                 if (this.listOfResult2.length!=0){
@@ -803,6 +780,14 @@ data: function () {
             link.download = "export.xls";
             link.href = uri + base64(format(template, ctx))
             link.click();
+        },
+        clearFormFields(){
+            // Clear email and password fields when switching tabs
+            this.email = "";
+            this.password = "";
+            this.code_site = "";
+            this.label_site = "";
+            this.prefix_site = "";
         },
     },
 })

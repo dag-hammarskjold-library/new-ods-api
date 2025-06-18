@@ -165,7 +165,8 @@ def create_app(test_config=None):
                 session_show_jobnumbers_management=session["show_jobnumbers_management"]
                 session_show_parameters=session["show_parameters"]
 
-                return render_template('index_vue.html',
+                return render_template('index_simple.html',
+                                       user=session_username,
                                        session_username=session_username,
                                        session_show_display=session_show_display,
                                        session_show_create_update=session_show_create_update,
@@ -300,28 +301,79 @@ def create_app(test_config=None):
 
     @app.route('/loading_symbol',methods=['POST'])
     def loading_symbol():
-        docsymbols = request.form["docsymbols"].split("\r\n")
-        final=[]
-        
-        for docsymbol in docsymbols:
-            result=ods.ods_rutines.ods_get_loading_symbol(docsymbol)
+        try:
+            # Check if user is authenticated
+            if 'username' not in session:
+                print("User not authenticated in loading_symbol")
+                return jsonify({"error": "User not authenticated"}), 401
+            
+            print(f"Loading symbol for user: {session['username']}")
+            
+            if 'docsymbols' not in request.form:
+                print("No docsymbols in request form")
+                return jsonify({"error": "No docsymbols provided"}), 400
+            
+            docsymbols = request.form["docsymbols"].split("\r\n")
+            print(f"Processing docsymbols: {docsymbols}")
+            
+            final=[]
+            
+            for docsymbol in docsymbols:
+                try:
+                    print(f"Processing docsymbol: {docsymbol}")
+                    result=ods.ods_rutines.ods_get_loading_symbol(docsymbol)
+                    try:
+                        tcodes=result["body"]["data"][0]["tcodes"]
+                        #print(tcodes)
+                        subjects=[ods.ods_rutines.get_subject(tcode) for tcode in tcodes]
+                        result["body"]["data"][0]["subjects"]=subjects
+                    except Exception as e:
+                        print(f"Error processing tcodes for {docsymbol}: {e}")
+                        pass
+                    result["docsymbol"]=docsymbol
+                    final.append(result)
+                except Exception as e:
+                    print(f"Error processing docsymbol {docsymbol}: {e}")
+                    # Add error result for this docsymbol
+                    final.append({
+                        "docsymbol": docsymbol,
+                        "body": {
+                            "data": [{
+                                "symbol": docsymbol,
+                                "agendas": "Error processing",
+                                "sessions": "Error processing",
+                                "distribution": "Error processing",
+                                "area": "Error processing",
+                                "subjects": "Error processing",
+                                "job_numbers": "Error processing",
+                                "title_en": "Error processing",
+                                "publication_date": "Error processing",
+                                "agenpublication_datedas": "Error processing",
+                                "release_dates": "Error processing"
+                            }]
+                        }
+                    })
+            
+            print(f"Final result count: {len(final)}")
+            
+            # create log
             try:
-                tcodes=result["body"]["data"][0]["tcodes"]
-                #print(tcodes)
-                subjects=[ods.ods_rutines.get_subject(tcode) for tcode in tcodes]
-                result["body"]["data"][0]["subjects"]=subjects
-            except:
-                pass
-            result["docsymbol"]=docsymbol
-            final.append(result)
-        
-        # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
-        
-        # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",final)
-        
-        return final
+                ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+            except Exception as e:
+                print(f"Error adding log: {e}")
+            
+            # create analytics
+            try:
+                ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",final)
+            except Exception as e:
+                print(f"Error adding analytics: {e}")
+            
+            return jsonify(final)
+        except Exception as e:
+            print(f"Error in loading_symbol: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": "Internal server error", "details": str(e)}), 500
         
     @app.route("/get_sites",methods=['GET'])
     def get_sites():
@@ -397,6 +449,33 @@ def create_app(test_config=None):
     ############################################################################
     # SEND FILE TO ODS
     ############################################################################
+
+    @app.route('/exporttoodswithfilebylanguages',methods=['POST'])
+    def exporttoodswithfilebylanguages():
+        # get the docsymbols
+        data_send_multiple= request.form["docsymbols2"].replace("\r","").split("\n")
+        # get the languages
+        ar=request.form.get("ar")
+        zh=request.form.get("zh")
+        en=request.form.get("en")
+        fr=request.form.get("fr")
+        ru=request.form.get("ru")
+        es=request.form.get("es")
+        de=request.form.get("de")
+        
+        result=[]
+        # loop on the docsymbols
+        for record in data_send_multiple:
+            result.append(ods.ods_rutines.download_file_and_send_to_ods_by_languages(record,ar,zh,en,fr,ru,es,de))  
+        print("inside exporttoodswithfilebylanguages")
+        print(result)       
+        # create log
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        
+        # create analytics
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"send_file_endpoint",result)
+        
+        return json.dumps(result)
     
     @app.route('/exporttoodswithfile',methods=['POST'])
     def exporttoodswithfile():
@@ -438,16 +517,23 @@ def create_app(test_config=None):
     
     @app.route("/display_logs",methods=['GET'])
     def display_logs():
-
-        client = MongoClient(database_conn)
-        my_database = client["odsActions"] 
-        my_collection = my_database["ods_actions_logs_collection"]
-        
-        # get all the logs
-        my_logs=my_collection.find(sort=[( "date", -1 )])
+        try:
+            # Check if user is authenticated
+            if 'username' not in session:
+                return jsonify({"error": "User not authenticated"}), 401
             
-        # just render the logs
-        return json.loads(json_util.dumps(my_logs))    
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_logs_collection"]
+            
+            # get all the logs
+            my_logs=my_collection.find(sort=[( "date", -1 )])
+                
+            # just render the logs
+            return json.loads(json_util.dumps(my_logs))
+        except Exception as e:
+            print(f"Error in display_logs: {e}")
+            return jsonify({"error": "Internal server error"}), 500
     
     '''
     Display the IP address a remote resource sees in its logs. Necessary for firewall updates.
