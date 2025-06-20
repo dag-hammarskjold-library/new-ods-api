@@ -414,37 +414,75 @@ def create_app(test_config=None):
     
     @app.route('/create_metadata_ods',methods=['POST'])
     def ods_create_update_metadata():
+        try:
+            # Check if user is authenticated
+            if 'username' not in session:
+                print("User not authenticated in create_metadata_ods")
+                return jsonify({"error": "User not authenticated"}), 401
+            
+            print(f"Processing create/update metadata for user: {session['username']}")
+            
+            if 'docsymbols1' not in request.form:
+                print("No docsymbols1 in request form")
+                return jsonify({"error": "No docsymbols provided"}), 400
 
-        docsymbols = request.form["docsymbols1"].replace("\r","").split("\n")
-        data=[]
-        prefix=session["prefix_site"]
-        
-        for docsymbol in docsymbols:
-            result=ods.ods_rutines.ods_create_update_metadata(docsymbol,prefix)
-            #print(result)
-            text="-1 this is default value"
-            if (result["status"]== 0 and result["update"]==False):
-                text="Metadata not found in the Central DB/ME"
-            if (result["status"]== -1 and result["update"]==False):
-                text=result["message"]
-            if (result["status"]== 1 and result["update"]==False) :
-                text="Metadata created!!!"
-            if (result["status"]== 2 and result["update"]==True) :
-                text="Metadata updated!!!"
-            if (result["status"]==3) :
-                text="There is a duplicate symbol in ODS!!!"                
-            summary={
-                "docsymbol":docsymbol,
-                "text":text
-                }
-            data.append(summary)
-        # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
-        
-        # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"creating_updating_endpoint",data)
-        
-        return data
+            docsymbols = request.form["docsymbols1"].replace("\r","").split("\n")
+            print(f"Processing docsymbols: {docsymbols}")
+            
+            data=[]
+            prefix=session["prefix_site"]
+            
+            for docsymbol in docsymbols:
+                try:
+                    print(f"Processing docsymbol: {docsymbol}")
+                    result=ods.ods_rutines.ods_create_update_metadata(docsymbol,prefix)
+                    #print(result)
+                    text="-1 this is default value"
+                    if (result["status"]== 0 and result["update"]==False):
+                        text="Metadata not found in the Central DB/ME"
+                    if (result["status"]== -1 and result["update"]==False):
+                        text=result["message"]
+                    if (result["status"]== 1 and result["update"]==False) :
+                        text="Metadata created!!!"
+                    if (result["status"]== 2 and result["update"]==True) :
+                        text="Metadata updated!!!"
+                    if (result["status"]==3) :
+                        text="There is a duplicate symbol in ODS!!!"                
+                    summary={
+                        "docsymbol":docsymbol,
+                        "text":text
+                        }
+                    data.append(summary)
+                except Exception as e:
+                    print(f"Error processing docsymbol {docsymbol}: {e}")
+                    # Add error result for this docsymbol
+                    data.append({
+                        "docsymbol": docsymbol,
+                        "text": f"Error processing: {str(e)}"
+                    })
+            
+            print(f"Final result count: {len(data)}")
+            
+            # create log
+            try:
+                ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS creating/updating endpoint called from the system!!!")
+            except Exception as e:
+                print(f"Error adding log: {e}")
+            
+            # create analytics
+            try:
+                ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"creating_updating_endpoint",data)
+            except Exception as e:
+                print(f"Error adding analytics: {e}")
+            
+            print(f"Returning JSON response with {len(data)} items")
+            return jsonify(data)
+            
+        except Exception as e:
+            print(f"Error in create_metadata_ods: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": "Internal server error", "details": str(e)}), 500
     
     ############################################################################
     # SEND FILE TO ODS

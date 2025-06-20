@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="ods_component">
+<div id="ods_component" style="margin-top: 50px;">
     <ods 
         :session_username="'{{ session_username }}'"
         :session_show_display="{{ 'true' if session_show_display else 'false' }}"
