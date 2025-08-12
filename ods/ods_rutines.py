@@ -449,7 +449,8 @@ def get_data_from_cb(symbols):
             publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%Y-%m-%dT%H:%M:%SZ')
           except:
             publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y-%m-%dT%H:%M:%SZ')
-        title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')
+        title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')+" "+bib.get_value('245', 'c')
+        #print(f'title_en is {title_en}')
         agendas=' '.join(bib.get_values('991','b'))
         #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
         tcodes=[get_tcodes(subject) for subject in bib.get_values('650','a')]                    
@@ -493,6 +494,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       #my_release_date = datetime.strptime("2099-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
+      #print(my_title)
       my_agendas=datamodel[0]["agendas"]
       my_subjects=datamodel[0]["subjects"]
       my_tcodes=[]
@@ -623,6 +625,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_release_date="0001-01-01T00:00:00Z"
       my_sessions=datamodel[0]["sessions"]
       my_title=datamodel[0]["title"]
+      #print(my_title)
       my_agendas=datamodel[0]["agendas"]
       my_subjects=datamodel[0]["subjects"]
       my_tcodes=[]
