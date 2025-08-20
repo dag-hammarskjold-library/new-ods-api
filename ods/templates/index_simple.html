@@ -1,197 +1,22 @@
-<!DOCTYPE html>
-<html data-bs-theme="light" lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>ODS Actions</title>
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
-    <!--<link rel="stylesheet" href="assets/css/styles.css">-->
-	<style>
-	
-	.card-header-tabs .nav-link.active {
-  background-color: #3572A5;
-  color: white;
-  text-align: center;
-  padding: 20px 10px;
-}
+{% block content %}
+<div id="ods_component" style="margin-top: 50px;">
+    <ods 
+        :session_username="'{{ session_username }}'"
+        :session_show_display="{{ 'true' if session_show_display else 'false' }}"
+        :session_show_create_update="{{ 'true' if session_show_create_update else 'false' }}"
+        :session_show_send_file="{{ 'true' if session_show_send_file else 'false' }}"
+        :session_show_jobnumbers_management="{{ 'true' if session_show_jobnumbers_management else 'false' }}"
+        :session_show_parameters="{{ 'true' if session_show_parameters else 'false' }}"
+    ></ods>
+</div>
 
-.card-header-tabs {
-}
-
-.nav-tabs .nav-link {
-  padding: 20px 10px;
-  fill: #FFF;
-  border: 0.5px solid #f6f6f6;
-  color: initial;
-}
-
-.card-header {
-  background-color: #ffffff;
-}
-
-.card-body {
-  box-shadow: 4px 4px 3px -2px #e6e6e6, -4px -4px 3px -2px #e6e6e6;
-}
-
-.card-header:first-child {
-  border: none;
-}
-
-th {
-}
-
-th {
-  background-color: #3572a5 !important;
-  color: #ffffff !important;
-}
-
-
-</style>
-</head>
-
-<body>
-    <div class="card" style="margin: auto;width: 80%;border: none;">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true">Display metadata from ODS</button></li>
-                <li class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false">Create/Update existing metadata to ODS</button></li>
-                <li class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false">Send files to ODS</button></li>
-            </ul>
-        </div>
-		
-        <div class="card-body " style="/*width: 80%;*/margin-top: 1px;margin-left: 10px;">
-		
-		
-		    <div class="tab-content mt-3" >
-                <!-- First Tab -->	
-                <div class="tab-pane fade show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
-				
-					<textarea class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin: 20px auto;border-radius: 10px;color: #c8c7c7;"></textarea>
-					<button class="btn btn-primary col-2 btn btn-success" type="button"  id="toggleButton" style="margin: 10px auto;padding: 10px;">Apply</button>
-					
-					<div class="table-responsive col-11" style="margin: 20px auto;">
-						<table id="myTable" class="table hidden">
-							<thead>
-								<tr>
-									<th>Document Symbol</th>
-									<th>Job Number</th>
-									<th>Title</th>
-									<th>Publication Date</th>
-									<th>File Language(s)</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>S/SUPP/1946/1st</td>
-									<td style="max-width: 210px;">NL3961100 NL3961101 NL3961102 NL3961103 NL3961104 NL3961105</td>
-									<td>Bulletin on action by the...</td>
-									<td>22/03/2023 23:35</td>
-									<td>[]</td>
-								</tr>
-							
-							</tbody>
-						</table>
-					</div>
-				
-				</div>
-				<!-- End first Tab -->	
-                    
-           
-                <!-- Second Tab -->	
-                <div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
-				
-					<textarea class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin: 20px auto;border-radius: 10px;color: #c8c7c7;"></textarea>
-					<button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;">Send</button>
-					<div style="margin: 0px 60px; text-align: left;"><strong>User:</strong></div>
-					<div class="table-responsive col-11" style="margin: 20px auto;">
-						<table class="table">
-							<thead>
-								<tr>
-									<th>Document Symbol</th>
-									<th>Result</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>S/SUPP/1946/1st</td>
-									<td >Issue occurred during update. Please try again after sometime.</td>
-								</tr>
-							</tbody>
-						</table>
-						
-					</div>
-					<div style="margin: 0px 60px; text-align: left;">
-					  <button type="submit" class="btn btn-primary">Clear List</button>
-					  <button type="submit" class="btn btn-success">Export to csv</button>
-					</div>
-				
-				</div>
-				<!-- End Second Tab -->	
-                
-              
-				<!-- Third Tab -->	
-				<div class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
-				
-					<textarea class="col-11" placeholder="Paste the list of symbols here (space separated)" style="margin: 20px auto;border-radius: 10px;color: #c8c7c7;"></textarea>
-					<button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;">Send</button>
-					<div style="margin: 0px 60px; text-align: left;"><strong>User:</strong></div>
-					<div class="table-responsive col-11" style="margin: 20px auto;">
-						<table class="table">
-							<thead>
-								<tr>
-									<th>Job Number</th>
-									<th>Result</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>NL3961100</td>
-									<td >Failed to upload somefiles -[G2303511.pdf]|Input:-</td>
-								
-								</tr>
-								<tr>
-									<td>NL3961101</td>
-									<td>Success. The files were created/updated in ODS.</td>
-									
-								</tr>
-								<tr>
-									<td>NL3961102</td>
-									<td>There was a user authentication error.</td>
-									
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					<div style="margin: 0px 60px; text-align: left;">
-					  <button type="submit" class="btn btn-primary">Clear List</button>
-					  <button type="submit" class="btn btn-success">Export to csv</button>
-					</div>
-				
-				</div>
-				<!-- End Third Tab -->	
-            
-			</div>
-		
-		
-		
-		
-        </div>
-		
+<!-- Custom Loader -->
+<div class="loader">
+    <div class="loader-content">
+        <div class="loader-circle"></div>
+        <h2 class="loader-text">ODS Actions</h2>
     </div>
-   <!-- <script src="assets/bootstrap/js/bootstrap.min.js"></script>-->
-	 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-	 <script>
-	 document.getElementById('toggleButton').addEventListener('click', function() {
-      // Toggle the 'hidden' class on the table
-      var table = document.getElementById('myTable');
-      if (table.classList.contains('hidden')) {
-        table.classList.remove('hidden');
-      } else {
-        table.classList.add('hidden');
-      }
-    });
-	</script>
-</body>
-
-</html>
+</div>
+{% endblock %}
