@@ -7,7 +7,7 @@ importlib-metadata==7.0.1
 itsdangerous==2.1.2
 libretranslatepy==2.1.1
 panda==0.3.1
-pyOpenSSL==24.2.1
+pyOpenSSL==25.3.0
 python-decouple==3.8
 python-dotenv==1.0.1
 translate==3.6.1
