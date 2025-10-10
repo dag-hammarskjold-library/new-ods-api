@@ -24,7 +24,7 @@ username = config("USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
-database_conn=config("CONN")
+database_conn = config("CONN")
 
 
 ##############################################################################################
@@ -302,9 +302,11 @@ def create_app(test_config=None):
     def loading_symbol():
         docsymbols = request.form["docsymbols"].split("\r\n")
         final=[]
-        
+        print(f"docsymbols are {docsymbols}")
         for docsymbol in docsymbols:
+            print(f"docsymbol is {docsymbol}")
             result=ods.ods_rutines.ods_get_loading_symbol(docsymbol)
+            print(f"result is {result}")
             try:
                 tcodes=result["body"]["data"][0]["tcodes"]
                 #print(tcodes)

@@ -1,81 +1,104 @@
 Vue.component('ods', {
     template: `
-                <div class="card mt-5 ml-5" style="margin:auto;height:1000px;width:1150px;">
-                        <div class="mt-3 d-flex justify-content-center">
-                            <a href="./logout" class="link-dark rounded"><i class="fas fa-sign-out-alt"> Sign out  </i></a>
+                <div class="container-fluid">
+                    <div class="modern-card">
+                        <div class="card-header description-section">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h1 class="card-title">
+                                        <i class="fas fa-database me-3"></i>
+                                        ODS Actions
+                                    </h1>
+                                   
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="user-info-header">
+                                        <i class="fas fa-user me-2"></i>
+                                        <span class="user-name-header">{{session_username}}</span>
+                                    </div>
+                                    <button class="btn-modern btn-secondary-modern" @click="toggleTheme" title="Toggle Dark/Light Mode">
+                                        <i :class="themeIcon"></i>
+                                    </button>
+                                    <a href="./logout" class="btn-modern btn-danger-modern">
+                                        <i class="fas fa-sign-out-alt me-2"></i>
+                                        Sign Out
+                                    </a>
                         </div>
-                        <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
-                            <h1> <span class="sofadi-one-regular"> ODS ACTIONS </span></h1>
                         </div>
-                        <div class="mt-3 d-flex justify-content-center sofadi-one-regular">
-                            <h5> <span> <i class="fas fa-user"></i> connected : {{session_username}} </span></h5>
                         </div>
-                        <div class="card-header mt-5 mb-1 bg-white"> 
-                            <ul class="nav nav-tabs card-header-tabs bg-white">
-                                <li v-if="session_show_display=='true'" class="nav-item"><button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true"><strong>Display metadata from ODS</strong></button></li>
-                                <li v-if="session_show_create_update=='true'"  class="nav-item"><button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false"><strong>Send metadata to ODS</strong></button></li>
-                                <li v-if="session_show_send_file=='true'" class="nav-item"> <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Send files to ODS</strong></button></li>
-                                <!--v-if="session_show_jobnumbers_management=='true'"  <li class="nav-item"> <button class="nav-link" id="jobmanagement" data-bs-toggle="tab" data-bs-target="#jobmanagement" type="button" role="tab" aria-controls="send-files" aria-selected="false"><strong>Job Numbers Management</strong></button></li>-->
-                                <li v-if="session_show_parameters=='true'"  class="nav-item"> <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false"><strong>Parameters</strong></button></li>
+                        
+                        <div class="card-body">
+                            <ul class="nav nav-tabs modern-nav-tabs" id="mainTabs" role="tablist">
+                                <li v-if="session_show_display=='true'" class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true">
+                                        <i class="fas fa-eye me-2"></i>
+                                        Display Metadata
+                                    </button>
+                                </li>
+                                <li v-if="session_show_create_update=='true'" class="nav-item" role="presentation">
+                                    <button class="nav-link" id="create-update-tab" data-bs-toggle="tab" data-bs-target="#create-update" type="button" role="tab" aria-controls="create-update" aria-selected="false">
+                                        <i class="fas fa-edit me-2"></i>
+                                        Send Metadata
+                                    </button>
+                                </li>
+                                <li v-if="session_show_send_file=='true'" class="nav-item" role="presentation">
+                                    <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false">
+                                        <i class="fas fa-upload me-2"></i>
+                                        Send Files
+                                    </button>
+                                </li>
+                                <li v-if="session_show_parameters=='true'" class="nav-item" role="presentation">
+                                    <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" aria-selected="false">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Parameters
+                                    </button>
+                                </li>
                             </ul>
-                        </div>
                         
                         <!-- <div class="card-body " style="margin-top: 1px;margin-left:10px;"> -->
                         
-                            <div class="tab-content">
-                            
-                                <!-- First Tab -->	
-                                
-                                <div v-if="session_show_display=='true'" class="tab-pane show active " style="margin: 10px auto;text-align: center;" id="display" role="tabpanel" aria-labelledby="display-tab" >
-                                    <form class="form-inline" @submit.prevent>
-                                        <textarea id="docsymbols" class="col-11" rows="7" style=""  placeholder="Paste the list of symbols here (new line separated)" name="docsymbols" v-model="docsymbols"></textarea>
-                                        <button class="btn btn-primary col-2 btn btn-success" type="button"  id="toggleButton" style="margin: 10px auto;padding: 10px;" @click="displayMetaData(docsymbols);">Apply</button>
-                                    </form>    
-                                        <div id="displayProgress1" class="mt-3" v-if="displayProgress1">
-                                            <div class="spinner-grow text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                            <div class="tab-content mt-4">
+                                <!-- Display Tab -->	
+                                <div v-if="session_show_display=='true'" class="tab-pane show active" id="display" role="tabpanel" aria-labelledby="display-tab">
+                                    <div class="modern-controls-section">
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <label for="docsymbols" class="form-label-modern">Document Symbols</label>
+                                                <textarea id="docsymbols" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated)" name="docsymbols" v-model="docsymbols"></textarea>
                                             </div>
-                                            <div class="spinner-grow text-secondary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <div class="spinner-grow text-success" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                                        <div class="modern-button-group mt-3">
+                                            <button class="btn-modern btn-primary-modern" type="button" id="toggleButton" @click="displayMetaData(docsymbols);">
+                                                <i class="fas fa-search me-2"></i>
+                                                Apply
+                                            </button>
                                             </div>
-                                            <div class="spinner-grow text-danger" role="status">
-                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <div class="spinner-grow text-warning" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-info" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                                <div class="spinner-grow text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                            <div class="spinner-grow text-dark" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
+                                    
+                                    <div id="displayProgress1" class="text-center mt-4" v-if="displayProgress1">
+                                        <div class="loading-spinner">
+                                            <div class="spinner"></div>
+                                            <p>Loading metadata...</p>
                                         </div>
-                                    <div class="col-11" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult">
-                                       
-                                        <table id="MyTable" class="table table-bordered table-responsive table-striped ">
-                                            <thead class="table-light">
-                                            <tr>
-                                                <th scope="col">Document Symbol</th>
-                                                <th scope="col">Agenda</th>
-                                                <th scope="col">Session</th>
-                                                <th scope="col">Distribution</th>
-                                                <th scope="col">Area</th>
-                                                <th scope="col">Subjects</th>
-                                                <th scope="col">Job Number</th>
-                                                <th scope="col">Title</th>
-                                                <th scope="col">Publication Date</th>
-                                                <th scope="col">Release Date</th>
+                                    </div>
+                                    
+                                    <div class="modern-table-container" v-if="displayResult">
+                                        <table id="MyTable" class="modern-responsive-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Document Symbol</th>
+                                                    <th>Agenda</th>
+                                                    <th>Session</th>
+                                                    <th>Distribution</th>
+                                                    <th>Area</th>
+                                                    <th>Subjects</th>
+                                                    <th>Job Number</th>
+                                                    <th>Title</th>
+                                                    <th>Publication Date</th>
+                                                    <th>Release Date</th>
                                             </tr>
                                             </thead>
                                             <tbody>
-
                                             <tr v-for="record in listOfRecordsDiplayMetaData" v-if="listOfRecordsDiplayMetaData.length>=1">
                                                 <td>{{record[0]['symbol']}}</td>
                                                 <td>{{record[0]['agendas']}}</td>
@@ -88,308 +111,339 @@ Vue.component('ods', {
                                                 <td>{{record[0]["publication_date"]}}</td>
                                                 <td>{{record[0]["release_dates"]}}</td>
                                             </tr>
-
-
                                             </tbody>
                                         </table>
-                                        <button class="btn btn-primary mb-2 mr-2 align-items-center" v-if="displayResult==true" type="button" @click="docsymbols='';displayResult=false;listOfRecordsDiplayMetaData=[];">Clear List</button>
-                                        <button class="btn btn-success mb-2  ml-1 align-items-center" v-if="displayResult==true" type="button" @click="exportTableToCSV('MyTable')">Export to csv</button>
                                     </div>
                                 
+                                    <div class="modern-action-buttons" v-if="displayResult==true">
+                                        <button class="btn-modern btn-secondary-modern" type="button" @click="docsymbols='';displayResult=false;listOfRecordsDiplayMetaData=[];">
+                                            <i class="fas fa-trash me-2"></i>
+                                            Clear List
+                                        </button>
+                                        <button class="btn-modern btn-info-modern" type="button" @click="exportTableToCSV('MyTable')">
+                                            <i class="fas fa-download me-2"></i>
+                                            Export to CSV
+                                        </button>
+                                    </div>
                                 </div>
-                                <!-- End first Tab -->	
+                                <!-- End Display Tab -->
                                     
                         
-                                <!-- Second Tab -->	
-                                <div v-if="session_show_create_update=='true'" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="create-update" role="tabpanel" aria-labelledby="create-update-tab" >
-                                    <form class="form-inline" @submit.prevent>
-                                        <textarea id="docsymbols1" rows="7" class="col-11" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols1" v-model="docsymbols1"></textarea>
-                                        <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" @click="displayResultCreateUpdate(docsymbols1);">Send</button>
-                                    </form>
-                                   <div id="displayProgress2" class="mt-3" v-if="displayProgress2">
-                                            <div class="spinner-grow text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                                <!-- Create/Update Tab -->	
+                                <div v-if="session_show_create_update=='true'" class="tab-pane fade" id="create-update" role="tabpanel" aria-labelledby="create-update-tab">
+                                    <div class="modern-controls-section">
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <label for="docsymbols1" class="form-label-modern">Document Symbols</label>
+                                                <textarea id="docsymbols1" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated)" name="docsymbols1" v-model="docsymbols1"></textarea>
                                             </div>
-                                            <div class="spinner-grow text-secondary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <div class="spinner-grow text-success" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                                        <div class="modern-button-group mt-3">
+                                            <button class="btn-modern btn-success-modern" type="button" @click="displayResultCreateUpdate(docsymbols1);">
+                                                <i class="fas fa-paper-plane me-2"></i>
+                                                Send
+                                            </button>
                                             </div>
-                                            <div class="spinner-grow text-danger" role="status">
-                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <div class="spinner-grow text-warning" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-info" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                                <div class="spinner-grow text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                            <div class="spinner-grow text-dark" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
+                                    
+                                    <div id="displayProgress2" class="text-center mt-4" v-if="displayProgress2">
+                                        <div class="loading-spinner">
+                                            <div class="spinner"></div>
+                                            <p>Processing metadata...</p>
                                         </div>
-                                    <div class="table-responsive col-11" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult1">
+                                    </div>
                                        
-                                        <table id="MyTable1" class="table table-striped">
-                                            <thead class="table-light">
+                                    <div class="modern-table-container" v-if="displayResult1">
+                                        <table id="MyTable1" class="modern-responsive-table">
+                                            <thead>
                                                 <tr>
                                                     <th>Document Symbol</th>
                                                     <th>Result</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                
                                                 <tr v-for="record in listOfResult1">
                                                     <td>{{record["docsymbol"]}}</td>
                                                     <td>{{record["text"]}}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
-                                        
                                     </div>
                                     
-                                    <button type="submit" class="btn btn-primary mr-2 align-items-center" v-if="displayResult1==true" @click="docsymbols1='';displayResult1=false;listOfResult1=[];">Clear List</button>
-                                    <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult1==true" type="button" @click="exportTableToCSV('MyTable1')">Export to csv</button>
-                                    
-                                
+                                    <div class="modern-action-buttons" v-if="displayResult1==true">
+                                        <button class="btn-modern btn-secondary-modern" type="button" @click="docsymbols1='';displayResult1=false;listOfResult1=[];">
+                                            <i class="fas fa-trash me-2"></i>
+                                            Clear List
+                                        </button>
+                                        <button class="btn-modern btn-info-modern" type="button" @click="exportTableToCSV('MyTable1')">
+                                            <i class="fas fa-download me-2"></i>
+                                            Export to CSV
+                                        </button>
+                                    </div>
                                 </div>
-                                <!-- End Second Tab -->	
+                                <!-- End Create/Update Tab -->	
                                 
                             
-                                <!-- Third Tab -->	
-                                <div v-if="session_show_send_file=='true'" class="tab-pane fade" style="margin: 10px auto;text-align: center;" id="send-files" role="tabpanel" aria-labelledby="create-update-tab" >
-                                    <form class="form-inline" @submit.prevent>
-                                        <textarea class="col-11" rows="7" placeholder="Paste the list of symbols here (new line separated)" style="" name="docsymbols2" v-model="docsymbols2"></textarea>
-                                        <button class="btn btn-primary col-2 btn btn-success" type="button"  style="margin: 10px auto;padding: 10px;" v-if="displayResult2==false"  @click="displayResultSendFile(docsymbols2)">Send</button> 
-                                    </form>
-                                    <div id="displayProgress3" class="mt-3" v-if="displayProgress3">
-                                            <div class="spinner-grow text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                                <!-- Send Files Tab -->	
+                                <div v-if="session_show_send_file=='true'" class="tab-pane fade" id="send-files" role="tabpanel" aria-labelledby="send-files-tab">
+                                    <div class="modern-controls-section">
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <label for="docsymbols2" class="form-label-modern">Document Symbols</label>
+                                                <textarea id="docsymbols2" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated)" name="docsymbols2" v-model="docsymbols2"></textarea>
                                             </div>
-                                            <div class="spinner-grow text-secondary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <div class="spinner-grow text-success" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+                                        <div class="modern-button-group mt-3">
+                                            <button class="btn-modern btn-success-modern" type="button" v-if="displayResult2==false" @click="displayResultSendFile(docsymbols2)">
+                                                <i class="fas fa-upload me-2"></i>
+                                                Send Files
+                                            </button>
                                             </div>
-                                            <div class="spinner-grow text-danger" role="status">
-                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <div class="spinner-grow text-warning" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <div class="spinner-grow text-info" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                                <div class="spinner-grow text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                            <div class="spinner-grow text-dark" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
+                                    
+                                    <div id="displayProgress3" class="text-center mt-4" v-if="displayProgress3">
+                                        <div class="loading-spinner">
+                                            <div class="spinner"></div>
+                                            <p>Uploading files...</p>
                                         </div>
-                                    <div class="table-responsive col-11 shadow" style="height:400px;overflow:auto;margin: 20px auto;" v-if="displayResult2">
+                                    </div>
                                 
-                                        <table style="height:400px;overflow:auto;margin: 20px auto;" id="MyTable2" class="table">
-                                            <thead class="table-light table-striped">
+                                    <div class="modern-table-container" v-if="displayResult2">
+                                        <table id="MyTable2" class="modern-responsive-table">
+                                            <thead>
                                                 <tr>
-                                                    <th>Filename </th>
-                                                    <th>Document symbol</th>
+                                                    <th>Filename</th>
+                                                    <th>Document Symbol</th>
                                                     <th>Language</th>
-                                                    <th>Jobnumber</th>
+                                                    <th>Job Number</th>
                                                     <th>Result</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                               
                                                     <tr v-for="record in listOfResult2">
-                                                        <td>
-                                                            {{record["filename"]}}
-                                                        </td> 
-                                                        <td>
-                                                            {{record["docsymbol"]}}
-                                                        </td>
-                                                        <td>
-                                                         {{record["language"]}}
-                                                        </td>
-                                                        <td>
-                                                         {{record["jobnumber"]}}
-                                                        </td>
-                                                        <td>
-                                                            {{record["result"]}}
-                                                        </td>
+                                                    <td>{{record["filename"]}}</td>
+                                                    <td>{{record["docsymbol"]}}</td>
+                                                    <td>{{record["language"]}}</td>
+                                                    <td>{{record["jobnumber"]}}</td>
+                                                    <td>{{record["result"]}}</td>
                                                     </tr> 
-                                             
                                             </tbody>
                                         </table>
                                     </div>
-
-                                        <button type="submit" class="btn btn-primary mr-2 align-items-center" v-if="displayResult2==true" @click="docsymbols2='';displayResult2=false;listOfResult2=[];">Clear List</button>
-                                        <button type="submit" class="btn btn-success ml-1 align-items-center" v-if="displayResult2==true" type="button" @click="exportTableToCSV('MyTable2')">Export to csv</button>
                                     
-                                
+                                    <div class="modern-action-buttons" v-if="displayResult2==true">
+                                        <button class="btn-modern btn-secondary-modern" type="button" @click="docsymbols2='';displayResult2=false;listOfResult2=[];">
+                                            <i class="fas fa-trash me-2"></i>
+                                            Clear List
+                                        </button>
+                                        <button class="btn-modern btn-info-modern" type="button" @click="exportTableToCSV('MyTable2')">
+                                            <i class="fas fa-download me-2"></i>
+                                            Export to CSV
+                                        </button>
+                                    </div>
                                 </div>
-                                <!-- End Third Tab -->	
+                                <!-- End Send Files Tab -->	
 
                                   
                                 <!-- Parameters Tab -->	
-                                    <div v-if="session_show_parameters=='true'" class="tab-pane fade show" id="parameters" role="tabpanel">
+                                <div v-if="session_show_parameters=='true'" class="tab-pane fade" id="parameters" role="tabpanel">
+                                    <div class="modern-controls-section">
+                                        <h4 class="mb-4">
+                                            <i class="fas fa-cog me-2"></i>
+                                            System Parameters
+                                        </h4>
 
                                     <div class="accordion" id="accordionExample">
                                         <div class="accordion-item" id="sites">
                                                 <h2 class="accordion-header" id="headingOne0">
                                                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne0" aria-expanded="true" aria-controls="collapseOne0">
+                                                        <i class="fas fa-building me-2"></i>
                                                         <strong>Sites Management</strong>
                                                     </button>
                                                 </h2>
-                                                <div id="collapseOne0" class="accordion-collapse collapse " aria-labelledby="headingOne0" data-bs-parent="#accordionExample">
+                                                <div id="collapseOne0" class="accordion-collapse collapse" aria-labelledby="headingOne0" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
-                                                    <strong>Please fill the fields below.</strong>
-                                                    <hr>
-                                                    <form>
-                            
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Code Site</strong></label>
-                                                            <input type="text" class="form-control" id="code_site" value="code_site" aria-describedby="code_site_help" v-model="code_site">
+                                                        <div class="description-section mb-4">
+                                                            <h5>Add New Site</h5>
+                                                            <p>Please fill the fields below to create a new site.</p>
                                                         </div>
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Label Site</strong></label>
-                                                            <input type="text" class="form-control" id="label_site" value="label_site" aria-describedby="label_site" v-model="label_site">
+                                                        
+                                                        <form class="form-modern">
+                                                            <div class="row">
+                                                                <div class="col-md-4">
+                                                                    <label for="code_site" class="form-label-modern">Code Site</label>
+                                                                    <input type="text" class="form-control-modern" id="code_site" v-model="code_site" placeholder="Enter 3-letter site code">
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label for="label_site" class="form-label-modern">Label Site</label>
+                                                                    <input type="text" class="form-control-modern" id="label_site" v-model="label_site" placeholder="Enter site label">
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label for="prefix_site" class="form-label-modern">Prefix Site</label>
+                                                                    <input type="text" class="form-control-modern" id="prefix_site" v-model="prefix_site" placeholder="Enter 2-letter prefix">
+                                                                </div>
                                                         </div>
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Prefix Site</strong></label>
-                                                            <input type="text" class="form-control" id="prefix_site" value="prefix_site" aria-describedby="prefix_site" v-model="prefix_site">
+                                                            
+                                                            <div class="modern-button-group mt-4">
+                                                                <button type="button" class="btn-modern btn-primary-modern" @click="addSite()">
+                                                                    <i class="fas fa-plus me-2"></i>
+                                                                    Create Site
+                                                                </button>
                                                         </div>                                                                                                                
-                                                        <hr>
-                                                        <div class="mt-2">
-                                                            <button type="button" class="btn btn-primary" @click="addSite()">Create</button>
-                                                            <!-- <button type="button" class="btn btn-secondary" @click="">Edit</button> -->
-                                                        <div>
                                                     </form>
-        
                                                 </div>
                                                 </div>
                                             </div>
                                             <div class="accordion-item" id="users">
                                                 <h2 class="accordion-header" id="headingOne">
-                                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                                        <i class="fas fa-users me-2"></i>
                                                     <strong>Users Management</strong>
                                                 </button>
                                                 </h2>
                                                 <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
-                                                    <strong>Please fill the fields below.</strong>
-                                                    <hr>
-                                                    <form>
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Site</strong></label>
-                                                            <select id="site" class="form-select" v-model="code_site">
-                                                                <option v-for="my_site in site">{{my_site}}</option>
-                                                            </select>
+                                                        <div class="description-section mb-4">
+                                                            <h5>Add New User</h5>
+                                                            <p>Please fill the fields below to create a new user account.</p>
                                                         </div>
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Email</strong></label>
-                                                            <input type="email" class="form-control" id="email" value="email" aria-describedby="emailHelp" v-model="email">
+                                                        
+                                                        <form class="form-modern">
+                                                            <div class="row">
+                                                                <div class="col-md-6">
+                                                                    <label for="site" class="form-label-modern">Site</label>
+                                                                    <select id="site" class="form-select-modern" v-model="code_site">
+                                                                        <option value="">Select a site</option>
+                                                                        <option v-for="my_site in site" :value="my_site">{{my_site}}</option>
+                                                                    </select>
                                                         </div>
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Password</strong></label>
-                                                            <input type="password" class="form-control" id="password" value="password" v-model="password">
+                                                                <div class="col-md-6">
+                                                                    <label for="email" class="form-label-modern">Email</label>
+                                                                    <input type="email" class="form-control-modern" id="email" v-model="email" placeholder="Enter user email">
                                                         </div>
-                                                        <div class="mb-3">
-                                                            <label for="" class="form-label"><strong>Select the tab(s) to display</strong></label>
-                                                            <div class="form-check form-check">
-                                                                <input class="form-check-input" type="checkbox" id="show_display" value="show_display" v-model="show_display">
-                                                                <label class="form-check-label" for="inlineCheckbox1">Show Display metadata</label>
                                                             </div>
-                                                            <div class="form-check form-check">
-                                                                <input class="form-check-input" type="checkbox" id="show_create_update" value="show_create_update" v-model="show_create_update">
-                                                                <label class="form-check-label" for="inlineCheckbox2"> Show Create/ Update metadata</label>
+                                                            
+                                                            <div class="row mt-3">
+                                                                <div class="col-md-6">
+                                                                    <label for="password" class="form-label-modern">Password</label>
+                                                                    <input type="password" class="form-control-modern" id="password" v-model="password" placeholder="Enter user password">
+                                                                </div>
                                                             </div>
-                                                            <div class="form-check form-check">
-                                                                <input class="form-check-input" type="checkbox" id="show_send_file" value="show_send_file" v-model="show_send_file">
-                                                                <label class="form-check-label" for="inlineCheckbox2">Show Send files to ODS </label>
+                                                            
+                                                            <div class="mt-4">
+                                                                <label class="form-label-modern">Select the tab(s) to display</label>
+                                                                <div class="row">
+                                                                    <div class="col-md-6">
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="show_display" v-model="show_display">
+                                                                            <label class="form-check-label" for="show_display">Show Display metadata</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="show_create_update" v-model="show_create_update">
+                                                                            <label class="form-check-label" for="show_create_update">Show Create/Update metadata</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="show_send_file" v-model="show_send_file">
+                                                                            <label class="form-check-label" for="show_send_file">Show Send files to ODS</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="show_jobnumbers_management" v-model="show_jobnumbers_management">
+                                                                            <label class="form-check-label" for="show_jobnumbers_management">Show Job numbers management</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="show_parameters" v-model="show_parameters">
+                                                                            <label class="form-check-label" for="show_parameters">Show Parameters</label>
+                                                                        </div>
+                                                                    </div>
                                                             </div>
-                                                            <div class="form-check form-check">
-                                                                <input class="form-check-input" type="checkbox" id="show_jobnumbers_management" value="show_jobnumbers_management" v-model="show_jobnumbers_management">
-                                                                <label class="form-check-label" for="inlineCheckbox2">Show Job numbers management</label>
                                                             </div>
-                                                            <div class="form-check form-check">
-                                                                <input class="form-check-input" type="checkbox" id="show_parameters" value="show_parameters" v-model="show_parameters">
-                                                                <label class="form-check-label" for="inlineCheckbox2">Show Parameters</label>
+                                                            
+                                                            <div class="modern-button-group mt-4">
+                                                                <button type="button" class="btn-modern btn-primary-modern" @click="addUser()">
+                                                                    <i class="fas fa-user-plus me-2"></i>
+                                                                    Create User
+                                                                </button>
                                                             </div>
-                                                        </div>
-                                                        <hr>
-                                                        <div class="mt-2">
-                                                            <button type="button" class="btn btn-primary" @click="addUser()">Create</button>
-                                                            <!-- <button type="button" class="btn btn-secondary" @click="alert('edit')">Edit</button> -->
-                                                        <div>
                                                     </form>
-        
                                                 </div>
                                                 </div>
                                             </div>
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header" id="headingThree">
                                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                                    <strong>Logs</strong>
+                                                        <i class="fas fa-list-alt me-2"></i>
+                                                        <strong>System Logs</strong>
                                                 </button>
                                                 </h2>
                                                 <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
-                                                    <button type="submit" class="btn btn-success ml-1 align-items-center" type="button" @click="exportTableToCSV('listlogs')">Export all the logs in csv</button>
-                                                    <div class="shadow" style="height:400px;overflow:auto;margin: 20px auto;">
-                                                        <table class="table table-striped tableau" id="listlogs">
+                                                        <div class="description-section mb-4">
+                                                            <h5>Activity Logs</h5>
+                                                            <p>View and export system activity logs.</p>
+                                                        </div>
+                                                        
+                                                        <!-- Filter Controls -->
+                                                        <div class="modern-controls-section mb-4">
+                                                            <div class="row">
+                                                                <div class="col-md-4">
+                                                                    <label for="logUserFilter" class="form-label-modern">Filter by User</label>
+                                                                    <input type="text" id="logUserFilter" class="form-control-modern" v-model="logUserFilter" placeholder="Enter username...">
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label for="logActionFilter" class="form-label-modern">Filter by Action</label>
+                                                                    <input type="text" id="logActionFilter" class="form-control-modern" v-model="logActionFilter" placeholder="Enter action...">
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label for="logDateFilter" class="form-label-modern">Filter by Date</label>
+                                                                    <input type="date" id="logDateFilter" class="form-control-modern" v-model="logDateFilter">
+                                                                </div>
+                                                            </div>
+                                                            <div class="modern-button-group mt-3">
+                                                                <button type="button" class="btn-modern btn-secondary-modern" @click="clearLogFilters">
+                                                                    <i class="fas fa-times me-2"></i>
+                                                                    Clear Filters
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="modern-button-group mb-4">
+                                                            <button type="button" class="btn-modern btn-info-modern" @click="exportTableToCSV('listlogs')">
+                                                                <i class="fas fa-download me-2"></i>
+                                                                Export All Logs to CSV
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        <div class="modern-table-container">
+                                                            <table class="modern-responsive-table" id="listlogs">
                                                         <thead>
                                                             <tr>
-                                                            <th scope="col">User</th>
-                                                            <th scope="col">Action</th>
-                                                            <th scope="col">Date</th>
+                                                                        <th>User</th>
+                                                                        <th>Action</th>
+                                                                        <th>Date</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            <tr v-for="field in listOfLogs">
-                                                                <th scope="row"> {{field.user}} </th>
+                                                                    <tr v-for="field in filteredLogs">
+                                                                        <td>{{field.user}}</td>
                                                                 <td>{{field.action}}</td>
                                                                 <td>{{field.date.$date}}</td>
                                                             </tr>
                                                         </tbody>
                                                         </table>       
                                                     </div>
-
                                                 </div>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        
                                     </div>
-                                <!-- End parameters Tab -->	
-                            
+                                </div>
+                                <!-- End Parameters Tab -->	
                             </div>
-                        
-                        
-                        
-                        
-                        <!-- </div> -->
-                        
+                        </div>
                     </div>
-                <!-- <script src="assets/bootstrap/js/bootstrap.min.js"></script>-->
-                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-                    <script>
-                    document.getElementById('toggleButton').addEventListener('click', function() {
-                    // Toggle the 'hidden' class on the table
-                    var table = document.getElementById('myTable');
-                    if (table.classList.contains('hidden')) {
-                        table.classList.remove('hidden');
-                    } else {
-                        table.classList.add('hidden');
-                    }
-                    });
-                    </script>
+                </div>
              `,
 created:async function(){
     this.loadLogs()
@@ -422,10 +476,43 @@ data: function () {
         show_parameters:false,
         creation_date:"",
         listOfLogs:[],
+        logUserFilter:"",
+        logActionFilter:"",
+        logDateFilter:"",
+        isDarkMode: true,
         code_site:"",
         label_site:"",
         prefix_site:"",
     }
+    },
+    
+    computed: {
+        filteredLogs() {
+            return this.listOfLogs.filter(log => {
+                const userMatch = !this.logUserFilter || log.user.toLowerCase().includes(this.logUserFilter.toLowerCase());
+                const actionMatch = !this.logActionFilter || log.action.toLowerCase().includes(this.logActionFilter.toLowerCase());
+                const dateMatch = !this.logDateFilter || this.formatDateForFilter(log.date.$date) === this.logDateFilter;
+                
+                return userMatch && actionMatch && dateMatch;
+            });
+        },
+        
+        themeIcon() {
+            return this.isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+        }
+    },
+    
+    mounted() {
+        // Initialize theme from localStorage or default to dark
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            this.isDarkMode = savedTheme === 'dark';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        } else {
+            // Default to dark mode
+            this.isDarkMode = true;
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
     },
         
     methods:{
@@ -439,6 +526,27 @@ data: function () {
         my_data.forEach(element => {
             this.listOfLogs.push(element)
         });
+        },
+        
+        formatDateForFilter(dateString) {
+            // Convert the date string to YYYY-MM-DD format for comparison
+            const date = new Date(dateString);
+            return date.toISOString().split('T')[0];
+        },
+        
+        clearLogFilters() {
+            this.logUserFilter = "";
+            this.logActionFilter = "";
+            this.logDateFilter = "";
+        },
+        
+        toggleTheme() {
+            this.isDarkMode = !this.isDarkMode;
+            const htmlElement = document.documentElement;
+            htmlElement.setAttribute('data-bs-theme', this.isDarkMode ? 'dark' : 'light');
+            
+            // Save preference to localStorage
+            localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
         },
         async loadSites(){
 

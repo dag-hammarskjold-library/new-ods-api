@@ -37,7 +37,7 @@ LANGUAGES=["AR","ZH","EN","FR","RU","ES","DE"]
 ########################################################################
 
 base_url = config("BASE_URL")
-username = config("USERNAME")
+username_api = config("USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
@@ -115,11 +115,12 @@ def add_analytics(date_analytics:str,user_connected:str,action_analytics:str,dat
 ########################################################################
 
 def get_encode_base64()-> str:
-  text=f"{username}:{password}:{client_id}:{client_secret}"
+  text=f"{username_api}:{password}:{client_id}:{client_secret}"
   # Encode the input text to base64
   encoded_bytes = base64.b64encode(text.encode('utf-8'))
   # Convert the bytes to a string
   encoded_string = encoded_bytes.decode('utf-8')
+  
   return encoded_string
 
 
@@ -324,13 +325,17 @@ def release_job_number(jobnumber:str):
 
 def get_token()->str:
 
-  url = f"{base_url}api/auth/token?username={username}&password={password}&client_id={client_id}&client_secret={client_secret}"
+  url = f"{base_url}api/auth/token?username={username_api}&password={password}&client_id={client_id}&client_secret={client_secret}"
+  print(f"url is {url}")
   payload0 = {}
   headers0 = {
     'Authorization': f'Basic {get_encode_base64()}'
   }
   response = requests.request("GET", url, headers=headers0, data=payload0,verify=False)
+  print(f"response is {response}")
   json_data = json.loads(response.text)
+  print("-----------------------------")
+  print(f"json_data is {json_data}")
   return json_data["token"]
 
 ########################################################################
@@ -341,6 +346,7 @@ def ods_get_loading_symbol(my_param:str):
 
   # get the token
   my_token=get_token()
+  print(f"my_token is {my_token}")
   
   # build the url
   url1=config("BASE_URL") + "api/loading/symbol?s=" + my_param.strip().upper()+"&em=true"
@@ -356,9 +362,10 @@ def ods_get_loading_symbol(my_param:str):
   # get the response 
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
   
-#need to check if the response is not empty and has more than 1 record (duplicate) in ODS
+  #need to check if the response is not empty and has more than 1 record (duplicate) in ODS
   # return the response
   #print(f"len of json is {len(response.json())}")
+  print(f"response is {response.json()}")
   return response.json()
 
 ######################################################################################
@@ -793,8 +800,8 @@ def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
         "lang":lang      }
   
   # build the url
-  #url=config("base_url") + "api/loading/symbol"
-  url=base_url + "api/loading/symbol"
+  #url=config("BASE_URL") + "api/loading/symbol"
+  url=BASE_URL + "api/loading/symbol"
 
 
 
@@ -834,7 +841,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
 
   # build the url
   #url=config("BASE_URL") + "api/loading/file"
-  url=base_url + "api/loading/file"
+  url=BASE_URL + "api/loading/file"
 
   # building the request
   #print(f'payload is {payload}')
