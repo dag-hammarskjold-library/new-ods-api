@@ -43,9 +43,11 @@
           </button>
           
           {% if error %}
-          <div class="alert-modern alert-danger-modern mt-3" role="alert">
-            <i class="fas fa-exclamation-triangle"></i>
-            <div>
+          <div class="notification error mt-3" role="alert">
+            <div class="notification-icon">
+              <i class="fas fa-times"></i>
+            </div>
+            <div class="notification-content">
               <div class="notification-title">Login Failed</div>
               <div class="notification-message">{{ error }}</div>
             </div>

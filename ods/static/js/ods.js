@@ -1,3 +1,120 @@
+// Modern Notification System
+class NotificationManager {
+    constructor() {
+        this.container = null;
+        this.notifications = [];
+        this.init();
+    }
+
+    init() {
+        // Create notification container if it doesn't exist
+        if (!document.querySelector('.notification-container')) {
+            this.container = document.createElement('div');
+            this.container.className = 'notification-container';
+            document.body.appendChild(this.container);
+        } else {
+            this.container = document.querySelector('.notification-container');
+        }
+    }
+
+    show(message, type = 'info', title = '', duration = 5000) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        const iconMap = {
+            success: 'fas fa-check',
+            error: 'fas fa-times',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+
+        const titleMap = {
+            success: 'Success',
+            error: 'Error',
+            warning: 'Warning',
+            info: 'Information'
+        };
+
+        const finalTitle = title || titleMap[type] || 'Notification';
+        const icon = iconMap[type] || iconMap.info;
+
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="${icon}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${finalTitle}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        this.container.appendChild(notification);
+        this.notifications.push(notification);
+
+        // Trigger animation
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+
+        // Auto remove after duration
+        if (duration > 0) {
+            setTimeout(() => {
+                this.remove(notification);
+            }, duration);
+        }
+
+        return notification;
+    }
+
+    remove(notification) {
+        if (notification && notification.parentNode) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+                const index = this.notifications.indexOf(notification);
+                if (index > -1) {
+                    this.notifications.splice(index, 1);
+                }
+            }, 300);
+        }
+    }
+
+    success(message, title = 'Success', duration = 5000) {
+        return this.show(message, 'success', title, duration);
+    }
+
+    error(message, title = 'Error', duration = 7000) {
+        return this.show(message, 'error', title, duration);
+    }
+
+    warning(message, title = 'Warning', duration = 6000) {
+        return this.show(message, 'warning', title, duration);
+    }
+
+    info(message, title = 'Information', duration = 5000) {
+        return this.show(message, 'info', title, duration);
+    }
+
+    clear() {
+        this.notifications.forEach(notification => {
+            this.remove(notification);
+        });
+    }
+}
+
+// Global notification instance
+const notifications = new NotificationManager();
+
+// Replace alert function globally
+window.alert = function(message) {
+    notifications.info(message, 'Alert');
+};
+
 Vue.component('ods', {
     template: `
                 <div class="container-fluid">
@@ -64,13 +181,17 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label for="docsymbols" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="docsymbols" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated)" name="docsymbols" v-model="docsymbols"></textarea>
+                                                <textarea id="docsymbols" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated). The Apply button will be enabled when you enter content." name="docsymbols" v-model="docsymbols"></textarea>
                                             </div>
                                             </div>
                                         <div class="modern-button-group mt-3">
-                                            <button class="btn-modern btn-primary-modern" type="button" id="toggleButton" @click="displayMetaData(docsymbols);">
+                                            <button class="btn-modern btn-primary-modern" type="button" id="toggleButton" @click="displayMetaData(docsymbols);" :disabled="isDisplayButtonDisabled">
                                                 <i class="fas fa-search me-2"></i>
                                                 Apply
+                                            </button>
+                                            <button v-if="displayResult" class="btn-modern btn-secondary-modern" type="button" @click="refreshDisplayResults()">
+                                                <i class="fas fa-trash me-2"></i>
+                                                Clear
                                             </button>
                                             </div>
                                             </div>
@@ -135,13 +256,17 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label for="docsymbols1" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="docsymbols1" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated)" name="docsymbols1" v-model="docsymbols1"></textarea>
+                                                <textarea id="docsymbols1" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated). The Send button will be enabled when you enter content." name="docsymbols1" v-model="docsymbols1"></textarea>
                                             </div>
                                             </div>
                                         <div class="modern-button-group mt-3">
-                                            <button class="btn-modern btn-success-modern" type="button" @click="displayResultCreateUpdate(docsymbols1);">
+                                            <button class="btn-modern btn-success-modern" type="button" @click="displayResultCreateUpdate(docsymbols1);" :disabled="isSendButtonDisabled">
                                                 <i class="fas fa-paper-plane me-2"></i>
                                                 Send
+                                            </button>
+                                            <button v-if="displayResult1" class="btn-modern btn-secondary-modern" type="button" @click="refreshSendResults()">
+                                                <i class="fas fa-trash me-2"></i>
+                                                Clear
                                             </button>
                                             </div>
                                             </div>
@@ -190,13 +315,17 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label for="docsymbols2" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="docsymbols2" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated)" name="docsymbols2" v-model="docsymbols2"></textarea>
+                                                <textarea id="docsymbols2" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated). The Send Files button will be enabled when you enter content." name="docsymbols2" v-model="docsymbols2"></textarea>
                                             </div>
                                             </div>
                                         <div class="modern-button-group mt-3">
-                                            <button class="btn-modern btn-success-modern" type="button" v-if="displayResult2==false" @click="displayResultSendFile(docsymbols2)">
+                                            <button class="btn-modern btn-success-modern" type="button" v-if="displayResult2==false" @click="displayResultSendFile(docsymbols2)" :disabled="isSendFilesButtonDisabled">
                                                 <i class="fas fa-upload me-2"></i>
                                                 Send Files
+                                            </button>
+                                            <button v-if="displayResult2" class="btn-modern btn-secondary-modern" type="button" @click="refreshSendFilesResults()">
+                                                <i class="fas fa-trash me-2"></i>
+                                                Clear
                                             </button>
                                             </div>
                                             </div>
@@ -499,6 +628,19 @@ data: function () {
         
         themeIcon() {
             return this.isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+        },
+        
+        // Button state computed properties
+        isDisplayButtonDisabled() {
+            return !this.docsymbols || this.docsymbols.trim() === '';
+        },
+        
+        isSendButtonDisabled() {
+            return !this.docsymbols1 || this.docsymbols1.trim() === '';
+        },
+        
+        isSendFilesButtonDisabled() {
+            return !this.docsymbols2 || this.docsymbols2.trim() === '';
         }
     },
     
@@ -575,15 +717,15 @@ data: function () {
         dataset.append('docsymbols',cleanedDocSymbols)
     
         // loading all the data
-        const my_response = await fetch("./loading_symbol",{
-            "method":"POST",
-            "body":dataset
-            });
-            
-        const my_data = await my_response.json()
+        try {
+            const my_response = await fetch("./loading_symbol",{
+                "method":"POST",
+                "body":dataset
+                });
+                
+            const my_data = await my_response.json()
 
-        // loading data
-        try {     
+            // loading data
             my_data.forEach(element => {
 
                 // check the length of the data array to see if we found the information
@@ -613,22 +755,10 @@ data: function () {
 
             })
 
-            //     let docsymbol=element[1]
-            //     // console.log(element[0])
-
-
-            //         if (data[0]["body"]["data"][0].length!==0)  
-            //             {  
-            //             this.listOfRecordsDiplayMetaData.push(data[0]["body"]["data"][0])
-            //             }
-
-            //         //implement case where nothing is returned , docsymbol does not exits
-                    // if (element["body"]["data"].length==0)  
-                    // })
-                } 
-        catch (error) {
+        } catch (error) {
             // remove Progress bar
             this.displayProgress1=false
+            notifications.error(error.message || error, 'Search Error');
         }
         finally{
             // remove Progress bar
@@ -636,8 +766,13 @@ data: function () {
         }
 
         // display Results
-        if (this.listOfRecordsDiplayMetaData.length>=1)
+        if (this.listOfRecordsDiplayMetaData.length>=1) {
             this.displayResult=true;
+            // Show success notification
+            notifications.success(`Found ${this.listOfRecordsDiplayMetaData.length} metadata records`, 'Search Complete');
+        } else {
+            notifications.info('No metadata records found for the provided symbols', 'Search Complete');
+        }
 
         },
               
@@ -662,25 +797,24 @@ data: function () {
             let dataset = new FormData()
             dataset.append('docsymbols1',this.docsymbols1)
 
-        
             // loading all the data
-            const my_response = await fetch("./create_metadata_ods",{
-                "method":"POST",
-                "body":dataset
-                });
-            
-        
-           
-            const my_data = await my_response.json();
+            try {
+                const my_response = await fetch("./create_metadata_ods",{
+                    "method":"POST",
+                    "body":dataset
+                    });
+                
+                const my_data = await my_response.json();
 
-            try {        
                 my_data.forEach(elements => {
                     //console.log(typeof(elements))
                     this.listOfResult1=this.listOfResult1.concat(elements)
                 })
                 
             } catch (error) {
-                //alert(error)
+                // Stop spinner on error
+                this.displayProgress2=false
+                notifications.error(error.message || error, 'Send Error');
             }
             finally{
                 // display Progress bar
@@ -695,6 +829,9 @@ data: function () {
 
             // display the results of the query
             this.displayResult1=true;
+            
+            // Show success notification
+            notifications.success(`Processed ${this.listOfResult1.length} metadata records`, 'Send Complete');
             
             },
 
@@ -716,22 +853,24 @@ data: function () {
                 dataset.append('docsymbols2',this.docsymbols2)
             
                 // loading all the data
-                const my_response = await fetch("./exporttoodswithfile",{
-                    "method":"POST",
-                    "body":dataset
-                    });
-                                   
-                const my_data = await my_response.json()
-                // console.log(my_data)
-                // loading data
-                try {        
+                try {
+                    const my_response = await fetch("./exporttoodswithfile",{
+                        "method":"POST",
+                        "body":dataset
+                        });
+                                       
+                    const my_data = await my_response.json()
+                    // console.log(my_data)
+                    // loading data
                     my_data.forEach(elements => {
                         //console.log(typeof(elements))
                         this.listOfResult2=this.listOfResult2.concat(elements)
                     })
                     
                 } catch (error) {
-                    alert(error)
+                    // Stop spinner on error
+                    this.displayProgress3=false
+                    notifications.error(error.message || error, 'Upload Error');
                 }
                 finally{
                     // display Progress bar
@@ -740,7 +879,11 @@ data: function () {
 
                 if (this.listOfResult2.length!=0){
                     this.displayResult2=true;
-                    }
+                    // Show success notification
+                    notifications.success(`Uploaded ${this.listOfResult2.length} files successfully`, 'Upload Complete');
+                } else {
+                    notifications.warning('No files were uploaded', 'Upload Complete');
+                }
             },
         checkInput(){
             // init the variable
@@ -805,15 +948,15 @@ data: function () {
                     const my_data = await my_response.json()
                     try 
                         {        
-                        alert(my_data.message)
+                        notifications.success(my_data.message, 'User Created');
                         }
                         
                     catch (error) {
-                        alert(error)
+                        notifications.error(error.message || error, 'User Creation Error');
                     }
                 }
             else{
-                alert("please check the inputs!!!!") 
+                notifications.warning("Please check the inputs!", 'Validation Error') 
             }        
         },
         async addSite(){
@@ -839,18 +982,58 @@ data: function () {
                     const my_data = await my_response.json()
                     try 
                         {        
-                        alert(my_data.message)
+                        notifications.success(my_data.message, 'Site Created');
                         }
                         
                     catch (error) {
-                        alert(error)
+                        notifications.error(error.message || error, 'Site Creation Error');
                     }
                 }
             else{
-                alert("please check the inputs!!!!") 
+                notifications.warning("Please check the inputs!", 'Validation Error') 
             }
             window.location.reload();      
         },
+        
+        // Notification helper methods
+        showSuccess(message, title = 'Success') {
+            notifications.success(message, title);
+        },
+        
+        showError(message, title = 'Error') {
+            notifications.error(message, title);
+        },
+        
+        showWarning(message, title = 'Warning') {
+            notifications.warning(message, title);
+        },
+        
+        showInfo(message, title = 'Information') {
+            notifications.info(message, title);
+        },
+        
+        // Refresh methods for each tab - only clear data and hide results
+        refreshDisplayResults() {
+            this.listOfRecordsDiplayMetaData = [];
+            this.displayResult = false;
+            this.docsymbols = ''; // Clear the textarea
+            notifications.success('Display results and input cleared', 'Clear Complete');
+        },
+        
+        refreshSendResults() {
+            this.listOfResult1 = [];
+            this.displayResult1 = false;
+            this.docsymbols1 = ''; // Clear the textarea
+            notifications.success('Send results and input cleared', 'Clear Complete');
+        },
+        
+        refreshSendFilesResults() {
+            this.listOfResult2 = [];
+            this.displayResult2 = false;
+            this.docsymbols2 = ''; // Clear the textarea
+            notifications.success('Send files results and input cleared', 'Clear Complete');
+        },
+        
         downloadCSV(csv) {
                     let csvFile;
                     let downloadLink;
@@ -875,6 +1058,9 @@ data: function () {
                 
                     // Click the link
                     downloadLink.click();
+                    
+                    // Show success notification
+                    notifications.success('CSV file downloaded successfully!', 'Export Complete');
         },
         exportTableToCSV(tableName) {
             let csv = [];
