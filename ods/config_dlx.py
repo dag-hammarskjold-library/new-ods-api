@@ -75,8 +75,8 @@ class Config(object):
     FILE_COLLECTION = 'files'
     MAX_QUERY_TIME = 20000
     
-    # force access to the production database
-    connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
+    # # force access to the production database
+    # connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
     
     if "@" in connect_string:
         print(f'Loading {environment}: {connect_string.split("@")[-1].split("/")[0]}')
