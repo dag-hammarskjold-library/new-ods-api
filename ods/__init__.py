@@ -20,7 +20,6 @@ return_data=""
 ########################################################################
 
 base_url = config("BASE_URL")
-username = config("USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
@@ -121,7 +120,7 @@ def create_app(test_config=None):
                         # user found
                         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
                         #session.clear()
-                        print(f'session b4 login {session}')
+                       
                         # add the username to the session
                         session['username'] = result["email"]
                         
@@ -136,8 +135,7 @@ def create_app(test_config=None):
                         session["show_parameters"]=result["show_parameters"]
                         
                         find_record=True
-                        print(f'session after login {session}')
-                        print(f"username is {session['username']}")
+                       
                         if session['username']!="":
                             return redirect(url_for("index_vue"))
                         else:
@@ -166,7 +164,7 @@ def create_app(test_config=None):
                 session_show_parameters=session["show_parameters"]
 
                 return render_template('index_vue.html',
-                                       session_username=session_username,
+                                       session_username=session_username ,
                                        session_show_display=session_show_display,
                                        session_show_create_update=session_show_create_update,
                                        session_show_send_file=session_show_send_file,
@@ -217,7 +215,7 @@ def create_app(test_config=None):
             
             # create log
             ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
-            
+
             if (my_site.inserted_id):
                 result={
                     "status" : "OK",
@@ -271,7 +269,7 @@ def create_app(test_config=None):
             
             # create log
             ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
-            
+
             if (my_user.inserted_id):
                 result={
                     "status" : "OK",
@@ -322,7 +320,7 @@ def create_app(test_config=None):
         
         # create analytics
         ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",final)
-        
+
         return final
         
     @app.route("/get_sites",methods=['GET'])
@@ -393,7 +391,7 @@ def create_app(test_config=None):
         
         # create analytics
         ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"creating_updating_endpoint",data)
-        
+
         return data
     
     ############################################################################
@@ -411,7 +409,7 @@ def create_app(test_config=None):
         
         # create analytics
         ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"send_file_endpoint",result)
-        
+
         return json.dumps(result)
     
     ############################################################################

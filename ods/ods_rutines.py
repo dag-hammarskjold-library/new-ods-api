@@ -37,7 +37,7 @@ LANGUAGES=["AR","ZH","EN","FR","RU","ES","DE"]
 ########################################################################
 
 base_url = config("BASE_URL")
-username_api = config("USERNAME")
+username = config("ODS_USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
@@ -115,7 +115,7 @@ def add_analytics(date_analytics:str,user_connected:str,action_analytics:str,dat
 ########################################################################
 
 def get_encode_base64()-> str:
-  text=f"{username_api}:{password}:{client_id}:{client_secret}"
+  text=f"{username}:{password}:{client_id}:{client_secret}"
   # Encode the input text to base64
   encoded_bytes = base64.b64encode(text.encode('utf-8'))
   # Convert the bytes to a string
@@ -325,7 +325,8 @@ def release_job_number(jobnumber:str):
 
 def get_token()->str:
 
-  url = f"{base_url}api/auth/token?username={username_api}&password={password}&client_id={client_id}&client_secret={client_secret}"
+  print(f"username is {username}")
+  url = f"{base_url}api/auth/token?username={username}&password={password}&client_id={client_id}&client_secret={client_secret}"
   print(f"url is {url}")
   payload0 = {}
   headers0 = {
