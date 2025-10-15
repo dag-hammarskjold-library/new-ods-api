@@ -37,7 +37,7 @@ LANGUAGES=["AR","ZH","EN","FR","RU","ES","DE"]
 ########################################################################
 
 base_url = config("BASE_URL")
-username = config("ODS_USERNAME")
+username = config("USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
