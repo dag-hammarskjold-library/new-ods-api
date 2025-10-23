@@ -1,7 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<div id="dlusers">    
-    <displaylistuserscomponent title=" Users "></displaylistuserscomponent>
+
+<div class="container-fluid">
+    <div class="modern-card">
+        <div class="card-header description-section">
+            <h1 class="card-title">
+                <i class="fas fa-users me-3"></i>
+                User Management
+            </h1>
+            <p class="card-subtitle">Manage system users and their permissions</p>
+        </div>
+        
+        <div class="card-body">
+            <div id="dlusers">    
+                <displaylistuserscomponent title=" Users "></displaylistuserscomponent>
+            </div>
+        </div>
+    </div>
 </div>
+
 {% endblock %}
 

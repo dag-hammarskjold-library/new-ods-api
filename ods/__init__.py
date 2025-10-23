@@ -37,6 +37,14 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY='h@454325hdhdbhdb'
     )
+    
+    # Serve static files from public folder
+    @app.route('/public/<path:filename>')
+    def public_files(filename):
+        import os
+        from flask import send_from_directory
+        public_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public')
+        return send_from_directory(public_dir, filename)
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -312,14 +320,34 @@ def create_app(test_config=None):
                 result["body"]["data"][0]["subjects"]=subjects
             except:
                 pass
+            
+            # Get title and other metadata from CDB
+            try:
+                cdb_data = ods.ods_rutines.get_data_from_cb(docsymbol)
+                if cdb_data and len(cdb_data) > 0:
+                    cdb_record = cdb_data[0]
+                    # Add title from CDB to the result
+                    result["body"]["data"][0]["title"] = cdb_record.get("title", "Not found")
+                    # Also add other CDB fields if they're missing
+                    if "agendas" not in result["body"]["data"][0] or not result["body"]["data"][0]["agendas"]:
+                        result["body"]["data"][0]["agendas"] = cdb_record.get("agendas", "Not found")
+                    if "sessions" not in result["body"]["data"][0] or not result["body"]["data"][0]["sessions"]:
+                        result["body"]["data"][0]["sessions"] = cdb_record.get("sessions", "Not found")
+                    if "subjects" not in result["body"]["data"][0] or not result["body"]["data"][0]["subjects"]:
+                        result["body"]["data"][0]["subjects"] = cdb_record.get("subjects", "Not found")
+            except:
+                # If CDB data is not available, set title to "Not found"
+                result["body"]["data"][0]["title"] = "Not found"
+            
             result["docsymbol"]=docsymbol
             final.append(result)
         
         # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+        username = session.get('username', 'unknown_user')
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),username,"ODS loading symbol endpoint called from the system!!!")
         
         # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",final)
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),username,"loading_symbol_endpoint",final)
         
         return final
         
@@ -405,12 +433,13 @@ def create_app(test_config=None):
         for record in data_send_multiple:
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
         # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        username = session.get('username', 'unknown_user')
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc), username, "ODS send file to ods endpoint called from the system!!!")     
         
         # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"send_file_endpoint",result)
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc), username, "send_file_endpoint", result)
         
-        return json.dumps(result)
+        return jsonify(result)
     
     ############################################################################
     # LOGOUT
