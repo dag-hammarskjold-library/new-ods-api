@@ -33,6 +33,38 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 LANGUAGES=["AR","ZH","EN","FR","RU","ES","DE"]
 
 ########################################################################
+# Connect to Central DB
+########################################################################
+DB.connect(Config.connect_string, database="undlFiles")
+
+########################################################################
+# Helper functions
+########################################################################
+
+def escape_docsymbol_for_query(docsymbol):
+    """Escape special characters in document symbol for database queries"""
+    if not docsymbol:
+        return ""
+    # For DLX queries, we don't need to escape forward slashes
+    # The query parser handles them correctly
+    return docsymbol
+
+def create_language_entries(docsymbol, job_numbers, result_message):
+    """Create entries for all languages with proper structure"""
+    report = []
+    for i, language in enumerate(LANGUAGES):
+        filename = docsymbol.replace("/", "_") + f"-{language}.pdf"
+        jobnumber = job_numbers[i] if i < len(job_numbers) else ""
+        report.append({
+            "filename": filename,
+            "docsymbol": docsymbol,
+            "language": language,
+            "jobnumber": jobnumber,
+            "result": result_message
+        })
+    return report
+
+########################################################################
 # definition of the credentials of the ODS API
 ########################################################################
 
@@ -120,7 +152,6 @@ def get_encode_base64()-> str:
   encoded_bytes = base64.b64encode(text.encode('utf-8'))
   # Convert the bytes to a string
   encoded_string = encoded_bytes.decode('utf-8')
-  
   return encoded_string
 
 
@@ -325,18 +356,13 @@ def release_job_number(jobnumber:str):
 
 def get_token()->str:
 
-  print(f"username is {username}")
   url = f"{base_url}api/auth/token?username={username}&password={password}&client_id={client_id}&client_secret={client_secret}"
-  print(f"url is {url}")
   payload0 = {}
   headers0 = {
     'Authorization': f'Basic {get_encode_base64()}'
   }
   response = requests.request("GET", url, headers=headers0, data=payload0,verify=False)
-  print(f"response is {response}")
   json_data = json.loads(response.text)
-  print("-----------------------------")
-  print(f"json_data is {json_data}")
   return json_data["token"]
 
 ########################################################################
@@ -347,7 +373,6 @@ def ods_get_loading_symbol(my_param:str):
 
   # get the token
   my_token=get_token()
-  print(f"my_token is {my_token}")
   
   # build the url
   url1=config("BASE_URL") + "api/loading/symbol?s=" + my_param.strip().upper()+"&em=true"
@@ -366,7 +391,6 @@ def ods_get_loading_symbol(my_param:str):
   #need to check if the response is not empty and has more than 1 record (duplicate) in ODS
   # return the response
   #print(f"len of json is {len(response.json())}")
-  print(f"response is {response.json()}")
   return response.json()
 
 ######################################################################################
@@ -450,20 +474,37 @@ def get_data_from_cb(symbols):
         distribution=bib.get_value('091', 'a')
         publication_date=bib.get_value('269','a')
         release_date=datetime.now().strftime('%d/%m/%y')
-        sessions=' '.join(bib.get_values('191','c'))
+        sessions=bib.get_values('191','c')
         
         if publication_date !='':
           try:
             publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%Y-%m-%dT%H:%M:%SZ')
           except:
             publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y-%m-%dT%H:%M:%SZ')
-        title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')+" "+bib.get_value('245', 'c')
+        # Get title as array (same as subjects)
+        title_en = bib.get_values('245', 'a')
         #print(f'title_en is {title_en}')
-        agendas=' '.join(bib.get_values('991','b'))
+        agendas=bib.get_values('991','b')
+        subjects=bib.get_values('650','a')
         #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
         tcodes=[get_tcodes(subject) for subject in bib.get_values('650','a')]                    
+        # Get release dates and job numbers from ODS for all languages
+        try:
+            ods_response = ods_get_loading_symbol(document_symbol[0])
+            if ods_response and 'body' in ods_response and 'data' in ods_response['body'] and len(ods_response['body']['data']) > 0:
+                release_dates = ods_response['body']['data'][0].get('release_dates', [])
+                job_numbers = ods_response['body']['data'][0].get('job_numbers', [])
+            else:
+                # Fallback: create arrays for all languages
+                release_dates = [datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')] * 7
+                job_numbers = [''] * 7
+        except:
+            # Fallback: create arrays for all languages
+            release_dates = [datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')] * 7
+            job_numbers = [''] * 7
+        
         datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
-                "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
+                "release_dates":release_dates, "job_numbers":job_numbers, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
         
         lst.append(datamodel)
         #print(f"the list is {lst}")
@@ -801,8 +842,8 @@ def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
         "lang":lang      }
   
   # build the url
-  #url=config("BASE_URL") + "api/loading/symbol"
-  url=BASE_URL + "api/loading/symbol"
+  #url=config("base_url") + "api/loading/symbol"
+  url=base_url + "api/loading/symbol"
 
 
 
@@ -842,7 +883,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
 
   # build the url
   #url=config("BASE_URL") + "api/loading/file"
-  url=BASE_URL + "api/loading/file"
+  url=base_url + "api/loading/file"
 
   # building the request
   #print(f'payload is {payload}')
@@ -913,6 +954,23 @@ def download_file_and_send_to_ods(docsymbol):
     #print(f' time for finding the symbol in CDB is {time.time()-time1}')
     # store  not used jobnumbers
     used_jobnumbers=[]
+    recup_job_numbers=[]
+    
+    # setting a default for *nix systems should be safer than testing explicitly
+    # for the platform name
+    path="./ods/tmp"
+    
+    if platform.os.name in ['windows','nt'] :
+      path='ods\\temp'
+    
+    # Get job numbers from ODS for all languages
+    try:
+        result=ods_get_loading_symbol(docsymbol)
+        recup_job_numbers=result["body"]["data"][0]["job_numbers"]
+        release_dates=result["body"]["data"][0]["release_dates"]
+    except:
+        recup_job_numbers=[''] * 7
+        release_dates=[''] * 7
     
     # download the files in all languages
     for bib in BibSet.from_query(query):
@@ -926,13 +984,6 @@ def download_file_and_send_to_ods(docsymbol):
         for language in LANGUAGES : 
           
           filename = document_symbol.replace("/", "_") + f"-{language}.pdf"  
-          
-          # setting a default for *nix systems should be safer than testing explicitly
-          # for the platform name
-          path="./ods/tmp"
-          
-          if platform.os.name in ['windows','nt'] :
-            path='ods\\temp'
         
           #if platform.os.name == 'linux':
           #  path='ods/temp'
@@ -958,9 +1009,6 @@ def download_file_and_send_to_ods(docsymbol):
           recup1={}
           time2=time.time()
           if f is not None:
-            result=ods_get_loading_symbol(docsymbol)
-            recup_job_numbers=result["body"]["data"][0]["job_numbers"]
-            release_dates=result["body"]["data"][0]["release_dates"]
             #print(f'jns {recup_job_numbers}')        
             if language=="AR":
               my_jobnumber=recup_job_numbers[0]
@@ -1047,9 +1095,22 @@ def download_file_and_send_to_ods(docsymbol):
                           "result":"file not found in ME/CDB!"
                           })
           #time.sleep(3)
-          recup_job_numbers=[]
           time2=time.time()
       print(f'Time to upload all files for {docsymbol} is {time.time()-time0} seconds')
+    
+    # If no files were processed but symbol exists in ODS, create entries for all languages
+    if not report:
+        for i, language in enumerate(LANGUAGES):
+            filename = docsymbol.replace("/", "_") + f"-{language}.pdf"
+            jobnumber = recup_job_numbers[i] if i < len(recup_job_numbers) else ""
+            report.append({
+                "filename": filename,
+                "docsymbol": docsymbol,
+                "language": language,
+                "jobnumber": jobnumber,
+                "result": "Symbol exists in ODS but no files found in CDB to download"
+            })
+    
     # release not used jobnumbers
     not_used_jobnumbers=list(set(recup_job_numbers) - set(used_jobnumbers))
     for jb in not_used_jobnumbers:

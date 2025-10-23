@@ -20,10 +20,11 @@ return_data=""
 ########################################################################
 
 base_url = config("BASE_URL")
+username = config("USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
-database_conn = config("CONN")
+database_conn=config("CONN")
 
 
 ##############################################################################################
@@ -36,6 +37,14 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY='h@454325hdhdbhdb'
     )
+    
+    # Serve static files from public folder
+    @app.route('/public/<path:filename>')
+    def public_files(filename):
+        import os
+        from flask import send_from_directory
+        public_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public')
+        return send_from_directory(public_dir, filename)
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -120,7 +129,7 @@ def create_app(test_config=None):
                         # user found
                         ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),request.form.get("email"),"Connected to the system!!!")
                         #session.clear()
-                       
+                        print(f'session b4 login {session}')
                         # add the username to the session
                         session['username'] = result["email"]
                         
@@ -135,7 +144,8 @@ def create_app(test_config=None):
                         session["show_parameters"]=result["show_parameters"]
                         
                         find_record=True
-                       
+                        print(f'session after login {session}')
+                        print(f"username is {session['username']}")
                         if session['username']!="":
                             return redirect(url_for("index_vue"))
                         else:
@@ -164,7 +174,7 @@ def create_app(test_config=None):
                 session_show_parameters=session["show_parameters"]
 
                 return render_template('index_vue.html',
-                                       session_username=session_username ,
+                                       session_username=session_username,
                                        session_show_display=session_show_display,
                                        session_show_create_update=session_show_create_update,
                                        session_show_send_file=session_show_send_file,
@@ -215,7 +225,7 @@ def create_app(test_config=None):
             
             # create log
             ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"Site " + str(my_site.inserted_id) + "  added to the system!!!")
-
+            
             if (my_site.inserted_id):
                 result={
                     "status" : "OK",
@@ -269,7 +279,7 @@ def create_app(test_config=None):
             
             # create log
             ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"User " + str(my_user.inserted_id) + "  added to the system!!!")
-
+            
             if (my_user.inserted_id):
                 result={
                     "status" : "OK",
@@ -300,11 +310,9 @@ def create_app(test_config=None):
     def loading_symbol():
         docsymbols = request.form["docsymbols"].split("\r\n")
         final=[]
-        print(f"docsymbols are {docsymbols}")
+        
         for docsymbol in docsymbols:
-            print(f"docsymbol is {docsymbol}")
             result=ods.ods_rutines.ods_get_loading_symbol(docsymbol)
-            print(f"result is {result}")
             try:
                 tcodes=result["body"]["data"][0]["tcodes"]
                 #print(tcodes)
@@ -312,15 +320,35 @@ def create_app(test_config=None):
                 result["body"]["data"][0]["subjects"]=subjects
             except:
                 pass
+            
+            # Get title and other metadata from CDB
+            try:
+                cdb_data = ods.ods_rutines.get_data_from_cb(docsymbol)
+                if cdb_data and len(cdb_data) > 0:
+                    cdb_record = cdb_data[0]
+                    # Add title from CDB to the result
+                    result["body"]["data"][0]["title"] = cdb_record.get("title", "Not found")
+                    # Also add other CDB fields if they're missing
+                    if "agendas" not in result["body"]["data"][0] or not result["body"]["data"][0]["agendas"]:
+                        result["body"]["data"][0]["agendas"] = cdb_record.get("agendas", "Not found")
+                    if "sessions" not in result["body"]["data"][0] or not result["body"]["data"][0]["sessions"]:
+                        result["body"]["data"][0]["sessions"] = cdb_record.get("sessions", "Not found")
+                    if "subjects" not in result["body"]["data"][0] or not result["body"]["data"][0]["subjects"]:
+                        result["body"]["data"][0]["subjects"] = cdb_record.get("subjects", "Not found")
+            except:
+                # If CDB data is not available, set title to "Not found"
+                result["body"]["data"][0]["title"] = "Not found"
+            
             result["docsymbol"]=docsymbol
             final.append(result)
         
         # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS loading symbol endpoint called from the system!!!")
+        username = session.get('username', 'unknown_user')
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),username,"ODS loading symbol endpoint called from the system!!!")
         
         # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"loading_symbol_endpoint",final)
-
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),username,"loading_symbol_endpoint",final)
+        
         return final
         
     @app.route("/get_sites",methods=['GET'])
@@ -391,7 +419,7 @@ def create_app(test_config=None):
         
         # create analytics
         ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"creating_updating_endpoint",data)
-
+        
         return data
     
     ############################################################################
@@ -405,12 +433,13 @@ def create_app(test_config=None):
         for record in data_send_multiple:
             result.append(ods.ods_rutines.download_file_and_send_to_ods(record))  
         # create log
-        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"ODS send file to ods endpoint called from the system!!!")     
+        username = session.get('username', 'unknown_user')
+        ods.ods_rutines.add_log(datetime.datetime.now(tz=datetime.timezone.utc), username, "ODS send file to ods endpoint called from the system!!!")     
         
         # create analytics
-        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc),session['username'],"send_file_endpoint",result)
-
-        return json.dumps(result)
+        ods.ods_rutines.add_analytics(datetime.datetime.now(tz=datetime.timezone.utc), username, "send_file_endpoint", result)
+        
+        return jsonify(result)
     
     ############################################################################
     # LOGOUT

@@ -123,12 +123,11 @@ Vue.component('ods', {
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h1 class="card-title">
-                                        <i class="fas fa-database me-3"></i>
                                         ODS Actions
                                     </h1>
                                    
                                 </div>
-                                <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex align-items-end gap-3">
                                     <div class="user-info-header">
                                         <i class="fas fa-user me-2"></i>
                                         <span class="user-name-header">{{session_username}}</span>
@@ -140,7 +139,7 @@ Vue.component('ods', {
                                         <i class="fas fa-sign-out-alt me-2"></i>
                                         Sign Out
                                     </a>
-                        </div>
+                                </div>
                         </div>
                         </div>
                         
@@ -221,16 +220,16 @@ Vue.component('ods', {
                                             </thead>
                                             <tbody>
                                             <tr v-for="record in listOfRecordsDiplayMetaData" v-if="listOfRecordsDiplayMetaData.length>=1">
-                                                <td>{{record[0]['symbol']}}</td>
-                                                <td>{{record[0]['agendas']}}</td>
-                                                <td>{{record[0]['sessions']}}</td>
-                                                <td>{{record[0]['distribution']}}</td>
-                                                <td>{{record[0]['area']}}</td>
-                                                <td>{{record[0]['subjects']}}</td>
-                                                <td>{{record[0]["job_numbers"]}}</td>
-                                                <td>{{record[0]["title_en"]}}</td>
-                                                <td>{{record[0]["publication_date"]}}</td>
-                                                <td>{{record[0]["release_dates"]}}</td>
+                                                <td v-html="formatField(record[0]['symbol'])"></td>
+                                                <td v-html="formatField(record[0]['agendas'])"></td>
+                                                <td v-html="formatField(record[0]['sessions'])"></td>
+                                                <td v-html="formatField(record[0]['distribution'])"></td>
+                                                <td v-html="formatField(record[0]['area'])"></td>
+                                                <td v-html="formatField(record[0]['subjects'])"></td>
+                                                <td v-html="formatJobNumbersWithFlags(record[0]['job_numbers'])"></td>
+                                                <td v-html="formatField(record[0]['title'])"></td>
+                                                <td v-html="formatField(record[0]['publication_date'], true)"></td>
+                                                <td v-html="formatField(record[0]['release_dates'], true)"></td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -288,8 +287,8 @@ Vue.component('ods', {
                                             </thead>
                                             <tbody>
                                                 <tr v-for="record in listOfResult1">
-                                                    <td>{{record["docsymbol"]}}</td>
-                                                    <td>{{record["text"]}}</td>
+                                                    <td v-html="formatField(record['docsymbol'])"></td>
+                                                    <td v-html="formatField(record['text'])"></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -350,11 +349,11 @@ Vue.component('ods', {
                                             </thead>
                                             <tbody>
                                                     <tr v-for="record in listOfResult2">
-                                                    <td>{{record["filename"]}}</td>
-                                                    <td>{{record["docsymbol"]}}</td>
-                                                    <td>{{record["language"]}}</td>
-                                                    <td>{{record["jobnumber"]}}</td>
-                                                    <td>{{record["result"]}}</td>
+                                                    <td v-html="formatField(record['filename'])"></td>
+                                                    <td v-html="formatField(record['docsymbol'])"></td>
+                                                    <td v-html="formatField(record['language'])"></td>
+                                                    <td v-html="formatField(record['jobnumber'])"></td>
+                                                    <td v-html="formatField(record['result'])"></td>
                                                     </tr> 
                                             </tbody>
                                         </table>
@@ -659,15 +658,154 @@ data: function () {
         
     methods:{
 
+        formatField(field, isDateField = false) {
+            // Handle null, undefined, or empty values
+            if (!field || field === null || field === undefined) {
+                return 'Not found';
+            }
+            
+            // If it's already a string, return it (or format as date if needed)
+            if (typeof field === 'string') {
+                return isDateField ? this.formatDate(field) : field;
+            }
+            
+            // If it's an array, join the elements with green arrows
+            if (Array.isArray(field)) {
+                if (field.length === 0) {
+                    return 'Not found';
+                }
+                // Filter out empty strings and join with green arrows
+                const validItems = field.filter(item => item && item.toString().trim() !== '');
+                if (validItems.length === 0) {
+                    return 'Not found';
+                }
+                return validItems.map(item => {
+                    const displayValue = isDateField ? this.formatDate(item) : item;
+                    return `<span class="green-arrow">➤</span> ${displayValue}`;
+                }).join('\n');
+            }
+            
+            // If it's an object, try to extract meaningful values
+            if (typeof field === 'object') {
+                // If it has a $date property (MongoDB date format)
+                if (field.$date) {
+                    return this.formatDate(field.$date);
+                }
+                // If it has other properties, try to get the first meaningful value
+                const values = Object.values(field).filter(val => val && val.toString().trim() !== '');
+                if (values.length === 0) {
+                    return 'Not found';
+                }
+                return values.map(val => `<span class="green-arrow">➤</span> ${val}`).join('\n');
+            }
+            
+            // For any other type, convert to string
+            return field.toString();
+        },
+
+        formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return 'Invalid date';
+                }
+                
+                // Format as DD/MM/YYYY HH:MM:SS
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+            } catch (error) {
+                return 'Invalid date';
+            }
+        },
+
+        formatJobNumbersWithFlags(jobNumbers) {
+            if (!jobNumbers || jobNumbers === null || jobNumbers === undefined) {
+                return 'Not found';
+            }
+            
+            // Language codes only (no emojis)
+            const languageFlags = {
+                'AR': 'AR', // Arabic
+                'ZH': 'ZH', // Chinese
+                'EN': 'EN', // English
+                'FR': 'FR', // French
+                'RU': 'RU', // Russian
+                'ES': 'ES', // Spanish
+                'DE': 'DE'  // German
+            };
+            
+            // Use the exact same LANGUAGES array as defined in the backend
+            const LANGUAGES = ["AR","ZH","EN","FR","RU","ES","DE"];
+            
+            if (typeof jobNumbers === 'string') {
+                return jobNumbers;
+            }
+            
+            if (Array.isArray(jobNumbers)) {
+                if (jobNumbers.length === 0) {
+                    return 'Not found';
+                }
+                
+                // Filter out empty or invalid job numbers
+                const validJobNumbers = jobNumbers.filter(job => job && job.toString().trim() !== '');
+                
+                if (validJobNumbers.length === 0) {
+                    return 'Not found';
+                }
+                
+                // Create formatted job numbers with language codes and green thick arrows
+                const formattedJobs = validJobNumbers.map((jobNumber, index) => {
+                    const language = LANGUAGES[index] || 'UN';
+                    const flag = languageFlags[language] || 'UN';
+                    return `${flag} <span class="green-arrow">➤</span> ${jobNumber}`;
+                });
+                
+                return formattedJobs.join('\n');
+            }
+            
+            return jobNumbers.toString();
+        },
+
         async loadLogs(){
         // loading the logs
-        const my_response = await fetch("./display_logs",{
-            "method":"GET",
-            });
-        const my_data = await my_response.json();
-        my_data.forEach(element => {
-            this.listOfLogs.push(element)
-        });
+        try {
+            const my_response = await fetch("./display_logs",{
+                "method":"GET",
+                });
+            
+            if (!my_response.ok) {
+                throw new Error(`HTTP error! status: ${my_response.status}`);
+            }
+            
+            const contentType = my_response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Response is not JSON");
+            }
+            
+            const my_data = await my_response.json();
+            
+            // Robust error handling for malformed responses
+            if (Array.isArray(my_data)) {
+                my_data.forEach(element => {
+                    if (element && typeof element === 'object') {
+                        this.listOfLogs.push(element);
+                    } else {
+                        console.error("Unexpected log element type:", element);
+                    }
+                });
+            } else {
+                console.error("Expected array response for logs, got:", typeof my_data, my_data);
+                notifications.warning("Unexpected response format from logs API", 'Response Error');
+            }
+        } catch (error) {
+            notifications.error(`Failed to load logs: ${error.message}`, 'Load Error');
+        }
         },
         
         formatDateForFilter(dateString) {
@@ -690,30 +828,108 @@ data: function () {
             // Save preference to localStorage
             localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
         },
+        
+        // Validation function to check for duplicates and empty values
+        validateDocumentSymbols(inputString, fieldName) {
+            if (!inputString || inputString.trim() === '') {
+                notifications.warning(`Please enter at least one document symbol in ${fieldName}`, 'Validation Error');
+                return false;
+            }
+            
+            // Split by new lines and clean - remove all spaces and empty values
+            const symbols = inputString
+                .split('\n')
+                .map(symbol => symbol.replace(/\s+/g, '')) // Remove all spaces
+                .filter(symbol => symbol !== '');
+            
+            if (symbols.length === 0) {
+                notifications.warning(`Please enter at least one valid document symbol in ${fieldName}`, 'Validation Error');
+                return false;
+            }
+            
+            // Check for duplicates
+            const uniqueSymbols = [...new Set(symbols)];
+            if (uniqueSymbols.length !== symbols.length) {
+                const duplicates = symbols.filter((symbol, index) => symbols.indexOf(symbol) !== index);
+                notifications.warning(`Duplicate document symbols found in ${fieldName}: ${[...new Set(duplicates)].join(', ')}`, 'Validation Error');
+                return false;
+            }
+            
+            return true;
+        },
+        
+        // Helper function to clean document symbols by removing all spaces
+        cleanDocumentSymbols(inputString) {
+            return inputString
+                .split('\n')
+                .map(symbol => symbol.replace(/\s+/g, '')) // Remove all spaces
+                .filter(symbol => symbol !== '')
+                .join('\n');
+        },
         async loadSites(){
-
         // loading the sites
-        const my_response1 = await fetch("./get_sites",{
-            "method":"GET",
-            });
-        const my_data1 = await my_response1.json();
-        my_data1.forEach(element => {
-            this.site.push(element["code_site"])
-        });
+        try {
+            const my_response1 = await fetch("./get_sites",{
+                "method":"GET",
+                });
+            
+            if (!my_response1.ok) {
+                throw new Error(`HTTP error! status: ${my_response1.status}`);
+            }
+            
+            const contentType = my_response1.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Response is not JSON");
+            }
+            
+            const my_data1 = await my_response1.json();
+            
+            // Robust error handling for malformed responses
+            if (Array.isArray(my_data1)) {
+                my_data1.forEach(element => {
+                    if (element && typeof element === 'object' && element["code_site"]) {
+                        this.site.push(element["code_site"]);
+                    } else {
+                        console.error("Unexpected site element type:", element);
+                    }
+                });
+            } else {
+                console.error("Expected array response for sites, got:", typeof my_data1, my_data1);
+                notifications.warning("Unexpected response format from sites API", 'Response Error');
+            }
+        } catch (error) {
+            notifications.error(`Failed to load sites: ${error.message}`, 'Load Error');
+        }
         },
         async displayMetaData(){
+
+        // Validate input before processing
+        if (!this.validateDocumentSymbols(this.docsymbols, 'Display Metadata')) {
+            return;
+        }
 
         // just in case
         this.displayResult=false;
 
         // display Progress bar
         this.displayProgress1=true
+        
+        // Set timeout to stop spinner after 30 seconds
+        setTimeout(() => {
+            if (this.displayProgress1) {
+                this.displayProgress1 = false;
+                notifications.warning('Request timed out after 30 seconds', 'Timeout');
+            }
+        }, 30000);
 
         // Just to refresh the UI
         this.listOfRecordsDiplayMetaData=[]
         
         let dataset = new FormData()
-        let cleanedDocSymbols = this.docsymbols.toUpperCase(); 
+        
+        // Clean the document symbols: remove all spaces and convert to uppercase
+        let cleanedDocSymbols = this.cleanDocumentSymbols(this.docsymbols).toUpperCase();
+            
         dataset.append('docsymbols',cleanedDocSymbols)
     
         // loading all the data
@@ -723,6 +939,15 @@ data: function () {
                 "body":dataset
                 });
                 
+            if (!my_response.ok) {
+                throw new Error(`HTTP error! status: ${my_response.status}`);
+            }
+            
+            const contentType = my_response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Response is not JSON");
+            }
+                
             const my_data = await my_response.json()
 
             // loading data
@@ -731,25 +956,43 @@ data: function () {
                 // check the length of the data array to see if we found the information
                 
                 // use case 1 : we found the data
-                if (element["body"]["data"].length!==0) 
+                if (element && element["body"] && element["body"]["data"] && element["body"]["data"].length !== 0) {
                     this.listOfRecordsDiplayMetaData.push(element["body"]["data"])
-
+                }
                 // use case 2 : we did not find the data
-                if (element["body"]["data"].length===0) {
+                else if (element && element["body"] && element["body"]["data"] && element["body"]["data"].length === 0) {
                     // creation of the object
                     this.listOfRecordsDiplayMetaData.push(
                         [{
-                            symbol:element["docsymbol"],
+                            symbol: element["docsymbol"] || "Unknown",
                             agendas:"Not found",
                             sessions:"Not found",
                             distribution:"Not found",
                             area:"Not found",
                             subjects:"Not found",
                             job_numbers:"Not found",
-                            title_en:"Not found",
+                            title:"Not found",
                             publication_date:"Not found",
                             agenpublication_datedas:"Not found",
                             release_dates:"Not found"
+                        }])
+                }
+                // use case 3 : API error or malformed response
+                else {
+                    console.error("Malformed API response:", element);
+                    this.listOfRecordsDiplayMetaData.push(
+                        [{
+                            symbol: element && element["docsymbol"] ? element["docsymbol"] : "Error",
+                            agendas:"API Error",
+                            sessions:"API Error",
+                            distribution:"API Error",
+                            area:"API Error",
+                            subjects:"API Error",
+                            job_numbers:"API Error",
+                            title:"API Error",
+                            publication_date:"API Error",
+                            agenpublication_datedas:"API Error",
+                            release_dates:"API Error"
                         }])
                 }
 
@@ -778,21 +1021,32 @@ data: function () {
               
         async displayResultCreateUpdate(){
 
+            // Validate input before processing
+            if (!this.validateDocumentSymbols(this.docsymbols1, 'Create/Update Metadata')) {
+                return;
+            }
+
             // just in case
             this.displayResult1=false;
 
             // display Progress bar
             this.displayProgress2=true
+            
+            // Set timeout to stop spinner after 30 seconds
+            setTimeout(() => {
+                if (this.displayProgress2) {
+                    this.displayProgress2 = false;
+                    notifications.warning('Request timed out after 30 seconds', 'Timeout');
+                }
+            }, 30000);
 
             // Just to refresh the UI
             this.listOfResult1=[]
             
 
 
-            this.docsymbols1 = this.docsymbols1
-                .split('\n')
-                .filter(line => line.trim() !== '')
-                .join('\n');
+            // Clean the document symbols: remove all spaces
+            this.docsymbols1 = this.cleanDocumentSymbols(this.docsymbols1);
 
             let dataset = new FormData()
             dataset.append('docsymbols1',this.docsymbols1)
@@ -804,12 +1058,37 @@ data: function () {
                     "body":dataset
                     });
                 
+                if (!my_response.ok) {
+                    throw new Error(`HTTP error! status: ${my_response.status}`);
+                }
+                
+                const contentType = my_response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Response is not JSON");
+                }
+                
                 const my_data = await my_response.json();
 
-                my_data.forEach(elements => {
-                    //console.log(typeof(elements))
-                    this.listOfResult1=this.listOfResult1.concat(elements)
-                })
+                // Robust error handling for malformed responses
+                if (Array.isArray(my_data)) {
+                    my_data.forEach(elements => {
+                        if (Array.isArray(elements)) {
+                            this.listOfResult1 = this.listOfResult1.concat(elements);
+                        } else if (elements && typeof elements === 'object') {
+                            // Handle single object response
+                            this.listOfResult1.push(elements);
+                        } else {
+                            console.error("Unexpected element type in response:", elements);
+                            this.listOfResult1.push({
+                                docsymbol: "Unknown",
+                                text: "Malformed response data"
+                            });
+                        }
+                    });
+                } else {
+                    console.error("Expected array response, got:", typeof my_data, my_data);
+                    notifications.warning("Unexpected response format from server", 'Response Error');
+                }
                 
             } catch (error) {
                 // Stop spinner on error
@@ -821,12 +1100,6 @@ data: function () {
                 this.displayProgress2=false
             }
 
-            //this.listOfResult1.push(my_data)
-
-    
-            // hide Progress bar
-            //this.displayProgress2=false
-
             // display the results of the query
             this.displayResult1=true;
             
@@ -837,17 +1110,27 @@ data: function () {
 
             async displayResultSendFile(){
 
+                // Validate input before processing
+                if (!this.validateDocumentSymbols(this.docsymbols2, 'Send Files')) {
+                    return;
+                }
+
                 // just in case
                 this.displayResult2=false;
 
                 // display Progress bar
                 this.displayProgress3=true
                 
-                this.docsymbols2 = this.docsymbols2
-                    .split('\n')
-                    .filter(line => line.trim() !== '')
-                    .join('\n');
-
+                // Set timeout to stop spinner after 30 seconds
+                setTimeout(() => {
+                    if (this.displayProgress3) {
+                        this.displayProgress3 = false;
+                        notifications.warning('Request timed out after 30 seconds', 'Timeout');
+                    }
+                }, 30000);
+                
+                // Clean the document symbols: remove all spaces
+                this.docsymbols2 = this.cleanDocumentSymbols(this.docsymbols2);
 
                 let dataset = new FormData()
                 dataset.append('docsymbols2',this.docsymbols2)
@@ -858,14 +1141,31 @@ data: function () {
                         "method":"POST",
                         "body":dataset
                         });
-                                       
+                    
+                    if (!my_response.ok) {
+                        throw new Error(`HTTP error! status: ${my_response.status}`);
+                    }
+                    
+                    // Check if response is JSON
+                    const contentType = my_response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Response is not JSON');
+                    }
+                                   
                     const my_data = await my_response.json()
                     // console.log(my_data)
                     // loading data
-                    my_data.forEach(elements => {
-                        //console.log(typeof(elements))
-                        this.listOfResult2=this.listOfResult2.concat(elements)
-                    })
+                    try {        
+                        my_data.forEach(elements => {
+                            //console.log(typeof(elements))
+                            this.listOfResult2=this.listOfResult2.concat(elements)
+                        })
+                        
+                    } catch (error) {
+                        // Stop spinner on error
+                        this.displayProgress3=false
+                        notifications.error(error.message || error, 'Data Processing Error');
+                    }
                     
                 } catch (error) {
                     // Stop spinner on error
@@ -873,16 +1173,17 @@ data: function () {
                     notifications.error(error.message || error, 'Upload Error');
                 }
                 finally{
-                    // display Progress bar
+                    // Ensure spinner is always stopped
                     this.displayProgress3=false
                 }
 
-                if (this.listOfResult2.length!=0){
-                    this.displayResult2=true;
-                    // Show success notification
-                    notifications.success(`Uploaded ${this.listOfResult2.length} files successfully`, 'Upload Complete');
+                // Always show results table if we have any results
+                if (this.listOfResult2.length > 0){
+                    this.displayResult2 = true;
+                    notifications.success(`Processed ${this.listOfResult2.length} file(s)`, 'Upload Complete');
                 } else {
-                    notifications.warning('No files were uploaded', 'Upload Complete');
+                    this.displayResult2 = true;
+                    notifications.warning('No files were processed', 'No Results');
                 }
             },
         checkInput(){
@@ -944,6 +1245,15 @@ data: function () {
                         "method":"POST",
                         "body":dataset
                         });
+                    
+                    if (!my_response.ok) {
+                        throw new Error(`HTTP error! status: ${my_response.status}`);
+                    }
+                    
+                    const contentType = my_response.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Response is not JSON");
+                    }
                                     
                     const my_data = await my_response.json()
                     try 
@@ -978,6 +1288,15 @@ data: function () {
                         "method":"POST",
                         "body":dataset
                         });
+                    
+                    if (!my_response.ok) {
+                        throw new Error(`HTTP error! status: ${my_response.status}`);
+                    }
+                    
+                    const contentType = my_response.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Response is not JSON");
+                    }
                                     
                     const my_data = await my_response.json()
                     try 
@@ -1069,8 +1388,17 @@ data: function () {
             for (let i = 0; i < rows.length; i++) {
                 let row = [], cols = rows[i].querySelectorAll("td, th");
         
-                for (let j = 0; j < cols.length; j++) 
-                    row.push(cols[j].innerText);
+                for (let j = 0; j < cols.length; j++) {
+                    // Get the text content and replace line breaks with spaces for CSV
+                    let cellText = cols[j].innerText;
+                    // Replace line breaks with spaces to keep data in single column
+                    cellText = cellText.replace(/\n/g, ' ');
+                    // Escape commas and quotes for proper CSV formatting
+                    if (cellText.includes(',') || cellText.includes('"') || cellText.includes('\n')) {
+                        cellText = '"' + cellText.replace(/"/g, '""') + '"';
+                    }
+                    row.push(cellText);
+                }
         
                 csv.push(row.join(","));
             }
@@ -1088,7 +1416,19 @@ data: function () {
             return c[p];
             })
             }
-            var toExcel = document.getElementById(tableName).innerHTML;
+            // Clone the table to modify it for Excel export
+            var tableElement = document.getElementById(tableName);
+            var clonedTable = tableElement.cloneNode(true);
+            
+            // Process all cells to replace line breaks with spaces
+            var cells = clonedTable.querySelectorAll('td, th');
+            cells.forEach(function(cell) {
+                var text = cell.textContent || cell.innerText;
+                // Replace line breaks with spaces for Excel
+                cell.textContent = text.replace(/\n/g, ' ');
+            });
+            
+            var toExcel = clonedTable.outerHTML;
             var ctx = {
             worksheet: name || '',
             table: toExcel
