@@ -139,7 +139,7 @@ Vue.component('ods', {
                                         <i class="fas fa-sign-out-alt me-2"></i>
                                         Sign Out
                                     </a>
-                                </div>
+                        </div>
                         </div>
                         </div>
                         
@@ -161,6 +161,12 @@ Vue.component('ods', {
                                     <button class="nav-link" id="send-files-tab" data-bs-toggle="tab" data-bs-target="#send-files" type="button" role="tab" aria-controls="send-files" aria-selected="false">
                                         <i class="fas fa-upload me-2"></i>
                                         Send Files
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="change-password-tab" data-bs-toggle="tab" data-bs-target="#change-password" type="button" role="tab" aria-controls="change-password" aria-selected="false">
+                                        <i class="fas fa-key me-2"></i>
+                                        Change Password
                                     </button>
                                 </li>
                                 <li v-if="session_show_parameters=='true'" class="nav-item" role="presentation">
@@ -568,14 +574,75 @@ Vue.component('ods', {
                                     </div>
                                 </div>
                                 <!-- End Parameters Tab -->	
+                                
+                                <!-- Change Password Tab -->	
+                                <div class="tab-pane fade" id="change-password" role="tabpanel" aria-labelledby="change-password-tab">
+                                    <div class="modern-controls-section">
+                                        <h4 class="mb-4">
+                                            <i class="fas fa-key me-2"></i>
+                                            Change Password
+                                        </h4>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-8 col-lg-6">
+                                                <div class="modern-card">
+                                                    <div class="card-body">
+                                                        <form @submit.prevent="changePasswordFromTab">
+                                                            <div class="mb-3">
+                                                                <label for="currentEmail" class="form-label-modern">Email Address</label>
+                                                                <input type="email" class="form-control-modern" id="currentEmail" v-model="userEmail" readonly>
+                                                            </div>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label for="newPasswordTab" class="form-label-modern">New Password</label>
+                                                                <input type="password" class="form-control-modern" id="newPasswordTab" v-model="newPassword" placeholder="Enter new password" required>
+                                                            </div>
+                                                            
+                                                            <div class="mb-4">
+                                                                <label for="confirmPasswordTab" class="form-label-modern">Confirm New Password</label>
+                                                                <input type="password" class="form-control-modern" id="confirmPasswordTab" v-model="confirmPassword" placeholder="Confirm new password" required>
+                                                            </div>
+                                                            
+                                                            <div class="d-flex gap-2">
+                                                                <button type="submit" class="btn-modern btn-primary-modern" :disabled="!newPassword || !confirmPassword">
+                                                                    <i class="fas fa-check me-2"></i>
+                                                                    Change Password
+                                                                </button>
+                                                                <button type="button" class="btn-modern btn-secondary-modern" @click="clearPasswordFields">
+                                                                    <i class="fas fa-times me-2"></i>
+                                                                    Clear
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- End Change Password Tab -->	
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
              `,
 created:async function(){
     this.loadLogs()
     this.loadSites()
+    
+    // Initialize user email for password change
+    if (this.session_username && this.session_username !== 'undefined' && this.session_username !== '') {
+        this.userEmail = this.session_username;
+    } else {
+        // Fallback: try to get email from the displayed username in the navbar
+        const usernameElement = document.querySelector('.user-name-header');
+        if (usernameElement) {
+            this.userEmail = usernameElement.textContent.trim();
+        } else {
+            this.userEmail = 'eric.attere@un.org'; // Last resort fallback
+        }
+    }
     },
 props: ['session_username','session_show_display','session_show_create_update','session_show_send_file','session_show_jobnumbers_management','session_show_parameters'],
 data: function () {
@@ -611,6 +678,10 @@ data: function () {
         code_site:"",
         label_site:"",
         prefix_site:"",
+        showPasswordModal: false,
+        userEmail: "",
+        newPassword: "",
+        confirmPassword: "",
     }
     },
     
@@ -775,9 +846,9 @@ data: function () {
         async loadLogs(){
         // loading the logs
         try {
-            const my_response = await fetch("./display_logs",{
-                "method":"GET",
-                });
+        const my_response = await fetch("./display_logs",{
+            "method":"GET",
+            });
             
             if (!my_response.ok) {
                 throw new Error(`HTTP error! status: ${my_response.status}`);
@@ -788,11 +859,11 @@ data: function () {
                 throw new Error("Response is not JSON");
             }
             
-            const my_data = await my_response.json();
+        const my_data = await my_response.json();
             
             // Robust error handling for malformed responses
             if (Array.isArray(my_data)) {
-                my_data.forEach(element => {
+        my_data.forEach(element => {
                     if (element && typeof element === 'object') {
                         this.listOfLogs.push(element);
                     } else {
@@ -829,6 +900,104 @@ data: function () {
             localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
         },
         
+        
+        // Change password from tab
+        async changePasswordFromTab() {
+            // Validate passwords
+            if (!this.newPassword || !this.confirmPassword) {
+                notifications.warning('Please fill in all password fields', 'Validation Error');
+                return;
+            }
+            
+            if (this.newPassword !== this.confirmPassword) {
+                notifications.error('Passwords do not match', 'Validation Error');
+                return;
+            }
+            
+            if (this.newPassword.length < 6) {
+                notifications.error('Password must be at least 6 characters long', 'Validation Error');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('email', this.userEmail);
+                formData.append('new_password', this.newPassword);
+                
+                const response = await fetch('./change_password', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    notifications.success(data.message, 'Password Changed');
+                    this.clearPasswordFields();
+                } else {
+                    notifications.error(data.message, 'Error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                notifications.error('An error occurred while changing password', 'Error');
+            }
+        },
+        
+        clearPasswordFields() {
+            this.newPassword = "";
+            this.confirmPassword = "";
+        },
+        
+        async changePassword() {
+            // Validate passwords
+            if (!this.newPassword || !this.confirmPassword) {
+                notifications.warning('Please fill in all password fields', 'Validation Error');
+                return;
+            }
+            
+            if (this.newPassword !== this.confirmPassword) {
+                notifications.error('Passwords do not match', 'Validation Error');
+                return;
+            }
+            
+            if (this.newPassword.length < 6) {
+                notifications.warning('Password must be at least 6 characters long', 'Validation Error');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('email', this.userEmail);
+                formData.append('new_password', this.newPassword);
+                
+                const response = await fetch('./change_password', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Response is not JSON");
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    notifications.success('Password changed successfully', 'Success');
+                    this.closePasswordModal();
+                } else {
+                    notifications.error(result.message || 'Failed to change password', 'Error');
+                }
+            } catch (error) {
+                notifications.error(`Failed to change password: ${error.message}`, 'Error');
+            }
+        },
+        
         // Validation function to check for duplicates and empty values
         validateDocumentSymbols(inputString, fieldName) {
             if (!inputString || inputString.trim() === '') {
@@ -836,10 +1005,10 @@ data: function () {
                 return false;
             }
             
-            // Split by new lines and clean - remove all spaces and empty values
+            // Split by new lines and clean - remove only leading/trailing spaces, preserve internal spaces
             const symbols = inputString
                 .split('\n')
-                .map(symbol => symbol.replace(/\s+/g, '')) // Remove all spaces
+                .map(symbol => symbol.trim()) // Remove only leading and trailing spaces
                 .filter(symbol => symbol !== '');
             
             if (symbols.length === 0) {
@@ -858,20 +1027,20 @@ data: function () {
             return true;
         },
         
-        // Helper function to clean document symbols by removing all spaces
+        // Helper function to clean document symbols by removing only leading/trailing spaces
         cleanDocumentSymbols(inputString) {
             return inputString
                 .split('\n')
-                .map(symbol => symbol.replace(/\s+/g, '')) // Remove all spaces
+                .map(symbol => symbol.trim()) // Remove only leading and trailing spaces
                 .filter(symbol => symbol !== '')
                 .join('\n');
         },
         async loadSites(){
         // loading the sites
         try {
-            const my_response1 = await fetch("./get_sites",{
-                "method":"GET",
-                });
+        const my_response1 = await fetch("./get_sites",{
+            "method":"GET",
+            });
             
             if (!my_response1.ok) {
                 throw new Error(`HTTP error! status: ${my_response1.status}`);
@@ -882,11 +1051,11 @@ data: function () {
                 throw new Error("Response is not JSON");
             }
             
-            const my_data1 = await my_response1.json();
+        const my_data1 = await my_response1.json();
             
             // Robust error handling for malformed responses
             if (Array.isArray(my_data1)) {
-                my_data1.forEach(element => {
+        my_data1.forEach(element => {
                     if (element && typeof element === 'object' && element["code_site"]) {
                         this.site.push(element["code_site"]);
                     } else {
@@ -914,13 +1083,7 @@ data: function () {
         // display Progress bar
         this.displayProgress1=true
         
-        // Set timeout to stop spinner after 30 seconds
-        setTimeout(() => {
-            if (this.displayProgress1) {
-                this.displayProgress1 = false;
-                notifications.warning('Request timed out after 30 seconds', 'Timeout');
-            }
-        }, 30000);
+        // No timeout for display metadata - let it run until completion
 
         // Just to refresh the UI
         this.listOfRecordsDiplayMetaData=[]
@@ -1032,13 +1195,7 @@ data: function () {
             // display Progress bar
             this.displayProgress2=true
             
-            // Set timeout to stop spinner after 30 seconds
-            setTimeout(() => {
-                if (this.displayProgress2) {
-                    this.displayProgress2 = false;
-                    notifications.warning('Request timed out after 30 seconds', 'Timeout');
-                }
-            }, 30000);
+            // No timeout for create/update - let it run until completion
 
             // Just to refresh the UI
             this.listOfResult1=[]
@@ -1071,7 +1228,7 @@ data: function () {
 
                 // Robust error handling for malformed responses
                 if (Array.isArray(my_data)) {
-                    my_data.forEach(elements => {
+                my_data.forEach(elements => {
                         if (Array.isArray(elements)) {
                             this.listOfResult1 = this.listOfResult1.concat(elements);
                         } else if (elements && typeof elements === 'object') {
@@ -1121,13 +1278,7 @@ data: function () {
                 // display Progress bar
                 this.displayProgress3=true
                 
-                // Set timeout to stop spinner after 30 seconds
-                setTimeout(() => {
-                    if (this.displayProgress3) {
-                        this.displayProgress3 = false;
-                        notifications.warning('Request timed out after 30 seconds', 'Timeout');
-                    }
-                }, 30000);
+                // No timeout for send files - let it run until completion
                 
                 // Clean the document symbols: remove all spaces
                 this.docsymbols2 = this.cleanDocumentSymbols(this.docsymbols2);
@@ -1151,15 +1302,15 @@ data: function () {
                     if (!contentType || !contentType.includes('application/json')) {
                         throw new Error('Response is not JSON');
                     }
-                                   
+                                       
                     const my_data = await my_response.json()
                     // console.log(my_data)
                     // loading data
                     try {        
-                        my_data.forEach(elements => {
-                            //console.log(typeof(elements))
-                            this.listOfResult2=this.listOfResult2.concat(elements)
-                        })
+                    my_data.forEach(elements => {
+                        //console.log(typeof(elements))
+                        this.listOfResult2=this.listOfResult2.concat(elements)
+                    })
                         
                     } catch (error) {
                         // Stop spinner on error
@@ -1444,3 +1595,48 @@ data: function () {
 let app_ods = new Vue({
   el: '#ods_component'
 })
+
+// Global function for manual modal password change
+window.changePasswordManual = function() {
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const email = app_ods.userEmail;
+    
+    if (!newPassword || !confirmPassword) {
+        notifications.error('Please fill in all fields', 'Validation Error');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        notifications.error('Passwords do not match', 'Validation Error');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        notifications.error('Password must be at least 6 characters long', 'Validation Error');
+        return;
+    }
+    
+    // Send request to backend
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('new_password', newPassword);
+    
+    fetch('./change_password', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            notifications.success(data.message, 'Password Changed');
+            document.getElementById('manual-modal').remove();
+        } else {
+            notifications.error(data.message, 'Error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        notifications.error('An error occurred while changing password', 'Error');
+    });
+};

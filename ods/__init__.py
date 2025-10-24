@@ -99,7 +99,11 @@ def create_app(test_config=None):
                     session["show_parameters"]=True
                     
 
-                    return redirect(url_for("index_vue"))
+                    return jsonify({
+                        "success": True,
+                        "message": "Login successful",
+                        "redirect": url_for("index_vue")
+                    })
 
             
             # check if the user exists in the database with the good password
@@ -119,8 +123,11 @@ def create_app(test_config=None):
 
             if (len(results)==0):
                 # user not found
-                error="User not found in the database!!!"
-                return render_template("login.html",error=error)
+                return jsonify({
+                    "success": False,
+                    "error": "Please check your credentials",
+                    "error_type": "invalid_credentials"
+                })
             else :
                         
                 for result in results:
@@ -147,15 +154,26 @@ def create_app(test_config=None):
                         print(f'session after login {session}')
                         print(f"username is {session['username']}")
                         if session['username']!="":
-                            return redirect(url_for("index_vue"))
+                            return jsonify({
+                                "success": True,
+                                "message": "Login successful",
+                                "redirect": url_for("index_vue")
+                            })
                         else:
-                            return redirect(url_for("login"))
+                            return jsonify({
+                                "success": False,
+                                "error": "Session error",
+                                "error_type": "session_error"
+                            })
                         
                 if find_record==False:
                     
-                    # user not found
-                    error="User not found in the database!!!"
-                    return render_template("login.html",error=error)
+                    # incorrect password
+                    return jsonify({
+                        "success": False,
+                        "error": "Please check your credentials",
+                        "error_type": "invalid_credentials"
+                    })
 
     ############################################################################
     # MAIN ROUTE
@@ -485,6 +503,74 @@ def create_app(test_config=None):
     def get_ip():
         data = requests.get("https://api.ipify.org?format=json")
         return data.json()
+    
+    '''
+    Change user password
+    '''
+    @app.route("/change_password", methods=['POST'])
+    def change_password():
+        try:
+            email = request.form.get('email')
+            new_password = request.form.get('new_password')
+            
+            if not email or not new_password:
+                return jsonify({"success": False, "message": "Email and new password are required"})
+            
+            if len(new_password) < 6:
+                return jsonify({"success": False, "message": "Password must be at least 6 characters long"})
+            
+            # Connect to MongoDB
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"]
+            my_collection = my_database["ods_actions_users_collection"]
+            
+            # Find user by email first
+            user = my_collection.find_one({"email": email})
+            
+            if not user:
+                # Try to find user by username
+                user = my_collection.find_one({"username": email})
+                
+                if not user:
+                    # Try case-insensitive search
+                    user = my_collection.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+                    
+                    if not user:
+                        # Try partial match
+                        user = my_collection.find_one({"email": {"$regex": email, "$options": "i"}})
+                        
+                        if not user:
+                            return jsonify({"success": False, "message": "User not found"})
+            
+            # Hash the new password
+            hashed_password = generate_password_hash(new_password)
+            
+            # Update the user's password - use the same field we found the user with
+            if user.get("email"):
+                update_query = {"email": user["email"]}
+            else:
+                update_query = {"username": user["username"]}
+                
+            result = my_collection.update_one(
+                update_query,
+                {"$set": {"password": hashed_password}}
+            )
+            
+            if result.modified_count > 0:
+                # Log the password change
+                username = session.get('username', email)
+                ods.ods_rutines.add_log(
+                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    username,
+                    "Password changed successfully"
+                )
+                
+                return jsonify({"success": True, "message": "Password changed successfully"})
+            else:
+                return jsonify({"success": False, "message": "Failed to update password"})
+                
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Error: {str(e)}"})
         
     return app
 app = create_app()

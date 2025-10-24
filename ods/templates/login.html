@@ -18,7 +18,7 @@
   </head>
   
   <body>
-    <div class="login-container">
+    <div class="login-container" style="margin-bottom: 6rem;">
       <div class="login-card">
         <div class="text-center mb-4">
           <i class="fas fa-database login-icon" style="font-size: 3rem;"></i>
@@ -26,7 +26,7 @@
        
         </div>
         
-        <form action="{{url_for('login')}}" method="POST">
+        <form id="loginForm">
           <div class="mb-3">
             <label for="exampleInputEmail1" class="form-label-modern">Email Address</label>
             <input type="email" class="form-control-modern" id="exampleInputEmail1" name="email" aria-describedby="emailHelp" placeholder="Enter your email address" required>
@@ -37,22 +37,10 @@
             <input type="password" class="form-control-modern" id="exampleInputPassword1" name="password" placeholder="Enter your password" required>
           </div>
           
-          <button type="submit" class="btn-modern btn-primary-modern w-100">
+          <button type="submit" class="btn-modern btn-primary-modern w-100" id="loginButton">
             <i class="fas fa-sign-in-alt me-2"></i>
-            Connect to the App
+            <span id="loginButtonText">Connect to the App</span>
           </button>
-          
-          {% if error %}
-          <div class="notification error mt-3" role="alert">
-            <div class="notification-icon">
-              <i class="fas fa-times"></i>
-            </div>
-            <div class="notification-content">
-              <div class="notification-title">Login Failed</div>
-              <div class="notification-message">{{ error }}</div>
-            </div>
-          </div>
-          {% endif %}
         </form>
       </div>
     </div>
@@ -75,6 +63,96 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    
+    <!-- Notification System -->
+    <div id="notification-container" class="notification-container"></div>
+    
+    <script>
+    // Notification system
+    function showNotification(message, type = 'info', title = '') {
+        const container = document.getElementById('notification-container');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type} show`;
+        
+        const iconMap = {
+            success: 'fas fa-check',
+            error: 'fas fa-times',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+        
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="${iconMap[type]}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${title}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Login form handling
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const loginButton = document.getElementById('loginButton');
+        const loginButtonText = document.getElementById('loginButtonText');
+        const email = document.getElementById('exampleInputEmail1').value;
+        const password = document.getElementById('exampleInputPassword1').value;
+        
+        // Disable button and show loading
+        loginButton.disabled = true;
+        loginButtonText.textContent = 'Connecting...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('email', email);
+            formData.append('password', password);
+            
+            const response = await fetch('{{url_for("login")}}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification(result.message, 'success', 'Login Successful');
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = result.redirect;
+                }, 1000);
+            } else {
+                // Show generic error notification for security
+                showNotification(result.error, 'error', 'Login Failed');
+            }
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            showNotification('An error occurred during login. Please try again.', 'error', 'Connection Error');
+        } finally {
+            // Re-enable button
+            loginButton.disabled = false;
+            loginButtonText.textContent = 'Connect to the App';
+        }
+    });
+    </script>
   </body>
 </html>
 
