@@ -474,37 +474,20 @@ def get_data_from_cb(symbols):
         distribution=bib.get_value('091', 'a')
         publication_date=bib.get_value('269','a')
         release_date=datetime.now().strftime('%d/%m/%y')
-        sessions=bib.get_values('191','c')
+        sessions=' '.join(bib.get_values('191','c'))
         
         if publication_date !='':
           try:
             publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%Y-%m-%dT%H:%M:%SZ')
           except:
             publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y-%m-%dT%H:%M:%SZ')
-        # Get title as array (same as subjects)
-        title_en = bib.get_values('245', 'a')
+        title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')+" "+bib.get_value('245', 'c')
         #print(f'title_en is {title_en}')
-        agendas=bib.get_values('991','b')
-        subjects=bib.get_values('650','a')
+        agendas=' '.join(bib.get_values('991','b'))
         #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
         tcodes=[get_tcodes(subject) for subject in bib.get_values('650','a')]                    
-        # Get release dates and job numbers from ODS for all languages
-        try:
-            ods_response = ods_get_loading_symbol(document_symbol[0])
-            if ods_response and 'body' in ods_response and 'data' in ods_response['body'] and len(ods_response['body']['data']) > 0:
-                release_dates = ods_response['body']['data'][0].get('release_dates', [])
-                job_numbers = ods_response['body']['data'][0].get('job_numbers', [])
-            else:
-                # Fallback: create arrays for all languages
-                release_dates = [datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')] * 7
-                job_numbers = [''] * 7
-        except:
-            # Fallback: create arrays for all languages
-            release_dates = [datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')] * 7
-            job_numbers = [''] * 7
-        
         datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
-                "release_dates":release_dates, "job_numbers":job_numbers, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
+                "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
         
         lst.append(datamodel)
         #print(f"the list is {lst}")
@@ -513,6 +496,73 @@ def get_data_from_cb(symbols):
   except:
 
     return lst
+
+# def get_data_from_cb(symbols):
+  
+#   lst=[]
+#   try:
+#     # DB.connect(Config.connect_string, database="undlFiles")
+#     #symbol=escape_characters(symbols,"()")
+#     symbol=symbols.strip()
+
+#     query = Query.from_string("191__a:'"+symbol+"'") 
+#     #print(f'query is 191__a:'''{symbol}'')
+#     print(query.to_json())
+#     document_symbol=""
+#     distribution=""
+#     area="UNDOC"
+#     publication_date=""
+#     release_date=datetime.now().strftime('%d/%m/%y')
+#     sessions=""
+#     title_en=""
+#     agendas=""
+#     subjects=""
+#     tcodes=""
+
+#     for bib in BibSet.from_query(query):
+#         document_symbol=bib.get_values('191', 'a')
+#         distribution=bib.get_value('091', 'a')
+#         publication_date=bib.get_value('269','a')
+#         release_date=datetime.now().strftime('%d/%m/%y')
+#         sessions=bib.get_values('191','c')
+        
+#         if publication_date !='':
+#           try:
+#             publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%Y-%m-%dT%H:%M:%SZ')
+#           except:
+#             publication_date=datetime.strptime(publication_date[0:4], '%Y').strftime('%Y-%m-%dT%H:%M:%SZ')
+#         # Get title as array (same as subjects)
+#         title_en = bib.get_values('245', 'a')
+#         #print(f'title_en is {title_en}')
+#         agendas=bib.get_values('991','b')
+#         subjects=bib.get_values('650','a')
+#         #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
+#         tcodes=[get_tcodes(subject) for subject in bib.get_values('650','a')]                    
+#         # Get release dates and job numbers from ODS for all languages
+#         try:
+#             ods_response = ods_get_loading_symbol(document_symbol[0])
+#             if ods_response and 'body' in ods_response and 'data' in ods_response['body'] and len(ods_response['body']['data']) > 0:
+#                 release_dates = ods_response['body']['data'][0].get('release_dates', [])
+#                 job_numbers = ods_response['body']['data'][0].get('job_numbers', [])
+#             else:
+#                 # Fallback: create arrays for all languages
+#                 release_dates = [datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')] * 7
+#                 job_numbers = [''] * 7
+#         except:
+#             # Fallback: create arrays for all languages
+#             release_dates = [datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')] * 7
+#             job_numbers = [''] * 7
+        
+#         datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
+#                 "release_dates":release_dates, "job_numbers":job_numbers, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
+        
+#         lst.append(datamodel)
+#         #print(f"the list is {lst}")
+#     return lst
+  
+#   except:
+
+#     return lst
 ########################################################################
 # create / update metadata  
 ########################################################################
