@@ -830,11 +830,9 @@ data: function () {
                     return 'Not found';
                 }
                 
-                // Create formatted job numbers with language codes and green thick arrows
+                // Create formatted job numbers with green thick arrows
                 const formattedJobs = validJobNumbers.map((jobNumber, index) => {
-                    const language = LANGUAGES[index] || 'UN';
-                    const flag = languageFlags[language] || 'UN';
-                    return `${flag} <span class="green-arrow">➤</span> ${jobNumber}`;
+                    return `<span class="green-arrow">➤</span> ${jobNumber}`;
                 });
                 
                 return formattedJobs.join('\n');
