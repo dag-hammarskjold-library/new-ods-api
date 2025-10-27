@@ -1411,7 +1411,7 @@ body {
   flex: 1;
   padding: var(--space-1);
   background: var(--bg-secondary);
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 
@@ -1427,7 +1427,7 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border-color);
-  overflow: hidden;
+  overflow: visible;
   transition: all var(--transition-normal);
   width: 100%;
   margin: 0 auto;
@@ -1614,6 +1614,12 @@ body {
   box-sizing: border-box;
 }
 
+.form-control-modern textarea,
+textarea.form-control-modern {
+  min-height: 200px !important;
+  resize: vertical;
+}
+
 .form-control-modern:focus {
   outline: none;
   border-color: var(--primary-color);
@@ -1715,6 +1721,96 @@ body {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+/* Tab Content and Tab Pane - Control height for display */
+.tab-content {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.tab-pane {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Override any Bootstrap tab scrolling - REMOVE ALL SCROLLING */
+.modern-table-container table,
+.modern-table-container tbody,
+.modern-table-container thead,
+.modern-table-container tr,
+.modern-table-container td,
+.modern-table-container th {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Force no scrolling on all possible elements */
+table.modern-responsive-table,
+.modern-responsive-table,
+.modern-table-container,
+.tab-pane,
+.tab-content,
+div[id="display"],
+#display {
+  max-height: none !important;
+  overflow-y: visible !important;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* Override ALL Bootstrap tab and content scrolling */
+.container-fluid,
+.page-content,
+.tab-content .tab-pane,
+div[role="tabpanel"].tab-pane,
+div.tab-content div.tab-pane,
+div.tab-content div.tab-pane.show,
+div.tab-content div.tab-pane.active {
+  overflow-y: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Target the specific table containers with specific rules */
+#ods_component .modern-table-container,
+#ods_component #display .modern-table-container,
+.tab-content .modern-table-container,
+.tab-pane .modern-table-container {
+  overflow-y: visible !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+#ods_component .modern-table-container {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-height: none !important;
+}
+
+.tab-pane.show.active {
+  min-height: auto !important;
+  overflow: visible !important;
+  display: block !important;
+  max-height: none !important;
+}
+
+div[role="tabpanel"] {
+  min-height: auto !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+#display {
+  min-height: auto !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.modern-controls-section + .modern-table-container {
+  min-height: auto !important;
+  max-height: none !important;
+}
+
 /* Enhanced Table Responsiveness */
 .modern-responsive-table {
   width: 100%;
@@ -1722,7 +1818,7 @@ body {
   border-spacing: 0;
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow-md);
   display: table;
 }
@@ -1777,6 +1873,8 @@ body {
 
 .modern-table-container {
   overflow-x: auto;
+  overflow-y: visible;
+  max-height: none;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -1786,6 +1884,8 @@ body {
   .modern-table-container {
     padding: var(--space-2);
     margin: var(--space-2);
+    overflow-y: visible;
+    max-height: none;
   }
   
   .modern-responsive-table {
@@ -2240,6 +2340,13 @@ body {
   justify-content: center;
 }
 
+/* Reduce button width by half in the first 3 tabs */
+.modern-button-group .btn-modern {
+  max-width: 150px;
+  width: auto;
+  padding: var(--space-2) var(--space-3);
+}
+
 .modern-action-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -2248,12 +2355,21 @@ body {
   margin: var(--space-4) 0;
 }
 
+/* Reduce Clear and Export button width by half in the first 3 tabs */
+.modern-action-buttons .btn-modern {
+  max-width: 150px;
+  width: auto;
+  padding: var(--space-2) var(--space-3);
+}
+
 .modern-table-container {
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-md);
   overflow-x: auto;
+  overflow-y: visible;
+  max-height: none;
   margin: var(--space-6) 0;
 }
 
@@ -2345,6 +2461,8 @@ body {
   .modern-table-container {
     padding: var(--space-3);
     overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
   }
   
   .modern-responsive-table {

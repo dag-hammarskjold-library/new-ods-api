@@ -186,7 +186,7 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label for="docsymbols" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="docsymbols" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated). The Apply button will be enabled when you enter content." name="docsymbols" v-model="docsymbols"></textarea>
+                                                <textarea id="docsymbols" class="form-control-modern" rows="10" placeholder="Paste the list of symbols here (new line separated). The Apply button will be enabled when you enter content." name="docsymbols" v-model="docsymbols"></textarea>
                                             </div>
                                             </div>
                                         <div class="modern-button-group mt-3">
@@ -208,7 +208,7 @@ Vue.component('ods', {
                                         </div>
                                     </div>
                                     
-                                    <div class="modern-table-container" v-if="displayResult">
+                                    <div class="modern-table-container" v-if="displayResult" style="overflow-y: visible !important; max-height: none !important;">
                                         <table id="MyTable" class="modern-responsive-table">
                                             <thead>
                                                 <tr>
@@ -261,7 +261,7 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label for="docsymbols1" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="docsymbols1" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated). The Send button will be enabled when you enter content." name="docsymbols1" v-model="docsymbols1"></textarea>
+                                                <textarea id="docsymbols1" class="form-control-modern" rows="10" placeholder="Paste the list of symbols here (new line separated). The Send button will be enabled when you enter content." name="docsymbols1" v-model="docsymbols1"></textarea>
                                             </div>
                                             </div>
                                         <div class="modern-button-group mt-3">
@@ -283,7 +283,7 @@ Vue.component('ods', {
                                         </div>
                                     </div>
                                        
-                                    <div class="modern-table-container" v-if="displayResult1">
+                                    <div class="modern-table-container" v-if="displayResult1" style="overflow-y: visible !important; max-height: none !important;">
                                         <table id="MyTable1" class="modern-responsive-table">
                                             <thead>
                                                 <tr>
@@ -320,7 +320,7 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label for="docsymbols2" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="docsymbols2" class="form-control-modern" rows="4" placeholder="Paste the list of symbols here (new line separated). The Send Files button will be enabled when you enter content." name="docsymbols2" v-model="docsymbols2"></textarea>
+                                                <textarea id="docsymbols2" class="form-control-modern" rows="10" placeholder="Paste the list of symbols here (new line separated). The Send Files button will be enabled when you enter content." name="docsymbols2" v-model="docsymbols2"></textarea>
                                             </div>
                                             </div>
                                         <div class="modern-button-group mt-3">
@@ -342,7 +342,7 @@ Vue.component('ods', {
                                         </div>
                                     </div>
                                 
-                                    <div class="modern-table-container" v-if="displayResult2">
+                                    <div class="modern-table-container" v-if="displayResult2" style="overflow-y: visible !important; max-height: none !important;">
                                         <table id="MyTable2" class="modern-responsive-table">
                                             <thead>
                                                 <tr>
