@@ -208,7 +208,7 @@ Vue.component('ods', {
                                         </div>
                                     </div>
                                     
-                                    <div class="modern-table-container" v-if="displayResult" style="overflow-y: visible !important; max-height: none !important;">
+                                    <div class="modern-table-container" v-if="displayResult" style="overflow-y: auto !important; max-height: 500px !important;">
                                         <table id="MyTable" class="modern-responsive-table">
                                             <thead>
                                                 <tr>
@@ -283,7 +283,7 @@ Vue.component('ods', {
                                         </div>
                                     </div>
                                        
-                                    <div class="modern-table-container" v-if="displayResult1" style="overflow-y: visible !important; max-height: none !important;">
+                                    <div class="modern-table-container" v-if="displayResult1" style="overflow-y: auto !important; max-height: 500px !important;">
                                         <table id="MyTable1" class="modern-responsive-table">
                                             <thead>
                                                 <tr>
@@ -342,7 +342,7 @@ Vue.component('ods', {
                                         </div>
                                     </div>
                                 
-                                    <div class="modern-table-container" v-if="displayResult2" style="overflow-y: visible !important; max-height: none !important;">
+                                    <div class="modern-table-container" v-if="displayResult2" style="overflow-y: auto !important; max-height: 500px !important;">
                                         <table id="MyTable2" class="modern-responsive-table">
                                             <thead>
                                                 <tr>
@@ -725,6 +725,18 @@ data: function () {
             this.isDarkMode = true;
             document.documentElement.setAttribute('data-bs-theme', 'dark');
         }
+        
+        // Enable mouse wheel scrolling on textareas
+        this.$nextTick(() => {
+            const textareas = document.querySelectorAll('textarea.form-control-modern');
+            textareas.forEach(textarea => {
+                textarea.addEventListener('wheel', function(e) {
+                    // Allow scrolling in textarea
+                    textarea.scrollTop += e.deltaY;
+                    e.preventDefault();
+                });
+            });
+        });
     },
         
     methods:{
