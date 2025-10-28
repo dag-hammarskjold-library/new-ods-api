@@ -1257,8 +1257,9 @@ body {
 
 .modern-body {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   background-color: var(--bg-secondary);
+  overflow: visible;
 }
 
 
@@ -1268,6 +1269,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: visible;
 }
 
 /* Top Navigation */
@@ -1411,8 +1413,9 @@ body {
   flex: 1;
   padding: var(--space-1);
   background: var(--bg-secondary);
-  overflow-y: visible;
+  overflow-y: auto;
   overflow-x: hidden;
+  height: 100vh;
 }
 
 .container-fluid {
@@ -1873,19 +1876,30 @@ div[role="tabpanel"] {
 
 .modern-table-container {
   overflow-x: auto;
-  overflow-y: visible;
-  max-height: none;
+  overflow-y: auto;
+  max-height: 500px;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+  scroll-behavior: smooth;
+  cursor: pointer;
+}
+
+/* Ensure table rows are clickable and allow wheel scrolling */
+.modern-table-container table {
+  margin: 0;
+}
+
+.modern-table-container table tbody {
+  display: table-row-group;
 }
 
 @media (max-width: 768px) {
   .modern-table-container {
     padding: var(--space-2);
     margin: var(--space-2);
-    overflow-y: visible;
-    max-height: none;
+    overflow-y: auto;
+    max-height: 400px;
   }
   
   .modern-responsive-table {
@@ -2368,9 +2382,20 @@ div[role="tabpanel"] {
   padding: var(--space-6);
   box-shadow: var(--shadow-md);
   overflow-x: auto;
-  overflow-y: visible;
-  max-height: none;
+  overflow-y: auto;
+  max-height: 500px;
   margin: var(--space-6) 0;
+  scroll-behavior: smooth;
+  cursor: pointer;
+}
+
+/* Ensure table rows are clickable and allow wheel scrolling */
+.modern-table-container table {
+  margin: 0;
+}
+
+.modern-table-container table tbody {
+  display: table-row-group;
 }
 
 .modern-responsive-table {
@@ -2461,8 +2486,8 @@ div[role="tabpanel"] {
   .modern-table-container {
     padding: var(--space-3);
     overflow-x: auto;
-    overflow-y: visible;
-    max-height: none;
+    overflow-y: auto;
+    max-height: 400px;
   }
   
   .modern-responsive-table {
