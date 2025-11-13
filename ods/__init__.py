@@ -504,6 +504,102 @@ def create_app(test_config=None):
         data = requests.get("https://api.ipify.org?format=json")
         return data.json()
     
+    ############################################################################
+    # CHATBOT ENDPOINT
+    ############################################################################
+    
+    @app.route("/chatbot", methods=['POST'])
+    def chatbot():
+        """
+        Chatbot endpoint using Gemini API with PDF documentation context
+        """
+        try:
+            import sys
+            from pathlib import Path
+            
+            # Add ai folder to path
+            ai_path = Path(__file__).parent.parent / "ai"
+            if str(ai_path) not in sys.path:
+                sys.path.insert(0, str(ai_path))
+            
+            from ai.chatbot import simple_chat
+            
+            # Get user message from request
+            user_message = request.form.get('message') or request.json.get('message', '')
+            
+            if not user_message:
+                return jsonify({
+                    'success': False,
+                    'error': 'No message provided'
+                }), 400
+            
+            # Get conversation history if provided
+            conversation_history = request.json.get('history', []) if request.is_json else []
+            
+            # Use simple_chat for stateless interactions
+            # For conversation history, you can use chat_with_gemini instead
+            result = simple_chat(user_message)
+            
+            # Log the interaction
+            username = session.get('username', 'unknown_user')
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                f"Chatbot query: {user_message[:100]}"
+            )
+            
+            return jsonify(result)
+            
+        except ImportError as e:
+            return jsonify({
+                'success': False,
+                'error': f'Chatbot module not available: {str(e)}'
+            }), 500
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Error processing chat request: {str(e)}'
+            }), 500
+    
+    @app.route("/download_chatbot_manual", methods=['GET'])
+    def download_chatbot_manual():
+        """
+        Download the chatbot user manual as markdown file
+        """
+        try:
+            from pathlib import Path
+            from flask import send_file, Response
+            
+            # Get the manual markdown file
+            ai_path = Path(__file__).parent.parent / "ai"
+            manual_path = ai_path / "CHATBOT_USER_MANUAL.md"
+            
+            if not manual_path.exists():
+                error_msg = f'User manual not found at: {manual_path}'
+                app.logger.error(error_msg)
+                return Response(
+                    error_msg,
+                    status=404,
+                    mimetype='text/plain'
+                )
+            
+            # Return markdown file
+            return send_file(
+                str(manual_path),
+                mimetype='text/markdown',
+                as_attachment=True,
+                download_name='ODS_Actions_Chatbot_User_Manual.md'
+            )
+            
+        except Exception as e:
+            error_msg = f'Error downloading manual: {str(e)}'
+            app.logger.error(f"Error downloading manual: {str(e)}", exc_info=True)
+            return Response(
+                error_msg,
+                status=500,
+                mimetype='text/plain'
+            )
+    
     '''
     Change user password
     '''
