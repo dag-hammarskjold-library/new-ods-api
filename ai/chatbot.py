@@ -128,7 +128,6 @@ def get_chatbot_model():
     # Return cached model if available
     if _MODEL_CACHE is not None:
         return _MODEL_CACHE
-    
     if not GEMINI_AVAILABLE:
         return None
     
