@@ -175,6 +175,12 @@ Vue.component('ods', {
                                         Parameters
                                     </button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="help-tab" data-bs-toggle="tab" data-bs-target="#help" type="button" role="tab" aria-controls="help" aria-selected="false">
+                                        <i class="fas fa-question-circle me-2"></i>
+                                        Help
+                                    </button>
+                                </li>
                             </ul>
                         
                         <!-- <div class="card-body " style="margin-top: 1px;margin-left:10px;"> -->
@@ -621,6 +627,122 @@ Vue.component('ods', {
                                     </div>
                                 </div>
                                 <!-- End Change Password Tab -->	
+                                
+                                <!-- Help Tab -->	
+                                <div class="tab-pane fade" id="help" role="tabpanel" aria-labelledby="help-tab">
+                                    <div class="modern-controls-section">
+                                        <div class="d-flex justify-content-between align-items-center mb-4">
+                                            <div>
+                                                <h4 class="mb-2">
+                                                    <i class="fas fa-question-circle me-2"></i>
+                                                    ODS Actions Help Assistant
+                                                </h4>
+                                                <p class="mb-0">Ask me anything about the ODS Actions application. I can help you understand features, workflows, and how to use the system effectively.</p>
+                                            </div>
+                                            <div>
+                                                <a href="./download_chatbot_manual" 
+                                                   class="btn btn-modern btn-primary-modern" 
+                                                   download="ODS_Actions_Chatbot_User_Manual.md"
+                                                   title="Download Chatbot User Manual (Markdown)">
+                                                    <i class="fas fa-download me-2"></i>
+                                                    Download Chatbot User Manual
+                                                </a>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Chat Container -->
+                                        <div class="chatbot-container">
+                                            <div class="chat-messages" id="chatMessages" ref="chatMessages">
+                                                <div class="message bot-message">
+                                                    <div class="message-avatar">
+                                                        <i class="fas fa-robot"></i>
+                                                    </div>
+                                                    <div class="message-content">
+                                                        <div class="message-text">
+                                                            Hello! I'm your ODS Actions assistant. I can help you with:
+                                                            <ul>
+                                                                <li>How to use the Display Metadata feature</li>
+                                                                <li>How to send metadata to ODS</li>
+                                                                <li>How to upload files</li>
+                                                                <li>Understanding the database structure</li>
+                                                                <li>API endpoints and technical details</li>
+                                                            </ul>
+                                                            What would you like to know?
+                                                        </div>
+                                                        <div class="message-time">{{ getCurrentTime() }}</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div v-for="(msg, index) in chatMessages" :key="index" :class="['message', msg.type + '-message']">
+                                                    <div class="message-avatar">
+                                                        <i :class="msg.type === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
+                                                    </div>
+                                                    <div class="message-content">
+                                                        <div class="message-text" v-html="formatMessage(msg.text)"></div>
+                                                        <div class="message-time">{{ msg.time }}</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div v-if="chatLoading" class="message bot-message">
+                                                    <div class="message-avatar">
+                                                        <i class="fas fa-robot"></i>
+                                                    </div>
+                                                    <div class="message-content">
+                                                        <div class="message-text">
+                                                            <div class="typing-indicator">
+                                                                <span></span>
+                                                                <span></span>
+                                                                <span></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Chat Input -->
+                                            <div class="chat-input-container">
+                                                <input 
+                                                    type="text" 
+                                                    class="form-control-modern chat-input" 
+                                                    v-model="chatInput" 
+                                                    @keyup.enter="sendChatMessage"
+                                                    :disabled="chatLoading"
+                                                    placeholder="Type your question here... (Press Enter to send)"
+                                                    ref="chatInput"
+                                                >
+                                                <div class="modern-button-group mt-2">
+                                                    <button 
+                                                        class="btn-modern btn-primary-modern" 
+                                                        @click="sendChatMessage"
+                                                        :disabled="chatLoading || !chatInput.trim()"
+                                                        type="button"
+                                                    >
+                                                        <i class="fas fa-paper-plane me-2"></i>
+                                                        Send
+                                                    </button>
+                                                    <button 
+                                                        class="btn-modern btn-secondary-modern" 
+                                                        @click="clearChat"
+                                                        type="button"
+                                                    >
+                                                        <i class="fas fa-trash me-2"></i>
+                                                        Clear Chat
+                                                    </button>
+                                                    <button 
+                                                        class="btn-modern btn-secondary-modern" 
+                                                        @click="downloadChat"
+                                                        type="button"
+                                                        :disabled="chatMessages.length === 0"
+                                                    >
+                                                        <i class="fas fa-download me-2"></i>
+                                                        Download Chat
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- End Help Tab -->	
                             </div>
                         </div>
                     </div>
@@ -682,6 +804,10 @@ data: function () {
         userEmail: "",
         newPassword: "",
         confirmPassword: "",
+        // Chatbot data
+        chatMessages: [],
+        chatInput: "",
+        chatLoading: false,
     }
     },
     
@@ -1598,6 +1724,152 @@ data: function () {
             link.download = "export.xls";
             link.href = uri + base64(format(template, ctx))
             link.click();
+        },
+        
+        // Chatbot methods
+        async sendChatMessage() {
+            if (!this.chatInput.trim() || this.chatLoading) {
+                return;
+            }
+            
+            const userMessage = this.chatInput.trim();
+            
+            // Add user message to chat
+            this.chatMessages.push({
+                type: 'user',
+                text: userMessage,
+                time: this.getCurrentTime()
+            });
+            
+            // Clear input
+            this.chatInput = '';
+            
+            // Set loading state
+            this.chatLoading = true;
+            
+            // Scroll to bottom
+            this.$nextTick(() => {
+                this.scrollChatToBottom();
+            });
+            
+            try {
+                // Send message to backend
+                const formData = new FormData();
+                formData.append('message', userMessage);
+                
+                const response = await fetch('./chatbot', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Response is not JSON");
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add bot response to chat
+                    this.chatMessages.push({
+                        type: 'bot',
+                        text: data.response,
+                        time: this.getCurrentTime()
+                    });
+                } else {
+                    // Show error message
+                    this.chatMessages.push({
+                        type: 'bot',
+                        text: `Sorry, I encountered an error: ${data.error || 'Unknown error'}. Please try again.`,
+                        time: this.getCurrentTime()
+                    });
+                    notifications.error(data.error || 'Failed to get response from chatbot', 'Chatbot Error');
+                }
+                
+            } catch (error) {
+                console.error('Chatbot error:', error);
+                this.chatMessages.push({
+                    type: 'bot',
+                    text: `Sorry, I'm having trouble connecting. Please check your connection and try again. Error: ${error.message}`,
+                    time: this.getCurrentTime()
+                });
+                notifications.error('Failed to send message to chatbot', 'Connection Error');
+            } finally {
+                this.chatLoading = false;
+                
+                // Scroll to bottom after response
+                this.$nextTick(() => {
+                    this.scrollChatToBottom();
+                });
+            }
+        },
+        
+        clearChat() {
+            this.chatMessages = [];
+            notifications.success('Chat cleared', 'Chat');
+        },
+        
+        downloadChat() {
+            if (this.chatMessages.length === 0) {
+                notifications.warning('No chat messages to download', 'Download');
+                return;
+            }
+            
+            // Create chat history text
+            let chatText = 'ODS Actions - Chat History\n';
+            chatText += '='.repeat(50) + '\n';
+            chatText += `Date: ${new Date().toLocaleString()}\n`;
+            chatText += '='.repeat(50) + '\n\n';
+            
+            // Add initial bot message
+            chatText += '[Bot] Hello! I\'m your ODS Actions assistant...\n';
+            chatText += `Time: ${this.getCurrentTime()}\n\n`;
+            
+            // Add all messages
+            this.chatMessages.forEach((msg, index) => {
+                const sender = msg.type === 'user' ? 'You' : 'Bot';
+                chatText += `[${sender}]\n`;
+                chatText += `${msg.text}\n`;
+                chatText += `Time: ${msg.time}\n`;
+                chatText += '-'.repeat(50) + '\n\n';
+            });
+            
+            // Create and download file
+            const blob = new Blob([chatText], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ods_chat_history_${new Date().toISOString().split('T')[0]}_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            notifications.success('Chat history downloaded', 'Download');
+        },
+        
+        getCurrentTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        },
+        
+        formatMessage(text) {
+            // Simple formatting - convert line breaks to <br>
+            if (!text) return '';
+            return text.replace(/\n/g, '<br>');
+        },
+        
+        scrollChatToBottom() {
+            const chatMessages = this.$refs.chatMessages;
+            if (chatMessages) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         },
     },
 })
