@@ -12,7 +12,7 @@ markdown>=3.4.0
 panda==0.3.1
 pyOpenSSL==24.2.1
 python-decouple==3.8
-python-dotenv==1.0.1
+python-dotenv==1.2.1
 translate==3.6.1
 weasyprint>=60.0
 zipp==3.19.1
