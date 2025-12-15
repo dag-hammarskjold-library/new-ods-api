@@ -8,7 +8,10 @@ import datetime
 import os
 import requests
 import ods.ods_rutines
-from flask import Flask, jsonify,render_template,request,redirect,session, url_for
+from flask import Flask, jsonify,render_template,request,redirect,session, url_for, send_file
+from io import BytesIO
+from urllib.parse import quote, unquote
+from pymongo.collation import Collation
 from decouple import config
 from pymongo import MongoClient
 from bson import json_util
@@ -25,6 +28,7 @@ password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
 database_conn=config("CONN")
+
 
 
 ##############################################################################################
@@ -110,6 +114,7 @@ def create_app(test_config=None):
             client = MongoClient(database_conn)
             my_database = client["odsActions"] 
             my_collection = my_database["ods_actions_users_collection"]
+            
 
 
             user = {
@@ -482,6 +487,54 @@ def create_app(test_config=None):
         #print(session)
         return redirect(url_for("login"))
     
+
+    #this is a temp route to diplay documents in a language using a symbol main8
+    @app.route("/<lang>/<path:symbol>")
+    def show_document1(symbol, lang=None):
+        client = MongoClient(database_conn)
+        my_database = client["undlFiles"] 
+        filesColl=my_database.files
+        lang=lang.upper()
+        LANGUAGES = {
+            'ar': 'العربية',
+            'zh': '中文',
+            'en': 'English',
+            'fr': 'Français',
+            'ru': 'Русский',
+            'es': 'Español'
+        }
+        LANGUAGESList =['DE', 'AR', 'FR', 'ES', 'RU', 'ZH', 'EN']
+        print(symbol)
+        #symbol=unquote(symbol)
+        print(f"after unquote the symbol is {symbol}")
+        cln = Collation(locale='en', strength=2)
+        docs = filesColl.find({"identifiers.value": symbol}, collation=cln)
+        languages = [''.join(doc.get("languages")) for doc in docs]
+        print(languages)
+        if lang is None:
+            # Find all documents matching the symbol
+            docs = filesColl.find({"identifiers.value": symbol})
+            languages = [''.join(doc.get("languages")) for doc in docs]
+            
+            if not languages:
+                return "No available languages for this document.", 404
+            return render_template("language_selection.html", symbol=symbol, languages=languages, LANGUAGES=LANGUAGES)
+
+        # Look up the specific document for  the given language
+        doc = filesColl.find_one({"identifiers.value": symbol, "languages": lang}, collation=cln)
+        if not doc or not doc.get("uri"):
+            return "Document not found for this language.", 404
+
+        # Fetch and serve the PDF
+        symbol=quote(symbol, safe='/')
+        print(symbol)
+        uri = "https://"+doc["uri"]
+        response = requests.get(uri)
+        if response.status_code == 200:
+            return send_file(BytesIO(response.content), download_name=f"{symbol}_{lang}.pdf", mimetype='application/pdf')
+        else:
+            return "Unable to fetch PDF", 502
+
     
     @app.route("/display_logs",methods=['GET'])
     def display_logs():
