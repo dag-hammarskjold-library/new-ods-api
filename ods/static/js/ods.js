@@ -198,7 +198,7 @@ Vue.component('ods', {
                                         <div class="row">
                                             <div class="col-md-7 mb-3">
                                                 <label for="download_docsymbol" class="form-label-modern">Document Symbols</label>
-                                                <textarea id="download_docsymbol" class="form-control-modern" rows="6" placeholder="Paste the list of symbols here (new line separated). The Download Files button will be enabled when you enter content." name="download_docsymbol" v-model="downloadDocsymbol"></textarea>
+                                                <textarea id="download_docsymbol" class="form-control-modern" rows="6" style="overflow-y: auto; resize: vertical;" placeholder="Paste the list of symbols here (new line separated). The Download Files button will be enabled when you enter content." name="download_docsymbol" v-model="downloadDocsymbol"></textarea>
                                             </div>
                                             <div class="col-md-5 mb-3">
                                                 <div id="downloadProgress" class="text-center" v-if="downloadProgress" style="padding-top: 40px;">
@@ -210,7 +210,7 @@ Vue.component('ods', {
                                                         <p class="mb-1"><strong>Total Symbols:</strong> {{ downloadTotalSymbols }}</p>
                                                         <p class="mb-1"><strong>Start Time:</strong> {{ formatStartTime(downloadStartTime) }}</p>
                                                         <p class="mb-1"><strong>Elapsed Time:</strong> {{ formatElapsedTime(downloadElapsedTime) }}</p>
-                                                        <div class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
+                                                        <div ref="downloadLogsContainer" class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
                                                             <strong style="font-size: 0.9em; color: #ffffff;">Progress Logs:</strong>
                                                             <div v-if="downloadLogs.length === 0" class="mt-2" style="font-size: 0.85em; color: #cccccc;">
                                                                 Waiting to start...
@@ -259,7 +259,7 @@ Vue.component('ods', {
                                     <div class="mt-4" v-if="downloadResults.length > 0">
                                         <h5>Download Results</h5>
                                         <div class="modern-table-container">
-                                            <table class="modern-responsive-table">
+                                            <table id="downloadResultsTable" class="modern-responsive-table">
                                                 <thead>
                                                     <tr>
                                                         <th>Document Symbol</th>
@@ -282,6 +282,13 @@ Vue.component('ods', {
                                                     </tr>
                                                 </tbody>
                                             </table>
+                                        </div>
+                                    
+                                        <div class="modern-action-buttons" v-if="downloadResults.length > 0">
+                                            <button class="btn-modern btn-info-modern" type="button" @click="exportTableToCSV('downloadResultsTable')">
+                                                <i class="fas fa-download me-2"></i>
+                                                Export to CSV
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1095,7 +1102,7 @@ data: function () {
         chatLoading: false,
         // Download files from ODS data
         downloadDocsymbol: "",
-        selectedLanguages: [],
+        selectedLanguages: ["EN"], // English checked by default
         downloadProgress: false,
         downloadResults: [],
         downloadStartTime: null,
@@ -1956,7 +1963,7 @@ data: function () {
         
         clearDownloadForm() {
             this.downloadDocsymbol = "";
-            this.selectedLanguages = [];
+            this.selectedLanguages = ["EN"]; // Reset to English by default
             this.downloadResults = [];
             this.downloadLogs = [];
             this.stopDownloadTimer();
@@ -2163,9 +2170,8 @@ data: function () {
             
             // Auto-scroll to bottom of logs
             this.$nextTick(() => {
-                const logContainer = document.querySelector('#downloadProgress .mt-3:last-child');
-                if (logContainer) {
-                    logContainer.scrollTop = logContainer.scrollHeight;
+                if (this.$refs.downloadLogsContainer) {
+                    this.$refs.downloadLogsContainer.scrollTop = this.$refs.downloadLogsContainer.scrollHeight;
                 }
             });
         },

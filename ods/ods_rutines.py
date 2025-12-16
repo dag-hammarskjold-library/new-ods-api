@@ -69,11 +69,11 @@ def create_language_entries(docsymbol, job_numbers, result_message):
 # definition of the credentials of the ODS API
 ########################################################################
 
-base_url = config("BASE_URL")
-username = config("USERNAME")
-password = config("PASSWORD")
-client_id = config("CLIENT_ID")
-client_secret = config("CLIENT_SECRET")
+base_url = config("base_url")
+username = config("username")
+password = config("password")
+client_id = config("client_id")
+client_secret = config("client_secret")
 
 ########################################################################
 # management of the JobNumber
@@ -363,6 +363,12 @@ def get_token()->str:
     'Authorization': f'Basic {get_encode_base64()}'
   }
   response = requests.request("GET", url, headers=headers0, data=payload0,verify=False)
+  print(f"username is {username}")
+  print(f"password is {password}")
+  print(f"client_id is {client_id}")
+  print(f"client_secret is {client_secret}")
+  print(f"url is {url}")
+  print(f"response is {response.text}")
   json_data = json.loads(response.text)
   return json_data["token"]
 
