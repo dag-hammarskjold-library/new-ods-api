@@ -126,8 +126,8 @@ def markdown_to_pdf_reportlab(markdown_content: str, output_path: str) -> bool:
                     text = line
                     # Escape special characters for ReportLab
                     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                    # Convert markdown links [text](url) to HTML
-                    text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<link href="\2" color="blue"><u>\1</u></link>', text)
+                    # Convert markdown links [text](url) to plain text (remove links to avoid ReportLab errors)
+                    text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'\1', text)
                     # Convert bold **text** to <b>text</b>
                     text = re.sub(r'\*\*([^\*]+)\*\*', r'<b>\1</b>', text)
                     # Convert italic *text* to <i>text</i> (but not if it's part of bold)
@@ -305,16 +305,108 @@ def generate_user_manual_pdf(output_path: str = None) -> str:
         return None
 
 
+def generate_ods_documentation_pdf(output_path: str = None) -> str:
+    """
+    Generate PDF from the extracted documentation text file.
+    
+    Args:
+        output_path: Optional path for output PDF. If None, uses default location.
+        
+    Returns:
+        str: Path to generated PDF file, or None if failed
+    """
+    try:
+        # Get the documentation text file
+        ai_dir = Path(__file__).parent
+        doc_path = ai_dir / "extracted_documentation.txt"
+        
+        if not doc_path.exists():
+            print(f"Documentation file not found at: {doc_path}", file=sys.stderr)
+            return None
+        
+        # Read text content
+        with open(doc_path, 'r', encoding='utf-8') as f:
+            text_content = f.read()
+        
+        # Determine output path
+        if output_path is None:
+            output_path = ai_dir / "ODS_Actions_Documentation.pdf"
+        else:
+            output_path = Path(output_path)
+        
+        # Convert to absolute path
+        output_path = output_path.resolve()
+        
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Try WeasyPrint first (better HTML/CSS support)
+        if WEASYPRINT_AVAILABLE and MARKDOWN_AVAILABLE:
+            # Convert plain text to markdown-like format for better rendering
+            # Add basic markdown formatting
+            markdown_content = text_content
+            # Convert (cid:127) to bullet points
+            markdown_content = markdown_content.replace('(cid:127)', '- ')
+            # Add some basic formatting
+            lines = markdown_content.split('\n')
+            formatted_lines = []
+            for line in lines:
+                # Format section headers
+                if line.strip() and not line.startswith(' ') and not line.startswith('-') and len(line) < 100:
+                    if line.isupper() or (line and line[0].isupper() and ':' not in line and line.count(' ') < 5):
+                        formatted_lines.append(f"## {line}")
+                    else:
+                        formatted_lines.append(line)
+                else:
+                    formatted_lines.append(line)
+            markdown_content = '\n'.join(formatted_lines)
+            
+            if markdown_to_pdf_weasyprint(markdown_content, str(output_path)):
+                return str(output_path.resolve())
+        
+        # Fallback to ReportLab
+        if REPORTLAB_AVAILABLE:
+            # Convert plain text to markdown-like format
+            markdown_content = text_content.replace('(cid:127)', '- ')
+            if markdown_to_pdf_reportlab(markdown_content, str(output_path)):
+                return str(output_path.resolve())
+        
+        # If no PDF library available, return error
+        print("No PDF generation library available. Install with: pip install weasyprint markdown", file=sys.stderr)
+        return None
+        
+    except Exception as e:
+        print(f"Error generating PDF: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 if __name__ == "__main__":
-    # Test PDF generation
-    print("Generating PDF from user manual...")
-    result = generate_user_manual_pdf()
-    if result:
-        print(f"✓ PDF generated successfully: {result}")
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "ods":
+        # Generate ODS Actions Documentation PDF
+        print("Generating ODS Actions Documentation PDF...")
+        result = generate_ods_documentation_pdf()
+        if result:
+            print(f"PDF generated successfully: {result}")
+        else:
+            print("Failed to generate PDF")
+            print("\nPlease install required libraries:")
+            print("  pip install weasyprint markdown  # Recommended")
+            print("  OR")
+            print("  pip install reportlab markdown")
     else:
-        print("✗ Failed to generate PDF")
-        print("\nPlease install required libraries:")
-        print("  pip install weasyprint markdown  # Recommended")
-        print("  OR")
-        print("  pip install reportlab markdown")
+        # Test PDF generation for user manual
+        print("Generating PDF from user manual...")
+        result = generate_user_manual_pdf()
+        if result:
+            print(f"PDF generated successfully: {result}")
+        else:
+            print("Failed to generate PDF")
+            print("\nPlease install required libraries:")
+            print("  pip install weasyprint markdown  # Recommended")
+            print("  OR")
+            print("  pip install reportlab markdown")
 

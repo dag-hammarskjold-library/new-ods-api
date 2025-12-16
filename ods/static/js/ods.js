@@ -145,8 +145,14 @@ Vue.component('ods', {
                         
                         <div class="card-body">
                             <ul class="nav nav-tabs modern-nav-tabs" id="mainTabs" role="tablist">
+                                <li v-if="session_show_download_files=='true'" class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="download-files-tab" data-bs-toggle="tab" data-bs-target="#download-files" type="button" role="tab" aria-controls="download-files" aria-selected="true">
+                                        <i class="fas fa-download me-2"></i>
+                                        Download files from ODS
+                                    </button>
+                                </li>
                                 <li v-if="session_show_display=='true'" class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" aria-controls="display" aria-selected="true">
+                                    <button class="nav-link" :class="{'active': session_show_download_files!='true'}" id="display-tab" data-bs-toggle="tab" data-bs-target="#display" type="button" role="tab" :aria-selected="session_show_download_files!='true'">
                                         <i class="fas fa-eye me-2"></i>
                                         Display Metadata
                                     </button>
@@ -186,8 +192,103 @@ Vue.component('ods', {
                         <!-- <div class="card-body " style="margin-top: 1px;margin-left:10px;"> -->
                         
                             <div class="tab-content mt-4">
+                                <!-- Download Files Tab -->
+                                <div v-if="session_show_download_files=='true'" class="tab-pane show active" id="download-files" role="tabpanel" aria-labelledby="download-files-tab" v-show="session_show_download_files=='true'">
+                                    <div class="modern-controls-section">
+                                        <div class="row">
+                                            <div class="col-md-7 mb-3">
+                                                <label for="download_docsymbol" class="form-label-modern">Document Symbols</label>
+                                                <textarea id="download_docsymbol" class="form-control-modern" rows="6" placeholder="Paste the list of symbols here (new line separated). The Download Files button will be enabled when you enter content." name="download_docsymbol" v-model="downloadDocsymbol"></textarea>
+                                            </div>
+                                            <div class="col-md-5 mb-3">
+                                                <div id="downloadProgress" class="text-center" v-if="downloadProgress" style="padding-top: 40px;">
+                                                    <div class="loading-spinner">
+                                                        <div class="spinner"></div>
+                                                        <p>Downloading files...</p>
+                                                    </div>
+                                                    <div class="mt-3" style="text-align: left; padding-left: 20px;">
+                                                        <p class="mb-1"><strong>Total Symbols:</strong> {{ downloadTotalSymbols }}</p>
+                                                        <p class="mb-1"><strong>Start Time:</strong> {{ formatStartTime(downloadStartTime) }}</p>
+                                                        <p class="mb-1"><strong>Elapsed Time:</strong> {{ formatElapsedTime(downloadElapsedTime) }}</p>
+                                                        <div class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
+                                                            <strong style="font-size: 0.9em; color: #ffffff;">Progress Logs:</strong>
+                                                            <div v-if="downloadLogs.length === 0" class="mt-2" style="font-size: 0.85em; color: #cccccc;">
+                                                                Waiting to start...
+                                                            </div>
+                                                            <div v-else class="mt-2" style="font-size: 0.8em; font-family: monospace;">
+                                                                <div v-for="(log, index) in downloadLogs" :key="index" :style="{'color': log.type === 'success' ? '#28a745' : log.type === 'error' ? '#dc3545' : log.type === 'info' ? '#17a2b8' : log.type === 'warning' ? '#ffc107' : '#ffffff', 'margin-bottom': '3px'}">
+                                                                    <span style="color: #888888;">[{{ log.time }}]</span> {{ log.message }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-12 mb-3">
+                                                <label class="form-label-modern">Select Languages</label>
+                                                <div class="language-checkboxes">
+                                                    <div class="form-check form-check-inline mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="selectAllLanguages" @change="toggleAllLanguages" :checked="allLanguagesSelected">
+                                                        <label class="form-check-label" for="selectAllLanguages">
+                                                            <strong>ALL</strong>
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline mb-2" v-for="lang in availableLanguages" :key="lang.code">
+                                                        <input class="form-check-input" type="checkbox" :id="'lang_' + lang.code" :value="lang.code" v-model="selectedLanguages" @change="updateSelectAll">
+                                                        <label class="form-check-label" :for="'lang_' + lang.code">
+                                                            {{ lang.name }} ({{ lang.code }})
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modern-button-group mt-3">
+                                            <button class="btn-modern btn-primary-modern" type="button" @click="downloadFilesFromODS" :disabled="isDownloadButtonDisabled">
+                                                <i class="fas fa-download me-2"></i>
+                                                Download Files
+                                            </button>
+                                            <button class="btn-modern btn-secondary-modern" type="button" @click="clearDownloadForm">
+                                                <i class="fas fa-trash me-2"></i>
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4" v-if="downloadResults.length > 0">
+                                        <h5>Download Results</h5>
+                                        <div class="modern-table-container">
+                                            <table class="modern-responsive-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Document Symbol</th>
+                                                        <th>Language</th>
+                                                        <th>Filename</th>
+                                                        <th>Status</th>
+                                                        <th>Message</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="(result, index) in downloadResults" :key="index">
+                                                        <td>{{ result.docsymbol || 'N/A' }}</td>
+                                                        <td>{{ result.language }}</td>
+                                                        <td>{{ result.filename || 'N/A' }}</td>
+                                                        <td>
+                                                            <span v-if="result.status === 1" class="badge bg-success">Success</span>
+                                                            <span v-else class="badge bg-danger">Failed</span>
+                                                        </td>
+                                                        <td>{{ result.message }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- End Download Files Tab -->
+                                
                                 <!-- Display Tab -->	
-                                <div v-if="session_show_display=='true'" class="tab-pane show active" id="display" role="tabpanel" aria-labelledby="display-tab">
+                                <div v-if="session_show_display=='true'" class="tab-pane" :class="{'show active': session_show_download_files!='true', 'fade': session_show_download_files=='true'}" id="display" role="tabpanel" aria-labelledby="display-tab">
                                     <div class="modern-controls-section">
                                         <div class="row">
                                             <div class="col-12">
@@ -324,11 +425,35 @@ Vue.component('ods', {
                                 <div v-if="session_show_send_file=='true'" class="tab-pane fade" id="send-files" role="tabpanel" aria-labelledby="send-files-tab">
                                     <div class="modern-controls-section">
                                         <div class="row">
-                                            <div class="col-12">
+                                            <div class="col-md-7 mb-3">
                                                 <label for="docsymbols2" class="form-label-modern">Document Symbols</label>
                                                 <textarea id="docsymbols2" class="form-control-modern" rows="10" placeholder="Paste the list of symbols here (new line separated). The Send Files button will be enabled when you enter content." name="docsymbols2" v-model="docsymbols2"></textarea>
                                             </div>
+                                            <div class="col-md-5 mb-3">
+                                                <div id="sendFilesProgress" class="text-center" v-if="displayProgress3" style="padding-top: 40px;">
+                                                    <div class="loading-spinner">
+                                                        <div class="spinner"></div>
+                                                        <p>Uploading files...</p>
+                                                    </div>
+                                                    <div class="mt-3" style="text-align: left; padding-left: 20px;">
+                                                        <p class="mb-1"><strong>Total Symbols:</strong> {{ sendFilesTotalSymbols }}</p>
+                                                        <p class="mb-1"><strong>Start Time:</strong> {{ formatStartTime(sendFilesStartTime) }}</p>
+                                                        <p class="mb-1"><strong>Elapsed Time:</strong> {{ formatElapsedTime(sendFilesElapsedTime) }}</p>
+                                                        <div class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
+                                                            <strong style="font-size: 0.9em; color: #ffffff;">Progress Logs:</strong>
+                                                            <div v-if="sendFilesLogs.length === 0" class="mt-2" style="font-size: 0.85em; color: #cccccc;">
+                                                                Waiting to start...
+                                                            </div>
+                                                            <div v-else class="mt-2" style="font-size: 0.8em; font-family: monospace;">
+                                                                <div v-for="(log, index) in sendFilesLogs" :key="index" :style="{'color': log.type === 'success' ? '#28a745' : log.type === 'error' ? '#dc3545' : log.type === 'info' ? '#17a2b8' : log.type === 'warning' ? '#ffc107' : '#ffffff', 'margin-bottom': '3px'}">
+                                                                    <span style="color: #888888;">[{{ log.time }}]</span> {{ log.message }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </div>
                                         <div class="modern-button-group mt-3">
                                             <button class="btn-modern btn-success-modern" type="button" v-if="displayResult2==false" @click="displayResultSendFile(docsymbols2)" :disabled="isSendFilesButtonDisabled">
                                                 <i class="fas fa-upload me-2"></i>
@@ -338,13 +463,6 @@ Vue.component('ods', {
                                                 <i class="fas fa-trash me-2"></i>
                                                 Clear
                                             </button>
-                                            </div>
-                                            </div>
-                                    
-                                    <div id="displayProgress3" class="text-center mt-4" v-if="displayProgress3">
-                                        <div class="loading-spinner">
-                                            <div class="spinner"></div>
-                                            <p>Uploading files...</p>
                                         </div>
                                     </div>
                                 
@@ -486,12 +604,12 @@ Vue.component('ods', {
                                                                             <input class="form-check-input" type="checkbox" id="show_send_file" v-model="show_send_file">
                                                                             <label class="form-check-label" for="show_send_file">Show Send files to ODS</label>
                                                                         </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="show_download_files" v-model="show_download_files">
+                                                                            <label class="form-check-label" for="show_download_files">Show Download files from ODS</label>
+                                                                        </div>
                                                                     </div>
                                                                     <div class="col-md-6">
-                                                                        <div class="form-check">
-                                                                            <input class="form-check-input" type="checkbox" id="show_jobnumbers_management" v-model="show_jobnumbers_management">
-                                                                            <label class="form-check-label" for="show_jobnumbers_management">Show Job numbers management</label>
-                                                                        </div>
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="show_parameters" v-model="show_parameters">
                                                                             <label class="form-check-label" for="show_parameters">Show Parameters</label>
@@ -507,6 +625,166 @@ Vue.component('ods', {
                                                                 </button>
                                                             </div>
                                                     </form>
+                                                    
+                                                    <hr class="my-5">
+                                                    
+                                                    <div class="description-section mb-4">
+                                                        <h5>Manage Existing Users</h5>
+                                                        <p>View, edit, or delete user accounts.</p>
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-6">
+                                                                <label for="userEmailFilter" class="form-label-modern">Filter by Email</label>
+                                                                <input type="text" id="userEmailFilter" class="form-control-modern" v-model="userEmailFilter" placeholder="Enter email to filter...">
+                                                            </div>
+                                                            <div class="col-md-6 d-flex align-items-end">
+                                                                <button type="button" class="btn-modern btn-secondary-modern" @click="loadUsers()">
+                                                                    <i class="fas fa-sync-alt me-2"></i>
+                                                                    Refresh List
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="modern-table-container" v-if="filteredUsersList.length > 0">
+                                                        <table class="modern-responsive-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Email</th>
+                                                                    <th>Site</th>
+                                                                    <th>Permissions</th>
+                                                                    <th>Created</th>
+                                                                    <th>Actions</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <template v-for="user in filteredUsersList" :key="user.email || user._id">
+                                                                    <tr>
+                                                                        <td>{{ user.email }}</td>
+                                                                        <td>{{ user.site || 'N/A' }}</td>
+                                                                        <td>
+                                                                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                                                <span v-if="isPermissionTrue(user.show_display)" class="badge bg-info" style="width: 140px; text-align: center;">Display</span>
+                                                                                <span v-if="isPermissionTrue(user.show_create_update)" class="badge bg-success" style="width: 140px; text-align: center;">Create/Update</span>
+                                                                                <span v-if="isPermissionTrue(user.show_send_file)" class="badge bg-primary" style="width: 140px; text-align: center;">Send Files</span>
+                                                                                <span v-if="isPermissionTrue(user.show_download_files)" class="badge bg-secondary" style="width: 140px; text-align: center;">Download Files</span>
+                                                                                <span v-if="isPermissionTrue(user.show_parameters)" class="badge bg-dark" style="width: 140px; text-align: center;">Parameters</span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>{{ formatUserDate(user.creation_date) }}</td>
+                                                                        <td>
+                                                                            <div style="display: flex; gap: 4px;">
+                                                                                <button class="btn-modern btn-xs btn-info-modern" @click="toggleEditUser(user)" title="Edit User" style="padding: 4px 8px; font-size: 12px;">
+                                                                                    <i class="fas fa-edit"></i>
+                                                                                </button>
+                                                                                <button class="btn-modern btn-xs btn-danger-modern" @click="confirmDeleteUser(user)" title="Delete User" style="padding: 4px 8px; font-size: 12px;">
+                                                                                    <i class="fas fa-trash"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr v-if="editingUserEmail === user.email">
+                                                                        <td colspan="5" style="background-color: var(--bg-secondary); padding: 20px;">
+                                                                            <div class="row">
+                                                                                <div class="col-12 mb-3">
+                                                                                    <h6><i class="fas fa-user-edit me-2"></i>Edit User: {{ user.email }}</h6>
+                                                                                </div>
+                                                                                <div class="col-md-6 mb-3">
+                                                                                    <label for="edit_email" class="form-label-modern">Email</label>
+                                                                                    <input type="email" class="form-control-modern" id="edit_email" v-model="editUserData.email" readonly>
+                                                                                </div>
+                                                                                <div class="col-md-6 mb-3">
+                                                                                    <label for="edit_site" class="form-label-modern">Site</label>
+                                                                                    <select id="edit_site" class="form-select-modern" v-model="editUserData.site">
+                                                                                        <option value="">Select a site</option>
+                                                                                        <option v-for="my_site in site" :value="my_site" :key="my_site">{{my_site}}</option>
+                                                                                    </select>
+                                                                                </div>
+                                                                                <div class="col-md-6 mb-3">
+                                                                                    <label for="edit_password" class="form-label-modern">New Password (leave blank to keep current)</label>
+                                                                                    <input type="password" class="form-control-modern" id="edit_password" v-model="editUserData.password" :placeholder="editUserData.passwordPlaceholder || 'Enter new password'">
+                                                                                </div>
+                                                                                <div class="col-12 mb-3">
+                                                                                    <label class="form-label-modern">Select the tab(s) to display</label>
+                                                                                    <div class="row">
+                                                                                        <div class="col-md-6">
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="checkbox" id="edit_show_display" v-model="editUserData.show_display">
+                                                                                                <label class="form-check-label" for="edit_show_display">Show Display metadata</label>
+                                                                                            </div>
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="checkbox" id="edit_show_create_update" v-model="editUserData.show_create_update">
+                                                                                                <label class="form-check-label" for="edit_show_create_update">Show Create/Update metadata</label>
+                                                                                            </div>
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="checkbox" id="edit_show_send_file" v-model="editUserData.show_send_file">
+                                                                                                <label class="form-check-label" for="edit_show_send_file">Show Send files to ODS</label>
+                                                                                            </div>
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="checkbox" id="edit_show_download_files" v-model="editUserData.show_download_files">
+                                                                                                <label class="form-check-label" for="edit_show_download_files">Show Download files from ODS</label>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <div class="col-md-6">
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="checkbox" id="edit_show_parameters" v-model="editUserData.show_parameters">
+                                                                                                <label class="form-check-label" for="edit_show_parameters">Show Parameters</label>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <div class="modern-button-group">
+                                                                                        <button type="button" class="btn-modern btn-primary-modern" @click="updateUser()">
+                                                                                            <i class="fas fa-save me-2"></i>
+                                                                                            Save Changes
+                                                                                        </button>
+                                                                                        <button type="button" class="btn-modern btn-secondary-modern" @click="cancelEditUser()">
+                                                                                            Cancel
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr v-if="deleteUserEmail === user.email">
+                                                                        <td colspan="5" style="background-color: var(--bg-secondary); padding: 20px;">
+                                                                            <div class="row">
+                                                                                <div class="col-12 mb-3">
+                                                                                    <h6><i class="fas fa-exclamation-triangle text-warning me-2"></i>Delete User: {{ user.email }}</h6>
+                                                                                    <p class="text-danger mb-0"><strong>Warning:</strong> This action cannot be undone. Are you sure you want to delete this user?</p>
+                                                                                </div>
+                                                                                <div class="col-md-6 mb-3">
+                                                                                    <label for="delete_email" class="form-label-modern">Email</label>
+                                                                                    <input type="email" class="form-control-modern" id="delete_email" :value="user.email" readonly>
+                                                                                </div>
+                                                                                <div class="col-md-6 mb-3">
+                                                                                    <label for="delete_site" class="form-label-modern">Site</label>
+                                                                                    <input type="text" class="form-control-modern" id="delete_site" :value="user.site || 'N/A'" readonly>
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <div class="modern-button-group">
+                                                                                        <button type="button" class="btn-modern btn-danger-modern" @click="deleteUser()">
+                                                                                            <i class="fas fa-trash me-2"></i>
+                                                                                            Confirm Delete
+                                                                                        </button>
+                                                                                        <button type="button" class="btn-modern btn-secondary-modern" @click="cancelDeleteUser()">
+                                                                                            Cancel
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                </template>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div v-else-if="usersListLoaded && usersList.length === 0" class="alert alert-info">
+                                                        No users found.
+                                                    </div>
+                                                    <div v-else-if="usersListLoaded && usersList.length > 0 && filteredUsersList.length === 0" class="alert alert-warning">
+                                                        No users match the filter criteria.
+                                                    </div>
                                                 </div>
                                                 </div>
                                             </div>
@@ -639,13 +917,20 @@ Vue.component('ods', {
                                                 </h4>
                                                 <p class="mb-0">Ask me anything about the ODS Actions application. I can help you understand features, workflows, and how to use the system effectively.</p>
                                             </div>
-                                            <div>
+                                            <div class="d-flex gap-2">
                                                 <a href="./download_chatbot_manual" 
                                                    class="btn btn-modern btn-primary-modern" 
-                                                   download="ODS_Actions_Chatbot_User_Manual.md"
-                                                   title="Download Chatbot User Manual (Markdown)">
-                                                    <i class="fas fa-download me-2"></i>
+                                                   download="ODS_Actions_Chatbot_User_Manual.pdf"
+                                                   title="Download Chatbot User Manual (PDF)">
+                                                    <i class="fas fa-file-pdf me-2"></i>
                                                     Download Chatbot User Manual
+                                                </a>
+                                                <a href="./download_ods_documentation" 
+                                                   class="btn btn-modern btn-info-modern" 
+                                                   download="ODS_Actions_Documentation.pdf"
+                                                   title="Download ODS Actions Documentation (PDF)">
+                                                    <i class="fas fa-file-pdf me-2"></i>
+                                                    Download ODS Actions Documentation
                                                 </a>
                                             </div>
                                         </div>
@@ -766,7 +1051,7 @@ created:async function(){
         }
     }
     },
-props: ['session_username','session_show_display','session_show_create_update','session_show_send_file','session_show_jobnumbers_management','session_show_parameters'],
+props: ['session_username','session_show_display','session_show_create_update','session_show_send_file','session_show_download_files','session_show_parameters'],
 data: function () {
     return {
         // Management of the display of the # divs
@@ -789,7 +1074,7 @@ data: function () {
         show_display:false,
         show_create_update:false,
         show_send_file:false,
-        show_jobnumbers_management:false,
+        show_download_files:false,
         show_parameters:false,
         creation_date:"",
         listOfLogs:[],
@@ -808,6 +1093,51 @@ data: function () {
         chatMessages: [],
         chatInput: "",
         chatLoading: false,
+        // Download files from ODS data
+        downloadDocsymbol: "",
+        selectedLanguages: [],
+        downloadProgress: false,
+        downloadResults: [],
+        downloadStartTime: null,
+        downloadElapsedTime: 0,
+        downloadTotalSymbols: 0,
+        downloadTimerInterval: null,
+        downloadStartTime: null,
+        downloadElapsedTime: 0,
+        downloadTotalSymbols: 0,
+        downloadTimerInterval: null,
+        availableLanguages: [
+            { code: "AR", name: "Arabic" },
+            { code: "ZH", name: "Chinese" },
+            { code: "EN", name: "English" },
+            { code: "FR", name: "French" },
+            { code: "RU", name: "Russian" },
+            { code: "ES", name: "Spanish" },
+            { code: "DE", name: "German" }
+        ],
+        // Send files tracking data
+        sendFilesLogs: [],
+        sendFilesStartTime: null,
+        sendFilesElapsedTime: 0,
+        sendFilesTotalSymbols: 0,
+        sendFilesTimerInterval: null,
+        // User management data
+        usersList: [],
+        usersListLoaded: false,
+        userEmailFilter: "",
+        editUserData: {
+            email: "",
+            site: "",
+            password: "",
+            passwordPlaceholder: "",
+            show_display: false,
+            show_create_update: false,
+            show_send_file: false,
+            show_download_files: false,
+            show_parameters: false
+        },
+        editingUserEmail: "",
+        deleteUserEmail: ""
     }
     },
     
@@ -837,6 +1167,45 @@ data: function () {
         
         isSendFilesButtonDisabled() {
             return !this.docsymbols2 || this.docsymbols2.trim() === '';
+        },
+        
+        isDownloadButtonDisabled() {
+            if (!this.downloadDocsymbol || this.downloadDocsymbol.trim() === '') {
+                return true;
+            }
+            // Check if at least one valid symbol exists after parsing (with duplicate removal)
+            const symbolsText = this.downloadDocsymbol.trim();
+            const symbolsArray = symbolsText
+                .split(/[\n,;]+/)
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            
+            // Remove duplicates for validation
+            const seen = new Set();
+            const symbols = [];
+            for (const symbol of symbolsArray) {
+                if (!seen.has(symbol)) {
+                    seen.add(symbol);
+                    symbols.push(symbol);
+                }
+            }
+            
+            return symbols.length === 0 || this.selectedLanguages.length === 0;
+        },
+        
+        allLanguagesSelected() {
+            return this.selectedLanguages.length === this.availableLanguages.length;
+        },
+        
+        filteredUsersList() {
+            if (!this.userEmailFilter || this.userEmailFilter.trim() === '') {
+                return this.usersList;
+            }
+            const filter = this.userEmailFilter.toLowerCase().trim();
+            return this.usersList.filter(user => {
+                const email = (user.email || '').toLowerCase();
+                return email.includes(filter);
+            });
         }
     },
     
@@ -866,6 +1235,35 @@ data: function () {
     },
         
     methods:{
+        
+        // Helper method to check if a permission value is true (handles both strings and booleans)
+        isPermissionTrue(val) {
+            // Debug logging for permission checks
+            const originalVal = val;
+            const originalType = typeof val;
+            
+            if (val === null || val === undefined || val === '') {
+                console.log(`isPermissionTrue: ${originalVal} (${originalType}) -> false (null/undefined/empty)`);
+                return false;
+            }
+            if (typeof val === 'boolean') {
+                console.log(`isPermissionTrue: ${originalVal} (${originalType}) -> ${val} (boolean)`);
+                return val;
+            }
+            if (typeof val === 'string') {
+                const normalized = val.trim().toLowerCase();
+                const result = normalized === 'true' || normalized === '1' || normalized === 'yes';
+                console.log(`isPermissionTrue: "${originalVal}" (${originalType}, normalized: "${normalized}") -> ${result} (string)`);
+                return result;
+            }
+            if (typeof val === 'number') {
+                const result = val !== 0 && !isNaN(val);
+                console.log(`isPermissionTrue: ${originalVal} (${originalType}) -> ${result} (number)`);
+                return result;
+            }
+            console.log(`isPermissionTrue: ${originalVal} (${originalType}) -> false (unknown type)`);
+            return false;
+        },
 
         formatField(field, isDateField = false) {
             // Handle null, undefined, or empty values
@@ -912,6 +1310,30 @@ data: function () {
             return field.toString();
         },
 
+        formatUserDate(dateObj) {
+            // Handle MongoDB date format
+            if (!dateObj) return 'N/A';
+            
+            try {
+                let date;
+                if (dateObj.$date) {
+                    date = new Date(dateObj.$date);
+                } else if (typeof dateObj === 'string') {
+                    date = new Date(dateObj);
+                } else {
+                    date = dateObj;
+                }
+                
+                if (isNaN(date.getTime())) {
+                    return 'Invalid date';
+                }
+                
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch (error) {
+                return 'Invalid date';
+            }
+        },
+        
         formatDate(dateString) {
             try {
                 const date = new Date(dateString);
@@ -1411,10 +1833,36 @@ data: function () {
                 // just in case
                 this.displayResult2=false;
 
-                // display Progress bar
-                this.displayProgress3=true
+                // Parse symbols to count them
+                const symbolsText = this.docsymbols2.trim();
+                const symbolsArray = symbolsText
+                    .split(/[\n,;]+/)
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
                 
-                // No timeout for send files - let it run until completion
+                // Remove duplicates
+                const seen = new Set();
+                const symbols = [];
+                for (const symbol of symbolsArray) {
+                    if (!seen.has(symbol)) {
+                        seen.add(symbol);
+                        symbols.push(symbol);
+                    }
+                }
+
+                // Initialize tracking
+                this.displayProgress3 = true;
+                this.listOfResult2 = [];
+                this.sendFilesLogs = [];
+                this.sendFilesStartTime = new Date();
+                this.sendFilesTotalSymbols = symbols.length;
+                this.sendFilesElapsedTime = 0;
+                
+                // Start timer
+                this.startSendFilesTimer();
+                
+                // Add initial log
+                this.addSendFilesLog('info', `Starting upload for ${symbols.length} symbol(s)...`);
                 
                 // Clean the document symbols: remove all spaces
                 this.docsymbols2 = this.cleanDocumentSymbols(this.docsymbols2);
@@ -1424,6 +1872,8 @@ data: function () {
             
                 // loading all the data
                 try {
+                    this.addSendFilesLog('info', 'Sending request to server...');
+                    
                     const my_response = await fetch("./exporttoodswithfile",{
                         "method":"POST",
                         "body":dataset
@@ -1440,28 +1890,45 @@ data: function () {
                     }
                                        
                     const my_data = await my_response.json()
-                    // console.log(my_data)
+                    
+                    this.addSendFilesLog('info', `Received response with ${Array.isArray(my_data) ? my_data.length : 0} result(s)`);
+                    
                     // loading data
                     try {        
-                    my_data.forEach(elements => {
-                        //console.log(typeof(elements))
-                        this.listOfResult2=this.listOfResult2.concat(elements)
-                    })
+                        let processedCount = 0;
+                        my_data.forEach((elements, index) => {
+                            //console.log(typeof(elements))
+                            const resultArray = Array.isArray(elements) ? elements : [elements];
+                            this.listOfResult2 = this.listOfResult2.concat(resultArray);
+                            processedCount += resultArray.length;
+                            
+                            // Log progress for each batch
+                            if ((index + 1) % 10 === 0 || index === my_data.length - 1) {
+                                this.addSendFilesLog('info', `Processed ${processedCount} file(s) so far...`);
+                            }
+                        });
+                        
+                        this.addSendFilesLog('success', `Successfully processed ${this.listOfResult2.length} file(s)`);
                         
                     } catch (error) {
                         // Stop spinner on error
                         this.displayProgress3=false
+                        this.stopSendFilesTimer();
+                        this.addSendFilesLog('error', `Data processing error: ${error.message}`);
                         notifications.error(error.message || error, 'Data Processing Error');
                     }
                     
                 } catch (error) {
                     // Stop spinner on error
                     this.displayProgress3=false
+                    this.stopSendFilesTimer();
+                    this.addSendFilesLog('error', `Upload error: ${error.message}`);
                     notifications.error(error.message || error, 'Upload Error');
                 }
                 finally{
                     // Ensure spinner is always stopped
                     this.displayProgress3=false
+                    this.stopSendFilesTimer();
                 }
 
                 // Always show results table if we have any results
@@ -1473,12 +1940,323 @@ data: function () {
                     notifications.warning('No files were processed', 'No Results');
                 }
             },
+        
+        toggleAllLanguages() {
+            if (this.allLanguagesSelected) {
+                this.selectedLanguages = [];
+            } else {
+                this.selectedLanguages = this.availableLanguages.map(lang => lang.code);
+            }
+        },
+        
+        updateSelectAll() {
+            // This method is called when individual checkboxes change
+            // The computed property allLanguagesSelected will automatically update
+        },
+        
+        clearDownloadForm() {
+            this.downloadDocsymbol = "";
+            this.selectedLanguages = [];
+            this.downloadResults = [];
+            this.downloadLogs = [];
+            this.stopDownloadTimer();
+            this.downloadProgress = false;
+            this.downloadStartTime = null;
+            this.downloadElapsedTime = 0;
+            this.downloadTotalSymbols = 0;
+            notifications.info('Download form cleared', 'Clear');
+        },
+        
+        async downloadFilesFromODS() {
+            if (!this.downloadDocsymbol || this.downloadDocsymbol.trim() === '') {
+                notifications.error('Please enter at least one document symbol', 'Validation Error');
+                return;
+            }
+            
+            if (this.selectedLanguages.length === 0) {
+                notifications.error('Please select at least one language', 'Validation Error');
+                return;
+            }
+            
+            // Parse multiple symbols from textarea
+            // Split by newline, comma, or semicolon, then clean up and remove duplicates
+            const symbolsText = this.downloadDocsymbol.trim();
+            const symbolsArray = symbolsText
+                .split(/[\n,;]+/)
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            
+            // Remove duplicates (case-sensitive exact match)
+            const seen = new Set();
+            const symbols = [];
+            for (const symbol of symbolsArray) {
+                if (!seen.has(symbol)) {
+                    seen.add(symbol);
+                    symbols.push(symbol);
+                }
+            }
+            
+            if (symbols.length === 0) {
+                notifications.error('Please enter at least one valid document symbol', 'Validation Error');
+                return;
+            }
+            
+            // Show progress
+            this.downloadProgress = true;
+            this.downloadResults = [];
+            this.downloadLogs = [];
+            this.downloadStartTime = new Date();
+            this.downloadTotalSymbols = symbols.length;
+            this.downloadElapsedTime = 0;
+            
+            // Start timer
+            this.startDownloadTimer();
+            
+            // Add initial log
+            this.addDownloadLog('info', `Starting download for ${symbols.length} symbol(s) and ${this.selectedLanguages.length} language(s)...`);
+            
+            try {
+                // Process downloads sequentially to show real-time progress
+                const allResults = [];
+                let totalFiles = 0;
+                let successfulFiles = 0;
+                
+                // Calculate total files
+                totalFiles = symbols.length * this.selectedLanguages.length;
+                this.addDownloadLog('info', `Total files to download: ${totalFiles}`);
+                
+                // Process each symbol
+                for (let i = 0; i < symbols.length; i++) {
+                    const symbol = symbols[i];
+                    this.addDownloadLog('info', `Processing symbol ${i + 1}/${symbols.length}: ${symbol}`);
+                    
+                    // Process each language for this symbol
+                    for (let j = 0; j < this.selectedLanguages.length; j++) {
+                        const language = this.selectedLanguages[j];
+                        const currentFile = (i * this.selectedLanguages.length) + j + 1;
+                        
+                        this.addDownloadLog('info', `[${currentFile}/${totalFiles}] Downloading ${symbol} [${language}]...`);
+                        
+                        try {
+                            // Call single download endpoint
+                            const response = await fetch('./download_file_from_ods', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    docsymbol: symbol,
+                                    language: language
+                                })
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            
+                            const result = await response.json();
+                            result.docsymbol = symbol; // Add symbol to result
+                            
+                            allResults.push(result);
+                            
+                            if (result.status === 1) {
+                                successfulFiles++;
+                                this.addDownloadLog('success', `[${currentFile}/${totalFiles}] ✓ Successfully downloaded: ${result.filename || symbol}`);
+                            } else {
+                                this.addDownloadLog('error', `[${currentFile}/${totalFiles}] ✗ Failed: ${result.message || 'Unknown error'}`);
+                            }
+                        } catch (error) {
+                            this.addDownloadLog('error', `[${currentFile}/${totalFiles}] ✗ Error downloading ${symbol} [${language}]: ${error.message}`);
+                            allResults.push({
+                                docsymbol: symbol,
+                                language: language,
+                                status: 0,
+                                message: `Error: ${error.message}`,
+                                filename: null,
+                                filepath: null
+                            });
+                        }
+                    }
+                }
+                
+                // Trigger browser downloads for successful files
+                await this.triggerFileDownloads(allResults.filter(r => r.status === 1));
+                
+                // Store results for display
+                this.downloadResults = allResults.map(result => ({
+                    docsymbol: result.docsymbol || 'Unknown',
+                    language: result.language || 'Unknown',
+                    filename: result.filename || 'N/A',
+                    status: result.status || 0,
+                    message: result.message || 'Unknown error',
+                    filepath: result.filepath || null
+                }));
+                
+                // Final summary
+                this.addDownloadLog('info', `Download complete: ${successfulFiles}/${totalFiles} files downloaded successfully`);
+                
+                notifications.success(
+                    `Downloaded ${successfulFiles}/${totalFiles} files successfully for ${symbols.length} symbol(s)`,
+                    'Download Complete'
+                );
+            } catch (error) {
+                console.error('Download error:', error);
+                this.addDownloadLog('error', `Fatal error: ${error.message}`);
+                notifications.error(`Failed to download files: ${error.message}`, 'Download Error');
+                this.downloadResults = [];
+            } finally {
+                this.stopDownloadTimer();
+                this.downloadProgress = false;
+            }
+        },
+        
+        startDownloadTimer() {
+            // Clear any existing timer
+            if (this.downloadTimerInterval) {
+                clearInterval(this.downloadTimerInterval);
+            }
+            
+            // Update elapsed time every second
+            this.downloadTimerInterval = setInterval(() => {
+                if (this.downloadStartTime) {
+                    const now = new Date();
+                    this.downloadElapsedTime = Math.floor((now - this.downloadStartTime) / 1000); // in seconds
+                }
+            }, 1000);
+        },
+        
+        stopDownloadTimer() {
+            if (this.downloadTimerInterval) {
+                clearInterval(this.downloadTimerInterval);
+                this.downloadTimerInterval = null;
+            }
+        },
+        
+        formatStartTime(date) {
+            if (!date) return 'N/A';
+            return date.toLocaleTimeString();
+        },
+        
+        formatElapsedTime(seconds) {
+            if (!seconds && seconds !== 0) return '0s';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        },
+        
+        addDownloadLog(type, message) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            this.downloadLogs.push({
+                type: type, // 'info', 'success', 'error', 'warning'
+                message: message,
+                time: timeStr
+            });
+            
+            // Auto-scroll to bottom of logs
+            this.$nextTick(() => {
+                const logContainer = document.querySelector('#downloadProgress .mt-3:last-child');
+                if (logContainer) {
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            });
+        },
+        
+        startSendFilesTimer() {
+            // Clear any existing timer
+            if (this.sendFilesTimerInterval) {
+                clearInterval(this.sendFilesTimerInterval);
+            }
+            
+            // Update elapsed time every second
+            this.sendFilesTimerInterval = setInterval(() => {
+                if (this.sendFilesStartTime) {
+                    const now = new Date();
+                    this.sendFilesElapsedTime = Math.floor((now - this.sendFilesStartTime) / 1000); // in seconds
+                }
+            }, 1000);
+        },
+        
+        stopSendFilesTimer() {
+            if (this.sendFilesTimerInterval) {
+                clearInterval(this.sendFilesTimerInterval);
+                this.sendFilesTimerInterval = null;
+            }
+        },
+        
+        addSendFilesLog(type, message) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            this.sendFilesLogs.push({
+                type: type, // 'info', 'success', 'error', 'warning'
+                message: message,
+                time: timeStr
+            });
+            
+            // Auto-scroll to bottom of logs
+            this.$nextTick(() => {
+                const logContainer = document.querySelector('#sendFilesProgress .mt-3:last-child');
+                if (logContainer) {
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            });
+        },
+        
+        async triggerFileDownloads(results) {
+            // For each successful download, trigger browser download
+            // Add a small delay between downloads to avoid browser blocking
+            for (let i = 0; i < results.length; i++) {
+                const result = results[i];
+                if (result.status === 1 && result.filepath) {
+                    try {
+                        // Fetch the file from the server
+                        const fileResponse = await fetch(`./download_file_content?filepath=${encodeURIComponent(result.filepath)}`);
+                        
+                        if (fileResponse.ok) {
+                            const blob = await fileResponse.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = result.filename || 'download.pdf';
+                            a.style.display = 'none';
+                            
+                            // Trigger native save as dialog
+                            document.body.appendChild(a);
+                            a.click();
+                            
+                            // Clean up after a short delay
+                            setTimeout(() => {
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                            }, 100);
+                            
+                            // Wait a bit before next download to avoid browser blocking
+                            if (i < results.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error downloading file ${result.filename}:`, error);
+                        notifications.warning(`Failed to download ${result.filename}`, 'Download Warning');
+                    }
+                }
+            }
+        },
+        
         checkInput(){
             // init the variable
             let result=true;
 
             // check the checkboxes
-            if (this.show_display == false && this.show_create_update == false && this.show_send_file == false && this.show_jobnumbers_management == false && this.show_parameters == false)
+            if (this.show_display == false && this.show_create_update == false && this.show_send_file == false && this.show_download_files == false && this.show_parameters == false)
                 result=false
 
             // check the inputs
@@ -1505,6 +2283,399 @@ data: function () {
             // send the result of the validation
             return result
         },
+        async loadUsers() {
+            try {
+                const response = await fetch('./list_users');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // Helper function to normalize permission values (ensure strings "true"/"false" are preserved)
+                const normalizePermission = (val) => {
+                    if (val === null || val === undefined) return "false";
+                    if (typeof val === 'boolean') return val ? "true" : "false";
+                    if (typeof val === 'string') {
+                        const normalized = val.trim().toLowerCase();
+                        return (normalized === 'true' || normalized === '1') ? "true" : "false";
+                    }
+                    return "false";
+                };
+                
+                // Ensure no duplicates by email and normalize permission values
+                const uniqueUsers = [];
+                const seenEmails = new Set();
+                for (const user of data) {
+                    const email = user.email || '';
+                    if (email && !seenEmails.has(email)) {
+                        seenEmails.add(email);
+                        
+                        // Debug: log raw values for eric.attere@un.org
+                        if (email === "eric.attere@un.org") {
+                            console.log("=== DEBUG loadUsers: Raw data from server ===", {
+                                show_download_files: user.show_download_files,
+                                show_download_files_type: typeof user.show_download_files,
+                                show_parameters: user.show_parameters,
+                                show_parameters_type: typeof user.show_parameters
+                            });
+                        }
+                        
+                        // Normalize permission values to ensure they're strings "true"/"false"
+                        const normalizedUser = {
+                            ...user,
+                            show_display: normalizePermission(user.show_display),
+                            show_create_update: normalizePermission(user.show_create_update),
+                            show_send_file: normalizePermission(user.show_send_file),
+                            show_download_files: normalizePermission(user.show_download_files),
+                            show_parameters: normalizePermission(user.show_parameters)
+                        };
+                        
+                        // Debug: log normalized values for eric.attere@un.org
+                        if (email === "eric.attere@un.org") {
+                            console.log("=== DEBUG loadUsers: After normalization ===", {
+                                show_download_files: normalizedUser.show_download_files,
+                                show_download_files_type: typeof normalizedUser.show_download_files,
+                                show_parameters: normalizedUser.show_parameters,
+                                show_parameters_type: typeof normalizedUser.show_parameters
+                            });
+                        }
+                        
+                        uniqueUsers.push(normalizedUser);
+                    }
+                }
+                
+                // Replace the entire list (don't append)
+                this.usersList = uniqueUsers;
+                this.usersListLoaded = true;
+                notifications.success('Users list refreshed', 'Success');
+            } catch (error) {
+                console.error('Error loading users:', error);
+                notifications.error('Failed to load users', 'Error');
+            }
+        },
+        
+        toggleEditUser(user) {
+            // If already editing this user, cancel edit
+            if (this.editingUserEmail === user.email) {
+                this.cancelEditUser();
+                return;
+            }
+            
+            // Close delete form if open for the same user
+            if (this.deleteUserEmail === user.email) {
+                this.cancelDeleteUser();
+            }
+            
+            // Populate edit form with user data
+            // Helper function to convert value to boolean (handles strings, booleans, numbers)
+            const toBool = (val) => {
+                // Debug each conversion
+                const originalVal = val;
+                const originalType = typeof val;
+                
+                // Handle null/undefined
+                if (val === null || val === undefined) {
+                    console.log(`toBool: ${originalVal} (${originalType}) -> false (null/undefined)`);
+                    return false;
+                }
+                
+                // Handle empty string
+                if (val === '') {
+                    console.log(`toBool: ${originalVal} (${originalType}) -> false (empty string)`);
+                    return false;
+                }
+                
+                // Handle boolean
+                if (typeof val === 'boolean') {
+                    console.log(`toBool: ${originalVal} (${originalType}) -> ${val} (boolean)`);
+                    return val;
+                }
+                
+                // Handle string (case-insensitive, trimmed)
+                if (typeof val === 'string') {
+                    const normalized = val.trim().toLowerCase();
+                    // Check for "true" string
+                    if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+                        console.log(`toBool: "${originalVal}" (${originalType}) -> true (normalized: "${normalized}")`);
+                        return true;
+                    }
+                    // Check for "false" string
+                    if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+                        console.log(`toBool: "${originalVal}" (${originalType}) -> false (normalized: "${normalized}")`);
+                        return false;
+                    }
+                    // If it's a non-empty string that's not explicitly true/false, default to false
+                    console.log(`toBool: "${originalVal}" (${originalType}) -> false (unknown string, normalized: "${normalized}")`);
+                    return false;
+                }
+                
+                // Handle number
+                if (typeof val === 'number') {
+                    const result = val !== 0 && !isNaN(val);
+                    console.log(`toBool: ${originalVal} (${originalType}) -> ${result} (number)`);
+                    return result;
+                }
+                
+                // Default to false for any other type
+                console.log(`toBool: ${originalVal} (${originalType}) -> false (unknown type)`);
+                return false;
+            };
+            
+            // Debug: log the raw user data to see what we're receiving
+            console.log('=== Raw user data for edit ===');
+            console.log('Full user object:', JSON.parse(JSON.stringify(user)));
+            console.log('show_download_files:', user.show_download_files, 'type:', typeof user.show_download_files, 'value:', JSON.stringify(user.show_download_files));
+            console.log('show_parameters:', user.show_parameters, 'type:', typeof user.show_parameters, 'value:', JSON.stringify(user.show_parameters));
+            console.log('All permissions:', {
+                show_display: user.show_display + ' (' + typeof user.show_display + ')',
+                show_create_update: user.show_create_update + ' (' + typeof user.show_create_update + ')',
+                show_send_file: user.show_send_file + ' (' + typeof user.show_send_file + ')',
+                show_download_files: user.show_download_files + ' (' + typeof user.show_download_files + ')',
+                show_parameters: user.show_parameters + ' (' + typeof user.show_parameters + ')'
+            });
+            
+            // Convert all permission values to proper booleans
+            // toBool already returns boolean, so we don't need Boolean() wrapper
+            console.log('=== Before toBool conversion ===');
+            console.log('user.show_download_files:', user.show_download_files, 'type:', typeof user.show_download_files, 'JSON:', JSON.stringify(user.show_download_files));
+            console.log('user.show_parameters:', user.show_parameters, 'type:', typeof user.show_parameters, 'JSON:', JSON.stringify(user.show_parameters));
+            
+            const show_display_bool = toBool(user.show_display);
+            const show_create_update_bool = toBool(user.show_create_update);
+            const show_send_file_bool = toBool(user.show_send_file);
+            const show_download_files_bool = toBool(user.show_download_files);
+            const show_parameters_bool = toBool(user.show_parameters);
+            
+            console.log('=== After toBool conversion ===');
+            console.log('show_download_files_bool:', show_download_files_bool, 'type:', typeof show_download_files_bool);
+            console.log('show_parameters_bool:', show_parameters_bool, 'type:', typeof show_parameters_bool);
+            
+            // Debug: log the converted values with explicit values
+            console.log('Converted boolean values:');
+            console.log('  show_display:', show_display_bool, typeof show_display_bool);
+            console.log('  show_create_update:', show_create_update_bool, typeof show_create_update_bool);
+            console.log('  show_send_file:', show_send_file_bool, typeof show_send_file_bool);
+            console.log('  show_download_files:', show_download_files_bool, typeof show_download_files_bool);
+            console.log('  show_parameters:', show_parameters_bool, typeof show_parameters_bool);
+            
+            // Completely replace editUserData object to ensure Vue reactivity
+            this.editUserData = {
+                email: user.email || "",
+                site: user.site || "",
+                password: "••••••••",
+                passwordPlaceholder: "•••••••• (current password - leave blank to keep)",
+                show_display: show_display_bool,
+                show_create_update: show_create_update_bool,
+                show_send_file: show_send_file_bool,
+                show_download_files: show_download_files_bool,
+                show_parameters: show_parameters_bool
+            };
+            
+            // Set editing user email to show the edit form AFTER setting all values
+            this.editingUserEmail = user.email;
+            
+            // Debug: verify the values after setting
+            this.$nextTick(() => {
+                console.log('After $nextTick - editUserData values:');
+                console.log('  show_download_files:', this.editUserData.show_download_files, typeof this.editUserData.show_download_files);
+                console.log('  show_parameters:', this.editUserData.show_parameters, typeof this.editUserData.show_parameters);
+                
+                // Force update Vue to ensure reactivity
+                this.$forceUpdate();
+                
+                // Also check the actual checkbox elements and force update if needed
+                // Use setTimeout to ensure DOM is fully rendered
+                setTimeout(() => {
+                    const downloadCheckbox = document.getElementById('edit_show_download_files');
+                    const parametersCheckbox = document.getElementById('edit_show_parameters');
+                    
+                    if (downloadCheckbox) {
+                        const shouldBeChecked = this.editUserData.show_download_files === true;
+                        console.log('Download checkbox found. Current checked:', downloadCheckbox.checked, 'Should be:', shouldBeChecked, 'editUserData value:', this.editUserData.show_download_files);
+                        if (downloadCheckbox.checked !== shouldBeChecked) {
+                            downloadCheckbox.checked = shouldBeChecked;
+                            // Trigger change event to update Vue model
+                            downloadCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                            console.log('Manually set download checkbox to:', downloadCheckbox.checked);
+                        }
+                    } else {
+                        console.log('Download checkbox NOT FOUND - trying again in 100ms');
+                        setTimeout(() => {
+                            const cb = document.getElementById('edit_show_download_files');
+                            if (cb) {
+                                cb.checked = this.editUserData.show_download_files === true;
+                                cb.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }, 100);
+                    }
+                    
+                    if (parametersCheckbox) {
+                        const shouldBeChecked = this.editUserData.show_parameters === true;
+                        console.log('Parameters checkbox found. Current checked:', parametersCheckbox.checked, 'Should be:', shouldBeChecked, 'editUserData value:', this.editUserData.show_parameters);
+                        if (parametersCheckbox.checked !== shouldBeChecked) {
+                            parametersCheckbox.checked = shouldBeChecked;
+                            // Trigger change event to update Vue model
+                            parametersCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                            console.log('Manually set parameters checkbox to:', parametersCheckbox.checked);
+                        }
+                    } else {
+                        console.log('Parameters checkbox NOT FOUND - trying again in 100ms');
+                        setTimeout(() => {
+                            const cb = document.getElementById('edit_show_parameters');
+                            if (cb) {
+                                cb.checked = this.editUserData.show_parameters === true;
+                                cb.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }, 100);
+                    }
+                }, 50);
+            });
+        },
+        
+        cancelEditUser() {
+            this.editingUserEmail = "";
+            this.editUserData = {
+                email: "",
+                site: "",
+                password: "",
+                passwordPlaceholder: "",
+                show_display: false,
+                show_create_update: false,
+                show_send_file: false,
+                show_download_files: false,
+                show_parameters: false
+            };
+        },
+        
+        async updateUser() {
+            try {
+                // Debug: log the editUserData before sending
+                console.log('updateUser - editUserData before sending:', {
+                    show_display: this.editUserData.show_display,
+                    show_display_type: typeof this.editUserData.show_display,
+                    show_create_update: this.editUserData.show_create_update,
+                    show_create_update_type: typeof this.editUserData.show_create_update,
+                    show_send_file: this.editUserData.show_send_file,
+                    show_send_file_type: typeof this.editUserData.show_send_file,
+                    show_download_files: this.editUserData.show_download_files,
+                    show_download_files_type: typeof this.editUserData.show_download_files,
+                    show_parameters: this.editUserData.show_parameters,
+                    show_parameters_type: typeof this.editUserData.show_parameters
+                });
+                
+                let dataset = new FormData();
+                dataset.append('email', this.editUserData.email);
+                dataset.append('site', this.editUserData.site);
+                
+                // Only append password if provided and not the placeholder
+                const passwordValue = this.editUserData.password;
+                if (passwordValue && passwordValue.trim() !== '' && passwordValue !== '••••••••') {
+                    dataset.append('password', passwordValue);
+                }
+                
+                // Ensure values are booleans before converting to strings
+                // Handle case where v-model might have set string values
+                const ensureBool = (val) => {
+                    if (typeof val === 'boolean') return val;
+                    if (typeof val === 'string') {
+                        const normalized = val.trim().toLowerCase();
+                        return normalized === 'true' || normalized === '1';
+                    }
+                    return Boolean(val);
+                };
+                
+                const show_display_bool = ensureBool(this.editUserData.show_display);
+                const show_create_update_bool = ensureBool(this.editUserData.show_create_update);
+                const show_send_file_bool = ensureBool(this.editUserData.show_send_file);
+                const show_download_files_bool = ensureBool(this.editUserData.show_download_files);
+                const show_parameters_bool = ensureBool(this.editUserData.show_parameters);
+                
+                // Convert boolean values to strings for FormData
+                dataset.append('show_display', show_display_bool ? 'true' : 'false');
+                dataset.append('show_create_update', show_create_update_bool ? 'true' : 'false');
+                dataset.append('show_send_file', show_send_file_bool ? 'true' : 'false');
+                dataset.append('show_download_files', show_download_files_bool ? 'true' : 'false');
+                dataset.append('show_parameters', show_parameters_bool ? 'true' : 'false');
+                
+                // Debug: log what's being sent
+                console.log('updateUser - values being sent:', {
+                    show_display: show_display_bool,
+                    show_create_update: show_create_update_bool,
+                    show_send_file: show_send_file_bool,
+                    show_download_files: show_download_files_bool,
+                    show_parameters: show_parameters_bool
+                });
+                
+                const response = await fetch('./update_user', {
+                    method: 'POST',
+                    body: dataset
+                });
+                
+                const result = await response.json();
+                
+                // Debug: log the response
+                console.log('updateUser - server response:', result);
+                
+                if (result.status === 'OK') {
+                    notifications.success(result.message, 'Success');
+                    // Cancel edit mode
+                    this.cancelEditUser();
+                    // Reload users list
+                    await this.loadUsers();
+                } else {
+                    notifications.error(result.message, 'Error');
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+                notifications.error('Failed to update user', 'Error');
+            }
+        },
+        
+        confirmDeleteUser(user) {
+            // Close edit form if open for the same user
+            if (this.editingUserEmail === user.email) {
+                this.cancelEditUser();
+            }
+            // Set the user email to show delete form
+            this.deleteUserEmail = user.email || "";
+        },
+        
+        cancelDeleteUser() {
+            this.deleteUserEmail = "";
+        },
+        
+        async deleteUser() {
+            if (!this.deleteUserEmail) {
+                notifications.error('No user selected for deletion', 'Error');
+                return;
+            }
+            
+            try {
+                let dataset = new FormData();
+                dataset.append('email', this.deleteUserEmail);
+                
+                const response = await fetch('./delete_user', {
+                    method: 'POST',
+                    body: dataset
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'OK') {
+                    notifications.success(result.message, 'Success');
+                    // Reload users list
+                    await this.loadUsers();
+                    // Clear delete email
+                    this.deleteUserEmail = "";
+                } else {
+                    notifications.error(result.message, 'Error');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                notifications.error('Failed to delete user', 'Error');
+            }
+        },
+        
         async addUser(){
 
             let my_site= document.getElementById("site")
@@ -1524,7 +2695,7 @@ data: function () {
                     dataset.append('show_display',this.show_display)
                     dataset.append('show_create_update',this.show_create_update)
                     dataset.append('show_send_file',this.show_send_file)
-                    dataset.append('show_jobnumbers_management',this.show_jobnumbers_management)
+                    dataset.append('show_download_files',this.show_download_files)
                     dataset.append('show_parameters',this.show_parameters)
 
                     // loading all the data
@@ -1546,6 +2717,19 @@ data: function () {
                     try 
                         {        
                         notifications.success(my_data.message, 'User Created');
+                        // Clear form
+                        this.email = "";
+                        this.password = "";
+                        this.code_site = "";
+                        this.show_display = false;
+                        this.show_create_update = false;
+                        this.show_send_file = false;
+                        this.show_download_files = false;
+                        this.show_parameters = false;
+                        // Reload users list if it's been loaded
+                        if (this.usersListLoaded) {
+                            await this.loadUsers();
+                        }
                         }
                         
                     catch (error) {
@@ -1637,6 +2821,12 @@ data: function () {
             this.listOfResult2 = [];
             this.displayResult2 = false;
             this.docsymbols2 = ''; // Clear the textarea
+            this.sendFilesLogs = [];
+            this.stopSendFilesTimer();
+            this.displayProgress3 = false;
+            this.sendFilesStartTime = null;
+            this.sendFilesElapsedTime = 0;
+            this.sendFilesTotalSymbols = 0;
             notifications.success('Send files results and input cleared', 'Clear Complete');
         },
         

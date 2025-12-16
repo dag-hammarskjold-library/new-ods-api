@@ -46,13 +46,27 @@ Validation: Real-time input validation
 Handles file uploads associated with document symbols: (cid:127) Input: Textarea for entering document
 symbols (cid:127) Processing: Sends POST request to /exporttoodswithfile endpoint (cid:127) Output: Displays upload
 results for each language (AR, ZH, EN, FR, RU, ES, DE) (cid:127) Features: Progress tracking, result
-management (cid:127) Export: CSV export of upload results
-2.3.4 Parameters Tab
+management (cid:127) Export: CSV export of upload results (cid:127) Side-by-side Layout: Input area and progress
+details window displayed side-by-side (cid:127) Real-time Progress: Total symbols, start time, elapsed time, and
+color-coded logs
+2.3.4 Download Files from ODS Tab
+Enables users to download PDF files from ODS for document symbols in multiple languages: (cid:127) Input: Textarea
+for entering multiple document symbols (one per line, comma, or semicolon separated) (cid:127) Language Selection:
+Checkboxes for selecting languages (AR, ZH, EN, FR, RU, ES, DE) with "Select All" option (cid:127) Processing: Sends
+POST request to /batch_download_files_from_ods endpoint (cid:127) Side-by-side Layout: Input area (col-md-7) on
+the left, progress details window (col-md-5) on the right (cid:127) Progress Tracking: - Total number of symbols
+to process - Start time display - Real-time elapsed time counter (updates every second) - Color-coded progress
+logs (info=blue, success=green, error=red, warning=yellow) - Auto-scrolling log window with black background
+(cid:127) Output: Results table showing Document Symbol, Language, Filename, Status (Success/Failed), and Message
+(cid:127) Features: - Duplicate symbol removal - Sequential file downloads - Real-time progress logging -
+Automatic browser file downloads - Clear function to reset form and progress (cid:127) Validation: Button disabled
+when no valid symbols or languages are selected (cid:127) Analytics: All download actions tracked (successful
+downloads, validation errors, exception errors) with action name "batch_download_files_from_ods_endpoint"
+2.3.5 Parameters Tab
 System administration features: (cid:127) Site Management: Add sites with code (3-letter), label, and prefix
 (2-letter) (cid:127) User Management: Create users with site assignment and tab permissions (cid:127) System Logs:
 View and export activity logs with filtering options (cid:127) Permissions: Control access to Display,
-
-Create/Update, Send Files, Job Numbers, and Parameters tabs
+Create/Update, Send Files, Download Files from ODS, Job Numbers, and Parameters tabs
 2.3.5 Change Password Tab
 User password management: (cid:127) Email: Pre-filled with current user email (cid:127) New Password: Input field
 with validation (minimum 6 characters) (cid:127) Confirm Password: Confirmation field (cid:127) Validation: Ensures
@@ -66,11 +80,16 @@ different functions
 2.5 Key JavaScript Functions
 Main Vue component methods: (cid:127) displayMetaData(): Fetches and displays metadata for document
 symbols (cid:127) displayResultCreateUpdate(): Sends metadata to ODS system (cid:127) displayResultSendFile():
-Handles file uploads to ODS (cid:127) addUser(): Creates new user accounts (cid:127) addSite(): Creates new sites (cid:127)
-loadLogs(): Loads system activity logs (cid:127) loadSites(): Loads available sites (cid:127) exportTableToCSV():
-Exports table data to CSV format (cid:127) changePasswordFromTab(): Handles password changes (cid:127)
-validateDocumentSymbols(): Validates input before processing (cid:127) formatField(): Formats data for display
-in tables (cid:127) formatJobNumbersWithFlags(): Formats job numbers with language indicators
+Handles file uploads to ODS (cid:127) downloadFilesFromODS(): Handles batch file downloads from ODS with
+progress tracking (cid:127) startDownloadTimer() / stopDownloadTimer(): Manages elapsed time counter (cid:127)
+formatStartTime() / formatElapsedTime(): Formats time display (cid:127) addDownloadLog(): Adds color-coded
+progress log messages (cid:127) clearDownloadForm(): Resets download form and progress (cid:127) isDownloadButtonDisabled():
+Validates download button state (cid:127) toggleAllLanguages() / updateSelectAll(): Manages language selection
+(cid:127) addUser(): Creates new user accounts (cid:127) addSite(): Creates new sites (cid:127) loadLogs(): Loads system
+activity logs (cid:127) loadSites(): Loads available sites (cid:127) exportTableToCSV(): Exports table data to CSV
+format (cid:127) changePasswordFromTab(): Handles password changes (cid:127) validateDocumentSymbols(): Validates
+input before processing (cid:127) formatField(): Formats data for display in tables (cid:127) formatJobNumbersWithFlags():
+Formats job numbers with language indicators
 
 3. Backend Architecture
 3.1 Technology Stack
@@ -111,13 +130,17 @@ User authentication system: (cid:127) Login: POST /login endpoint validates cred
 Uses Werkzeug's generate_password_hash and check_password_hash (cid:127) Session Management: Flask
 sessions store: - username: User email - prefix_site: Site prefix for job numbers - show_display:
 Permission for Display tab - show_create_update: Permission for Send Metadata tab - show_send_file:
-Permission for Send Files tab - show_jobnumbers_management: Permission for Job Numbers tab -
-show_parameters: Permission for Parameters tab (cid:127) Logout: Clears session data (cid:127) Default User: Special
-user with full permissions
+Permission for Send Files tab - show_download_files: Permission for Download Files from ODS tab -
+show_jobnumbers_management: Permission for Job Numbers tab - show_parameters: Permission for Parameters
+tab (cid:127) Logout: Clears session data (cid:127) Default User: Special user with full permissions
 3.5 Logging & Analytics
 System logging functions: (cid:127) add_log(): Records user actions and system events - Stores: user, action,
 date - Collection: ods_actions_logs_collection (cid:127) add_analytics(): Records detailed analytics data -
-Stores: user, action, date, data (operation results) - Collection: ods_actions_analytics_collection
+Stores: user, action, date, data (operation results) - Collection: ods_actions_analytics_collection (cid:127)
+Analytics Actions Tracked: - loading_symbol_endpoint: Display metadata operations - creating_updating_endpoint:
+Create/update metadata operations - send_file_endpoint: File upload operations - batch_download_files_from_ods_endpoint:
+Batch file download operations (includes successful downloads, validation errors, and exception errors) -
+download_file_from_ods_endpoint: Single file download operations
 
 4. Database Schema
 4.1 MongoDB Database
@@ -130,11 +153,11 @@ Schema:
 "site": String, // Site code (3-letter)
 "email": String, // User email (unique identifier)
 "password": String, // Hashed password (Werkzeug)
-"show_display": Boolean, // Permission for Display Metadata tab
-"show_create_update": Boolean, // Permission for Send Metadata tab
-"show_send_file": Boolean, // Permission for Send Files tab
-"show_jobnumbers_management": Boolean, // Permission for Job Numbers tab
-"show_parameters": Boolean, // Permission for Parameters tab
+"show_display": String, // Permission for Display Metadata tab ("true"/"false")
+"show_create_update": String, // Permission for Send Metadata tab ("true"/"false")
+"show_send_file": String, // Permission for Send Files tab ("true"/"false")
+"show_download_files": String, // Permission for Download Files from ODS tab ("true"/"false")
+"show_parameters": String, // Permission for Parameters tab ("true"/"false")
 "creation_date": DateTime // UTC timestamp
 }
 4.2.2 Sites Collection (ods_actions_sites_collection)
@@ -197,6 +220,8 @@ Endpoint Method Description Input
 /loading_symbol POST Load and display metadata docsymbols (textarea)
 /create_metadata_ods POST Create/update metadata in ODS docsymbols1 (textarea)
 /exporttoodswithfile POST Upload files to ODS docsymbols2 (textarea)
+/download_file_from_ods GET/POST Download single PDF file from ODS docsymbol, language (query params or form/json)
+/batch_download_files_from_ods POST Download multiple PDF files from ODS docsymbols (array or comma/newline separated), languages (array or comma separated)
 5.3 Administration Endpoints
 Endpoint Method Description Input
 /add_user POST Create new user site, email, password, permissions

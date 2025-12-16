@@ -8,6 +8,7 @@ from pymongo import MongoClient
 import requests
 from decouple import config
 import urllib3
+import urllib.parse
 import json
 import requests
 from dlx import DB
@@ -1186,3 +1187,76 @@ def download_file_and_send_to_ods(docsymbol):
 
   # return the report
   return report
+
+########################################################################
+# Download file from ODS
+########################################################################
+
+def download_file_from_ods(docsymbol, language):
+    """
+    Download a PDF file from ODS for a given document symbol and language.
+    
+    Args:
+        docsymbol (str): The document symbol (e.g., "A/RES/75/1")
+        language (str): The language code (e.g., "en", "fr", "es", "ru", "zh", "ar")
+    
+    Returns:
+        dict: A dictionary with 'status', 'filepath', and 'message' keys
+    """
+    # Base URL for ODS file access
+    URL = "https://documents.un.org/api/symbol/access?s={symbol}&t=pdf&l={lang}"
+    
+    # Normalize language to lowercase
+    lang = language.lower()
+    
+    # Setup output directory using temp_01 to avoid confusion with send to ODS process
+    if platform.system() in ['Windows', 'nt']:
+        output_dir = 'ods\\temp_01'
+    else:
+        output_dir = './ods/tmp_01'
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Try symbol variants
+    tried_variants = [docsymbol.strip(), f"{docsymbol.strip()}(OR)"]
+    
+    for sym_variant in tried_variants:
+        # Encode the symbol for URL (encode slashes, dots, etc.)
+        encoded_symbol = urllib.parse.quote(sym_variant, safe="")
+        url = URL.format(lang=lang, symbol=encoded_symbol)
+        
+        try:
+            response = requests.get(url, timeout=10, verify=False)
+            
+            if response.status_code == 200 and response.headers.get("Content-Type", "").startswith("application/pdf"):
+                # Save using original symbol (no (OR)) for filename
+                safe_name = docsymbol.strip().replace("/", "_")
+                filename = f"{safe_name}-{lang.upper()}.pdf"
+                filepath = os.path.join(output_dir, filename)
+                
+                with open(filepath, "wb") as f:
+                    f.write(response.content)
+                
+                return {
+                    "status": 1,
+                    "filepath": filepath,
+                    "filename": filename,
+                    "language": language.upper(),
+                    "message": f"File downloaded successfully: {filename}"
+                }
+            else:
+                continue  # Try next variant
+                
+        except Exception as e:
+            # Continue to next variant on error
+            continue
+    
+    # If all variants failed
+    return {
+        "status": 0,
+        "filepath": None,
+        "filename": None,
+        "language": language.upper(),
+        "message": f"Failed to download file for {docsymbol} [{lang}]: File not found or not a PDF"
+    }
