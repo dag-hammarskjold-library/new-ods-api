@@ -489,6 +489,50 @@ def create_app(test_config=None):
             return "Unable to fetch PDF", 502
 
     
+
+    @app.route('/browse_docs', methods=['GET'])
+    def search_identifiers():
+        import re
+        query = request.args.get('q', '')
+        lang = request.args.get('lang', 'en').upper()
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+        if not query:
+            return jsonify([])
+        
+        client = MongoClient(database_conn)
+        my_database = client["undlFiles"] 
+        filesColl = my_database.files
+        cln = Collation(locale='en', strength=2, numericOrdering=True)
+        
+        # Build the query
+        mongo_query = {"identifiers.value": {"$regex": "^" + re.escape(query)}}
+        if lang:
+            mongo_query["languages"] = lang
+        
+        # Calculate skip
+        skip = (page - 1) * limit
+        
+        # Find documents with sorting, skipping, and limiting
+        docs = filesColl.find(mongo_query, collation=cln).sort([("identifiers.value", 1)]).skip(skip).limit(limit)
+        
+        results = []
+        for doc in docs:
+            uri = doc.get("uri", "")
+            uri="https://ods-actions.sjtwsr1nwt8y4.us-east-1.cs.amazonlightsail.com/"+lang+"/"+quote(doc["identifiers"][0]["value"], safe='/')
+            for ident in doc.get("identifiers", []):
+                if ident["value"].startswith(query):
+                    results.append({"identifier": ident["value"], "url": uri})
+                    break  # Assuming one matching identifier per document
+        return jsonify(results)
+
+
+
+
+
+
+
+
     @app.route("/display_logs",methods=['GET'])
     def display_logs():
 
