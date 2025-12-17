@@ -1083,14 +1083,15 @@ def create_app(test_config=None):
         filesColl=my_database.files
         lang=lang.upper()
         LANGUAGES = {
-            'ar': 'العربية',
-            'zh': '中文',
+        #    'ar': 'العربية',
+        #    'zh': '中文',
             'en': 'English',
-            'fr': 'Français',
-            'ru': 'Русский',
-            'es': 'Español'
+        #    'fr': 'Français',
+        #    'ru': 'Русский',
+        #   'es': 'Español'
         }
-        LANGUAGESList =['DE', 'AR', 'FR', 'ES', 'RU', 'ZH', 'EN']
+        #LANGUAGESList =['DE', 'AR', 'FR', 'ES', 'RU', 'ZH', 'EN']
+        LANGUAGESList =['EN']
         print(symbol)
         #symbol=unquote(symbol)
         print(f"after unquote the symbol is {symbol}")
@@ -1105,7 +1106,7 @@ def create_app(test_config=None):
             
             if not languages:
                 return "No available languages for this document.", 404
-            return render_template("language_selection.html", symbol=symbol, languages=languages, LANGUAGES=LANGUAGES)
+            return render_template("language_selection.html", symbol=symbol, languages='en', LANGUAGES=LANGUAGES)
 
         # Look up the specific document for  the given language
         doc = filesColl.find_one({"identifiers.value": symbol, "languages": lang}, collation=cln)
@@ -1129,6 +1130,7 @@ def create_app(test_config=None):
         import re
         query = request.args.get('q', '')
         lang = request.args.get('lang', 'en').upper()
+        lang='en'
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 50))
         if not query:
@@ -1142,7 +1144,8 @@ def create_app(test_config=None):
         # Build the query
         mongo_query = {"identifiers.value": {"$regex": "^" + re.escape(query)}}
         if lang:
-            mongo_query["languages"] = lang
+            #mongo_query["languages"] = lang
+            mongo_query["languages"] = 'en'
         
         # Calculate skip
         skip = (page - 1) * limit
@@ -1150,15 +1153,15 @@ def create_app(test_config=None):
         # Find documents with sorting, skipping, and limiting
         docs = filesColl.find(mongo_query, collation=cln).sort([("identifiers.value", 1)]).skip(skip).limit(limit)
         
-        results = []
+        results = {}
         for doc in docs:
             uri = doc.get("uri", "")
             uri="https://ods-actions.sjtwsr1nwt8y4.us-east-1.cs.amazonlightsail.com/"+lang+"/"+quote(doc["identifiers"][0]["value"], safe='/')
             for ident in doc.get("identifiers", []):
                 if ident["value"].startswith(query):
-                    results.append({"identifier": ident["value"], "url": uri})
+                    results[ident["value"]] = {"identifier": ident["value"], "url": uri}
                     break  # Assuming one matching identifier per document
-        return jsonify(results)
+        return jsonify(list(results.values()))
 
 
 
