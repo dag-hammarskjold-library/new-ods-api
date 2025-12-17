@@ -2089,6 +2089,23 @@ data: function () {
                 // Trigger browser downloads for successful files
                 await this.triggerFileDownloads(allResults.filter(r => r.status === 1));
                 
+                // Clean up temp folder after all downloads are complete
+                try {
+                    const cleanupResponse = await fetch('./cleanup_download_temp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (cleanupResponse.ok) {
+                        const cleanupData = await cleanupResponse.json();
+                        this.addDownloadLog('info', `Temp folder cleaned: ${cleanupData.files_removed || 0} file(s) removed`);
+                    }
+                } catch (cleanupError) {
+                    console.error('Error cleaning temp folder:', cleanupError);
+                    // Don't show error to user, just log it
+                }
+                
                 // Store results for display
                 this.downloadResults = allResults.map(result => ({
                     docsymbol: result.docsymbol || 'Unknown',
@@ -2111,6 +2128,22 @@ data: function () {
                 this.addDownloadLog('error', `Fatal error: ${error.message}`);
                 notifications.error(`Failed to download files: ${error.message}`, 'Download Error');
                 this.downloadResults = [];
+                
+                // Clean up temp folder even on error (in case some files were downloaded)
+                try {
+                    const cleanupResponse = await fetch('./cleanup_download_temp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (cleanupResponse.ok) {
+                        const cleanupData = await cleanupResponse.json();
+                        this.addDownloadLog('info', `Temp folder cleaned: ${cleanupData.files_removed || 0} file(s) removed`);
+                    }
+                } catch (cleanupError) {
+                    console.error('Error cleaning temp folder:', cleanupError);
+                }
             } finally {
                 this.stopDownloadTimer();
                 this.downloadProgress = false;

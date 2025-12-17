@@ -69,11 +69,11 @@ def create_language_entries(docsymbol, job_numbers, result_message):
 # definition of the credentials of the ODS API
 ########################################################################
 
-base_url = config("base_url")
-username = config("username")
-password = config("password")
-client_id = config("client_id")
-client_secret = config("client_secret")
+base_url = config("BASE_URL")
+username = config("USERNAME")
+password = config("PASSWORD")
+client_id = config("CLIENT_ID")
+client_secret = config("CLIENT_SECRET")
 
 ########################################################################
 # management of the JobNumber

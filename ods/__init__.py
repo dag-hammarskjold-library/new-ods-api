@@ -20,11 +20,11 @@ return_data=""
 # definition of the credentials of the ODS API
 ########################################################################
 
-base_url = config("base_url")
-username = config("username")
-password = config("password")
-client_id = config("client_id")
-client_secret = config("client_secret")
+base_url = config("BASE_URL")
+username = config("USERNAME")
+password = config("PASSWORD")
+client_id = config("CLIENT_ID")
+client_secret = config("CLIENT_SECRET")
 database_conn=config("CONN")
 
 
@@ -902,12 +902,17 @@ def create_app(test_config=None):
                 log_message
             )
             
-            # Create analytics
+            # Create analytics (remove filepath from results for analytics)
+            analytics_results = []
+            for result in results:
+                analytics_result = {k: v for k, v in result.items() if k != 'filepath'}
+                analytics_results.append(analytics_result)
+            
             ods.ods_rutines.add_analytics(
                 datetime.datetime.now(tz=datetime.timezone.utc),
                 username,
                 "batch_download_files_from_ods_endpoint",
-                results
+                analytics_results
             )
             
             return jsonify({
@@ -983,6 +988,62 @@ def create_app(test_config=None):
         except Exception as e:
             return jsonify({
                 "error": f"Error serving file: {str(e)}"
+            }), 500
+    
+    ############################################################################
+    # CLEANUP TEMP DOWNLOAD FOLDER
+    ############################################################################
+    
+    @app.route('/cleanup_download_temp', methods=['POST'])
+    def cleanup_download_temp_route():
+        """
+        Clean up the tmp_01 folder after downloads are complete.
+        Removes all files from the temporary download directory.
+        """
+        try:
+            # Determine temp directory path based on platform
+            if platform.system() in ['Windows', 'nt']:
+                temp_dir = os.path.abspath('ods\\temp_01')
+            else:
+                temp_dir = os.path.abspath('./ods/tmp_01')
+            
+            # Check if directory exists
+            if not os.path.exists(temp_dir):
+                return jsonify({
+                    "status": 1,
+                    "message": "Temp directory does not exist, nothing to clean"
+                })
+            
+            # Remove all files in the directory
+            files_removed = 0
+            for filename in os.listdir(temp_dir):
+                file_path = os.path.join(temp_dir, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        files_removed += 1
+                except Exception as e:
+                    # Log error but continue cleaning other files
+                    print(f"Error removing file {file_path}: {str(e)}")
+            
+            # Log cleanup action
+            username = session.get('username', 'unknown_user')
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                f"Cleaned up download temp folder: {files_removed} file(s) removed"
+            )
+            
+            return jsonify({
+                "status": 1,
+                "message": f"Successfully cleaned {files_removed} file(s) from temp directory",
+                "files_removed": files_removed
+            })
+            
+        except Exception as e:
+            return jsonify({
+                "status": 0,
+                "error": f"Error cleaning temp directory: {str(e)}"
             }), 500
     
     ############################################################################
