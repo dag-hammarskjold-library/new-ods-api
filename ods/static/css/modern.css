@@ -3578,9 +3578,14 @@ body {
 
 .bot-message .message-text {
     background: var(--bg-primary);
-    color: #00ff88; /* Bright green color for bot messages */
+    color: #000000; /* Black color for bot messages in light mode */
     border: 1px solid var(--border-color);
     border-bottom-left-radius: 4px;
+}
+
+/* Dark mode override for bot messages */
+[data-bs-theme="dark"] .bot-message .message-text {
+    color: #00ff88; /* Bright green color for bot messages in dark mode */
 }
 
 .message-text ul,
