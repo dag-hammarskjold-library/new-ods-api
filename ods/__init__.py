@@ -6,6 +6,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import json
 import datetime
 import os
+import platform
 import requests
 import ods.ods_rutines
 from flask import Flask, jsonify,render_template,request,redirect,session, url_for, send_file
@@ -99,7 +100,7 @@ def create_app(test_config=None):
                     session["show_display"]=True
                     session["show_create_update"]=True
                     session["show_send_file"]=True
-                    session["show_jobnumbers_management"]=True
+                    session["show_download_files"]=True
                     session["show_parameters"]=True
                     
 
@@ -149,11 +150,30 @@ def create_app(test_config=None):
                         session["prefix_site"]=get_prefix_from_site(result["site"])
                         
                          # management of the access to the tabs
-                        session["show_display"]=result["show_display"]
-                        session["show_create_update"]=result["show_create_update"]
-                        session["show_send_file"]=result["show_send_file"]
-                        session["show_jobnumbers_management"]=result["show_jobnumbers_management"]
-                        session["show_parameters"]=result["show_parameters"]
+                        # Use the SAME conversion logic as list_users route for consistency
+                        def to_string_value(val):
+                            if val is None:
+                                return "false"
+                            if isinstance(val, bool):
+                                return "true" if val else "false"
+                            if isinstance(val, str):
+                                normalized = val.strip().lower()
+                                return "true" if normalized == "true" else "false"
+                            return "false"
+                        
+                        # Convert to strings first (same as list_users), then to boolean for session
+                        show_display_str = to_string_value(result.get("show_display", "false"))
+                        show_create_update_str = to_string_value(result.get("show_create_update", "false"))
+                        show_send_file_str = to_string_value(result.get("show_send_file", "false"))
+                        show_download_files_str = to_string_value(result.get("show_download_files", "false"))
+                        show_parameters_str = to_string_value(result.get("show_parameters", "false"))
+                        
+                        # Convert strings to boolean for session storage
+                        session["show_display"] = show_display_str == "true"
+                        session["show_create_update"] = show_create_update_str == "true"
+                        session["show_send_file"] = show_send_file_str == "true"
+                        session["show_download_files"] = show_download_files_str == "true"
+                        session["show_parameters"] = show_parameters_str == "true"
                         
                         find_record=True
                         print(f'session after login {session}')
@@ -190,18 +210,27 @@ def create_app(test_config=None):
             if session['username']!="":
 
                 session_username=session['username']
-                session_show_display=session["show_display"]
-                session_show_create_update=session["show_create_update"]
-                session_show_send_file=session["show_send_file"]
-                session_show_jobnumbers_management=session["show_jobnumbers_management"]
-                session_show_parameters=session["show_parameters"]
+                # Convert boolean values to lowercase strings for Vue component
+                # Vue component checks for 'true' string, not boolean True
+                def to_string(val):
+                    if isinstance(val, bool):
+                        return "true" if val else "false"
+                    if isinstance(val, str):
+                        return val.lower().strip()
+                    return "false"
+                
+                session_show_display=to_string(session.get("show_display", False))
+                session_show_create_update=to_string(session.get("show_create_update", False))
+                session_show_send_file=to_string(session.get("show_send_file", False))
+                session_show_download_files=to_string(session.get("show_download_files", False))
+                session_show_parameters=to_string(session.get("show_parameters", False))
 
                 return render_template('index_vue.html',
                                        session_username=session_username,
                                        session_show_display=session_show_display,
                                        session_show_create_update=session_show_create_update,
                                        session_show_send_file=session_show_send_file,
-                                       session_show_jobnumbers_management=session_show_jobnumbers_management,
+                                       session_show_download_files=session_show_download_files,
                                        session_show_parameters=session_show_parameters
                                        )
         else:
@@ -284,16 +313,39 @@ def create_app(test_config=None):
 
             # converting password to array of bytes 
             pwd = generate_password_hash(request.form.get("password"))
+            
+            # Helper function to convert to string "true" or "false"
+            def get_string_value(key):
+                value = request.form.get(key)
+                # If value is None or empty string, return "false"
+                if value is None or value == '':
+                    return "false"
+                # If it's already a string, normalize it
+                if isinstance(value, str):
+                    normalized = value.lower().strip()
+                    return "true" if normalized == 'true' else "false"
+                # If it's a boolean, convert to string
+                if isinstance(value, bool):
+                    return "true" if value else "false"
+                # For any other type, convert to string
+                return "true" if bool(value) else "false"
 
+            # Ensure show_download_files is always set (default to "false" if not provided)
+            show_download_files_value = request.form.get("show_download_files")
+            if show_download_files_value is None:
+                show_download_files = "false"
+            else:
+                show_download_files = get_string_value("show_download_files")
+            
             user = {
                 "site":request.form.get("site"),
                 "email": request.form.get("email"),
                 "password": pwd,
-                "show_display": request.form.get("show_display"),
-                "show_create_update": request.form.get("show_create_update"),
-                "show_send_file": request.form.get("show_send_file"),
-                "show_jobnumbers_management": request.form.get("show_jobnumbers_management"),
-                "show_parameters": request.form.get("show_parameters"),
+                "show_display": get_string_value("show_display"),
+                "show_create_update": get_string_value("show_create_update"),
+                "show_send_file": get_string_value("show_send_file"),
+                "show_download_files": show_download_files,
+                "show_parameters": get_string_value("show_parameters"),
                 "creation_date": datetime.datetime.now(tz=datetime.timezone.utc)
             }
             
@@ -324,6 +376,225 @@ def create_app(test_config=None):
             }
             return jsonify(result)
 
+    ############################################################################
+    # LIST USERS ROUTE
+    ############################################################################
+    
+    @app.route("/list_users", methods=['GET'])
+    def list_users():
+        try:
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_users_collection"]
+            
+            # Get all users (excluding passwords), sorted by email
+            my_users = my_collection.find({}, {"password": 0}, sort=[("email", 1)])
+            
+            # Convert to list and format dates, ensuring no duplicates by email
+            users_list = []
+            seen_emails = set()
+            for user in my_users:
+                # Helper function to convert MongoDB value to string "true"/"false"
+                def to_string_value(val):
+                    if val is None:
+                        return "false"
+                    if isinstance(val, bool):
+                        return "true" if val else "false"
+                    if isinstance(val, str):
+                        normalized = val.strip().lower()
+                        return "true" if normalized == "true" else "false"
+                    return "false"
+                
+                # Convert MongoDB document to dict, preserving all fields
+                user_dict = json.loads(json_util.dumps(user))
+                
+                # Get email from user_dict
+                email = user_dict.get("email", "")
+                # Only add if we haven't seen this email before
+                if email and email not in seen_emails:
+                    seen_emails.add(email)
+                    
+                    # Convert all permission fields to strings "true"/"false" using ORIGINAL MongoDB values
+                    # This ensures we use the actual database values, not defaults
+                    user_dict["show_display"] = to_string_value(user.get("show_display", "false"))
+                    user_dict["show_create_update"] = to_string_value(user.get("show_create_update", "false"))
+                    user_dict["show_send_file"] = to_string_value(user.get("show_send_file", "false"))
+                    user_dict["show_download_files"] = to_string_value(user.get("show_download_files", "false"))
+                    user_dict["show_parameters"] = to_string_value(user.get("show_parameters", "false"))
+                    
+                    # Debug: log values for eric.attere@un.org
+                    if email == "eric.attere@un.org":
+                        print(f"\n{'='*60}")
+                        print(f"=== DEBUG: Processing user {email} ===")
+                        print(f"{'='*60}")
+                        print(f"MongoDB document keys: {list(user.keys())}")
+                        print(f"\nMongoDB RAW values (before any conversion):")
+                        print(f"  show_display: {repr(user.get('show_display'))} (type: {type(user.get('show_display')).__name__}, in dict: {'show_display' in user})")
+                        print(f"  show_create_update: {repr(user.get('show_create_update'))} (type: {type(user.get('show_create_update')).__name__}, in dict: {'show_create_update' in user})")
+                        print(f"  show_send_file: {repr(user.get('show_send_file'))} (type: {type(user.get('show_send_file')).__name__}, in dict: {'show_send_file' in user})")
+                        print(f"  show_download_files: {repr(user.get('show_download_files'))} (type: {type(user.get('show_download_files')).__name__}, in dict: {'show_download_files' in user})")
+                        print(f"  show_parameters: {repr(user.get('show_parameters'))} (type: {type(user.get('show_parameters')).__name__}, in dict: {'show_parameters' in user})")
+                        print(f"\nAfter to_string_value conversion:")
+                        print(f"  show_display: {user_dict.get('show_display')} (type: {type(user_dict.get('show_display')).__name__})")
+                        print(f"  show_create_update: {user_dict.get('show_create_update')} (type: {type(user_dict.get('show_create_update')).__name__})")
+                        print(f"  show_send_file: {user_dict.get('show_send_file')} (type: {type(user_dict.get('show_send_file')).__name__})")
+                        print(f"  show_download_files: {user_dict.get('show_download_files')} (type: {type(user_dict.get('show_download_files')).__name__})")
+                        print(f"  show_parameters: {user_dict.get('show_parameters')} (type: {type(user_dict.get('show_parameters')).__name__})")
+                        print(f"{'='*60}\n")
+                    
+                    users_list.append(user_dict)
+            
+            return jsonify(users_list)
+            
+        except Exception as e:
+            return jsonify({
+                "error": f"Error fetching users: {str(e)}"
+            }), 500
+
+    ############################################################################
+    # UPDATE USER ROUTE
+    ############################################################################
+    
+    @app.route("/update_user", methods=['POST'])
+    def update_user():
+        try:
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_users_collection"]
+            
+            user_email = request.form.get("email", "").strip()
+            if not user_email:
+                return jsonify({
+                    "status": "NOK",
+                    "message": "Email is required"
+                }), 400
+            
+            # Build update document
+            # Store values as strings "true" or "false" (not booleans)
+            def get_string_value(key):
+                value = request.form.get(key)
+                # If value is None or empty string, return "false"
+                if value is None or value == '':
+                    return "false"
+                # If it's already a string, normalize it
+                if isinstance(value, str):
+                    normalized = value.lower().strip()
+                    return "true" if normalized == 'true' else "false"
+                # If it's a boolean, convert to string
+                if isinstance(value, bool):
+                    return "true" if value else "false"
+                # For any other type, convert to string
+                return "true" if bool(value) else "false"
+            
+            # Ensure show_download_files is always set (default to "false" if not provided)
+            show_download_files_value = request.form.get("show_download_files")
+            if show_download_files_value is None:
+                show_download_files = "false"
+            else:
+                show_download_files = get_string_value("show_download_files")
+            
+            update_data = {
+                "site": request.form.get("site"),
+                "show_display": get_string_value("show_display"),
+                "show_create_update": get_string_value("show_create_update"),
+                "show_send_file": get_string_value("show_send_file"),
+                "show_download_files": show_download_files,
+                "show_parameters": get_string_value("show_parameters")
+            }
+            
+            # Only update password if provided
+            new_password = request.form.get("password", "").strip()
+            if new_password:
+                update_data["password"] = generate_password_hash(new_password)
+            
+            # Update user
+            result = my_collection.update_one(
+                {"email": user_email},
+                {"$set": update_data}
+            )
+            
+            if result.modified_count > 0 or result.matched_count > 0:
+                # Create log
+                ods.ods_rutines.add_log(
+                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    session.get('username', 'unknown_user'),
+                    f"User {user_email} updated in the system!!!"
+                )
+                
+                return jsonify({
+                    "status": "OK",
+                    "message": "User updated successfully!!!"
+                })
+            else:
+                return jsonify({
+                    "status": "NOK",
+                    "message": "User not found or no changes made"
+                }), 404
+            
+        except Exception as e:
+            return jsonify({
+                "status": "NOK",
+                "message": f"Error updating user: {str(e)}"
+            }), 500
+
+    ############################################################################
+    # DELETE USER ROUTE
+    ############################################################################
+    
+    @app.route("/delete_user", methods=['POST'])
+    def delete_user():
+        try:
+            client = MongoClient(database_conn)
+            my_database = client["odsActions"] 
+            my_collection = my_database["ods_actions_users_collection"]
+            
+            user_email = request.form.get("email", "").strip()
+            if not user_email:
+                return jsonify({
+                    "status": "NOK",
+                    "message": "Email is required"
+                }), 400
+            
+            # Prevent deleting the default user
+            if user_email == config("DEFAULT_USERNAME"):
+                return jsonify({
+                    "status": "NOK",
+                    "message": "Cannot delete the default user"
+                }), 403
+            
+            # Prevent users from deleting themselves
+            if user_email == session.get('username', ''):
+                return jsonify({
+                    "status": "NOK",
+                    "message": "You cannot delete your own account"
+                }), 403
+            
+            # Delete user
+            result = my_collection.delete_one({"email": user_email})
+            
+            if result.deleted_count > 0:
+                # Create log
+                ods.ods_rutines.add_log(
+                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    session.get('username', 'unknown_user'),
+                    f"User {user_email} deleted from the system!!!"
+                )
+                
+                return jsonify({
+                    "status": "OK",
+                    "message": "User deleted successfully!!!"
+                })
+            else:
+                return jsonify({
+                    "status": "NOK",
+                    "message": "User not found"
+                }), 404
+            
+        except Exception as e:
+            return jsonify({
+                "status": "NOK",
+                "message": f"Error deleting user: {str(e)}"
+            }), 500
 
     ############################################################################
     # DISPLAY METADATA FROM ODS
@@ -465,6 +736,322 @@ def create_app(test_config=None):
         return jsonify(result)
     
     ############################################################################
+    # DOWNLOAD FILE FROM ODS
+    ############################################################################
+    
+    @app.route('/download_file_from_ods', methods=['GET', 'POST'])
+    def download_file_from_ods_route():
+        """
+        Download a PDF file from ODS for a given document symbol and language.
+        Accepts both GET (query parameters) and POST (form/json) requests.
+        """
+        try:
+            # Get parameters from request (support both GET and POST)
+            if request.method == 'GET':
+                docsymbol = request.args.get('docsymbol', '').strip()
+                language = request.args.get('language', '').strip()
+            else:
+                # POST request - try form data first, then JSON
+                if request.is_json:
+                    docsymbol = request.json.get('docsymbol', '').strip()
+                    language = request.json.get('language', '').strip()
+                else:
+                    docsymbol = request.form.get('docsymbol', '').strip()
+                    language = request.form.get('language', '').strip()
+            
+            # Validate required parameters
+            if not docsymbol:
+                return jsonify({
+                    "status": 0,
+                    "error": "docsymbol parameter is required"
+                }), 400
+            
+            if not language:
+                return jsonify({
+                    "status": 0,
+                    "error": "language parameter is required"
+                }), 400
+            
+            # Call the download function
+            result = ods.ods_rutines.download_file_from_ods(docsymbol, language)
+            
+            # Create log
+            username = session.get('username', 'unknown_user')
+            log_message = f"Download file from ODS: {docsymbol} [{language}]"
+            if result.get("status") == 1:
+                log_message += f" - Success: {result.get('filename', '')}"
+            else:
+                log_message += f" - Failed: {result.get('message', '')}"
+            
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                log_message
+            )
+            
+            # Create analytics
+            ods.ods_rutines.add_analytics(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                "download_file_from_ods_endpoint",
+                [result]
+            )
+            
+            return jsonify(result)
+            
+        except Exception as e:
+            # Log error
+            username = session.get('username', 'unknown_user')
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                f"Error downloading file from ODS: {str(e)}"
+            )
+            
+            return jsonify({
+                "status": 0,
+                "error": f"Error downloading file: {str(e)}"
+            }), 500
+    
+    ############################################################################
+    # BATCH DOWNLOAD FILES FROM ODS
+    ############################################################################
+    
+    @app.route('/batch_download_files_from_ods', methods=['POST'])
+    def batch_download_files_from_ods_route():
+        """
+        Download multiple PDF files from ODS for multiple document symbols and multiple languages.
+        Accepts POST requests with docsymbols (array) and languages array.
+        Supports backward compatibility with single docsymbol.
+        """
+        try:
+            # Get parameters from request
+            if request.is_json:
+                # Check for new format: array of symbols
+                docsymbols = request.json.get('docsymbols', [])
+                # Backward compatibility: single docsymbol
+                if not docsymbols:
+                    single_symbol = request.json.get('docsymbol', '').strip()
+                    if single_symbol:
+                        docsymbols = [single_symbol]
+                
+                languages = request.json.get('languages', [])
+            else:
+                # Form data - check for multiple symbols
+                docsymbols_str = request.form.get('docsymbols', '')
+                single_symbol = request.form.get('docsymbol', '').strip()
+                
+                if docsymbols_str:
+                    # Parse comma/newline separated symbols
+                    docsymbols = [s.strip() for s in docsymbols_str.replace('\n', ',').split(',') if s.strip()]
+                elif single_symbol:
+                    docsymbols = [single_symbol]
+                else:
+                    docsymbols = []
+                
+                # Languages can come as comma-separated string or array
+                languages_str = request.form.get('languages', '')
+                if languages_str:
+                    languages = [lang.strip() for lang in languages_str.split(',') if lang.strip()]
+                else:
+                    languages = []
+            
+            # Validate required parameters
+            username = session.get('username', 'unknown_user')
+            
+            if not docsymbols or len(docsymbols) == 0:
+                error_result = {
+                    "status": 0,
+                    "error": "At least one document symbol is required"
+                }
+                # Create analytics for validation error
+                ods.ods_rutines.add_analytics(
+                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    username,
+                    "batch_download_files_from_ods_endpoint",
+                    [error_result]
+                )
+                return jsonify(error_result), 400
+            
+            if not languages or len(languages) == 0:
+                error_result = {
+                    "status": 0,
+                    "error": "At least one language must be selected"
+                }
+                # Create analytics for validation error
+                ods.ods_rutines.add_analytics(
+                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    username,
+                    "batch_download_files_from_ods_endpoint",
+                    [error_result]
+                )
+                return jsonify(error_result), 400
+            
+            # Download files for each symbol and each language
+            results = []
+            for docsymbol in docsymbols:
+                for language in languages:
+                    result = ods.ods_rutines.download_file_from_ods(docsymbol, language)
+                    # Add docsymbol to result for tracking
+                    result['docsymbol'] = docsymbol
+                    results.append(result)
+            
+            # Create log
+            successful = sum(1 for r in results if r.get("status") == 1)
+            total_files = len(docsymbols) * len(languages)
+            log_message = f"Batch download from ODS: {len(docsymbols)} symbol(s), {successful}/{total_files} files downloaded successfully"
+            
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                log_message
+            )
+            
+            # Create analytics (remove filepath from results for analytics)
+            analytics_results = []
+            for result in results:
+                analytics_result = {k: v for k, v in result.items() if k != 'filepath'}
+                analytics_results.append(analytics_result)
+            
+            ods.ods_rutines.add_analytics(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                "batch_download_files_from_ods_endpoint",
+                analytics_results
+            )
+            
+            return jsonify({
+                "status": 1,
+                "docsymbols": docsymbols,
+                "total_symbols": len(docsymbols),
+                "total": total_files,
+                "successful": successful,
+                "results": results
+            })
+            
+        except Exception as e:
+            # Log error
+            username = session.get('username', 'unknown_user')
+            error_message = f"Error batch downloading files from ODS: {str(e)}"
+            
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                error_message
+            )
+            
+            # Create analytics for error
+            error_result = {
+                "status": 0,
+                "error": f"Error batch downloading files: {str(e)}"
+            }
+            ods.ods_rutines.add_analytics(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                "batch_download_files_from_ods_endpoint",
+                [error_result]
+            )
+            
+            return jsonify(error_result), 500
+    
+    ############################################################################
+    # SERVE DOWNLOADED FILE CONTENT
+    ############################################################################
+    
+    @app.route('/download_file_content', methods=['GET'])
+    def download_file_content_route():
+        """
+        Serve a downloaded file from the temp directory for browser download.
+        """
+        try:
+            filepath = request.args.get('filepath', '')
+            if not filepath:
+                return jsonify({"error": "filepath parameter is required"}), 400
+            
+            # Security: ensure file is in temp_01 directory (used for download from ODS)
+            if platform.system() in ['Windows', 'nt']:
+                temp_dir = os.path.abspath('ods\\temp_01')
+            else:
+                temp_dir = os.path.abspath('./ods/tmp_01')
+            
+            filepath_abs = os.path.abspath(filepath)
+            temp_dir_abs = os.path.abspath(temp_dir)
+            
+            # Verify file is within temp directory
+            if not filepath_abs.startswith(temp_dir_abs):
+                return jsonify({"error": "Invalid file path"}), 403
+            
+            if not os.path.exists(filepath_abs):
+                return jsonify({"error": "File not found"}), 404
+            
+            return send_file(
+                filepath_abs,
+                as_attachment=True,
+                download_name=os.path.basename(filepath_abs)
+            )
+            
+        except Exception as e:
+            return jsonify({
+                "error": f"Error serving file: {str(e)}"
+            }), 500
+    
+    ############################################################################
+    # CLEANUP TEMP DOWNLOAD FOLDER
+    ############################################################################
+    
+    @app.route('/cleanup_download_temp', methods=['POST'])
+    def cleanup_download_temp_route():
+        """
+        Clean up the tmp_01 folder after downloads are complete.
+        Removes all files from the temporary download directory.
+        """
+        try:
+            # Determine temp directory path based on platform
+            if platform.system() in ['Windows', 'nt']:
+                temp_dir = os.path.abspath('ods\\temp_01')
+            else:
+                temp_dir = os.path.abspath('./ods/tmp_01')
+            
+            # Check if directory exists
+            if not os.path.exists(temp_dir):
+                return jsonify({
+                    "status": 1,
+                    "message": "Temp directory does not exist, nothing to clean"
+                })
+            
+            # Remove all files in the directory
+            files_removed = 0
+            for filename in os.listdir(temp_dir):
+                file_path = os.path.join(temp_dir, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        files_removed += 1
+                except Exception as e:
+                    # Log error but continue cleaning other files
+                    print(f"Error removing file {file_path}: {str(e)}")
+            
+            # Log cleanup action
+            username = session.get('username', 'unknown_user')
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                f"Cleaned up download temp folder: {files_removed} file(s) removed"
+            )
+            
+            return jsonify({
+                "status": 1,
+                "message": f"Successfully cleaned {files_removed} file(s) from temp directory",
+                "files_removed": files_removed
+            })
+            
+        except Exception as e:
+            return jsonify({
+                "status": 0,
+                "error": f"Error cleaning temp directory: {str(e)}"
+            }), 500
+    
+    ############################################################################
     # LOGOUT
     ############################################################################
     @app.route('/logout')
@@ -477,7 +1064,7 @@ def create_app(test_config=None):
         session.pop('show_display', None)
         session.pop('show_create_update',None)
         session.pop('show_send_file', None)
-        session.pop('show_jobnumbers_management', None)
+        session.pop('show_download_files', None)
         session.pop('show_parameters', None)
         session.pop('prefix_site',None)
         
@@ -661,18 +1248,18 @@ def create_app(test_config=None):
     @app.route("/download_chatbot_manual", methods=['GET'])
     def download_chatbot_manual():
         """
-        Download the chatbot user manual as markdown file
+        Download the chatbot user manual as PDF file
         """
         try:
             from pathlib import Path
             from flask import send_file, Response
             
-            # Get the manual markdown file
+            # Get the manual PDF file
             ai_path = Path(__file__).parent.parent / "ai"
-            manual_path = ai_path / "CHATBOT_USER_MANUAL.md"
+            pdf_path = ai_path / "CHATBOT_USER_MANUAL.pdf"
             
-            if not manual_path.exists():
-                error_msg = f'User manual not found at: {manual_path}'
+            if not pdf_path.exists():
+                error_msg = f'Chatbot user manual PDF not found at: {pdf_path}'
                 app.logger.error(error_msg)
                 return Response(
                     error_msg,
@@ -680,17 +1267,55 @@ def create_app(test_config=None):
                     mimetype='text/plain'
                 )
             
-            # Return markdown file
+            # Return PDF file
             return send_file(
-                str(manual_path),
-                mimetype='text/markdown',
+                str(pdf_path),
+                mimetype='application/pdf',
                 as_attachment=True,
-                download_name='ODS_Actions_Chatbot_User_Manual.md'
+                download_name='ODS_Actions_Chatbot_User_Manual.pdf'
             )
             
         except Exception as e:
             error_msg = f'Error downloading manual: {str(e)}'
             app.logger.error(f"Error downloading manual: {str(e)}", exc_info=True)
+            return Response(
+                error_msg,
+                status=500,
+                mimetype='text/plain'
+            )
+    
+    @app.route("/download_ods_documentation", methods=['GET'])
+    def download_ods_documentation():
+        """
+        Download the ODS Actions Documentation as PDF file
+        """
+        try:
+            from pathlib import Path
+            from flask import send_file, Response
+            
+            # Get the documentation PDF file
+            ai_path = Path(__file__).parent.parent / "ai"
+            pdf_path = ai_path / "ODS_Actions_Documentation.pdf"
+            
+            if not pdf_path.exists():
+                error_msg = f'ODS Actions Documentation not found at: {pdf_path}'
+                app.logger.error(error_msg)
+                return Response(
+                    error_msg,
+                    status=404,
+                    mimetype='text/plain'
+                )
+            
+            return send_file(
+                str(pdf_path),
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name='ODS_Actions_Documentation.pdf'
+            )
+            
+        except Exception as e:
+            error_msg = f'Error downloading ODS documentation: {str(e)}'
+            app.logger.error(f"Error downloading ODS documentation: {str(e)}", exc_info=True)
             return Response(
                 error_msg,
                 status=500,

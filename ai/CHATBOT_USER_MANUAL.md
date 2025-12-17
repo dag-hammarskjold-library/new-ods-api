@@ -138,7 +138,70 @@ The chatbot can answer questions about all ODS Actions features. Here's what you
 - ES (Spanish) - Index 5
 - DE (German) - Index 6
 
-### 4. Parameters Tab (Admin Only)
+### 4. Download Files from ODS Tab
+
+**What it does:** Download PDF files from ODS for document symbols in multiple languages
+
+**Questions you can ask:**
+- "How do I download files from ODS?"
+- "What is the Download Files from ODS tab?"
+- "How to download multiple files at once?"
+- "What languages are supported for downloads?"
+
+**Features:**
+- Input: Textarea for entering multiple document symbols (one per line, comma, or semicolon separated)
+- Language Selection: Checkboxes for selecting languages (AR, ZH, EN, FR, RU, ES, DE)
+- Select All: Quick option to select all languages at once
+- Side-by-side Layout: Input area on the left, progress details on the right
+- Progress Tracking:
+  - Total number of symbols to process
+  - Start time display
+  - Real-time elapsed time counter
+  - Color-coded progress logs (info, success, error, warning)
+  - Auto-scrolling log window with black background
+- Processing: Downloads files sequentially for each symbol and selected language
+- Output: Results table showing:
+  - Document Symbol
+  - Language
+  - Filename
+  - Status (Success/Failed)
+  - Message
+- Duplicate Removal: Automatically removes duplicate document symbols from input
+- Validation: Button disabled when no valid symbols or languages are selected
+- Clear Function: Resets form, progress, and results
+
+**Process:**
+1. User enters one or more document symbols (supports multiple symbols)
+2. User selects one or more languages
+3. System validates input (removes duplicates)
+4. For each symbol and language combination:
+   - Downloads PDF file from ODS
+   - Tracks progress with real-time logs
+   - Records success or failure
+5. Displays results in a table
+6. Files are automatically downloaded to user's browser
+
+**Supported Languages:**
+- AR (Arabic)
+- ZH (Chinese)
+- EN (English)
+- FR (French)
+- RU (Russian)
+- ES (Spanish)
+- DE (German)
+
+**Progress Logs:**
+- **Info (Blue)**: General information about the download process
+- **Success (Green)**: Successfully downloaded files
+- **Error (Red)**: Failed downloads with error messages
+- **Warning (Yellow)**: Warnings during processing
+
+**Analytics:**
+- All download actions are tracked in analytics
+- Includes successful downloads, validation errors, and exception errors
+- Analytics action: `batch_download_files_from_ods_endpoint`
+
+### 5. Parameters Tab (Admin Only)
 
 **What it does:** System administration features
 
@@ -790,6 +853,7 @@ The chatbot can also answer questions about the application architecture:
 | Display Metadata | "How do I display metadata?" |
 | Send Metadata | "How to send metadata to ODS?" |
 | Send Files | "How do I upload files?" |
+| Download Files | "How do I download files from ODS?" |
 | User Management | "How to create a user?" |
 | Site Management | "How to add a site?" |
 | Logs | "How to view system logs?" |
