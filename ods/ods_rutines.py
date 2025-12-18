@@ -20,6 +20,9 @@ import platform
 import base64
 import time
 from pathlib import Path
+import copy
+import traceback
+import traceback
 
 ########################################################################
 # setup urllib3
@@ -126,13 +129,132 @@ def add_analytics(date_analytics:str,user_connected:str,action_analytics:str,dat
         # setup the database and the collection
         my_collection = my_database["ods_actions_analytics_collection"]
 
+        # For download actions, create a new data structure without filepath
+        # Check if this is a download action
+        is_download_action = (action_analytics == "batch_download_files_from_ods_endpoint" or 
+                             "batch_download" in str(action_analytics).lower())
+        
+        # For download actions, build a new structure with only allowed fields
+        cleaned_data = data
+        if is_download_action:
+            print(f"DEBUG: Processing download action: {action_analytics}")
+            print(f"DEBUG: Original data type: {type(data)}")
+            if isinstance(data, list):
+                print(f"DEBUG: Original data length: {len(data)}")
+                if len(data) > 0:
+                    print(f"DEBUG: First item keys: {list(data[0].keys()) if isinstance(data[0], dict) else 'Not a dict'}")
+            
+            try:
+                if isinstance(data, list):
+                    # Create a new list with only the fields we want (excluding filepath)
+                    cleaned_data = []
+                    for item in data:
+                        if isinstance(item, dict):
+                            # Create a new dict with only allowed fields
+                            new_item = {}
+                            # Fields to include (explicitly list them)
+                            allowed_fields = ['docsymbol', 'status', 'filename', 'language', 'message', 'error']
+                            print(f"DEBUG: Processing item with keys: {list(item.keys())}")
+                            for field in allowed_fields:
+                                if field in item:
+                                    new_item[field] = item[field]
+                            # Explicitly verify filepath is NOT in new_item
+                            if 'filepath' in new_item:
+                                print(f"ERROR: filepath somehow got into new_item! Removing it...")
+                                del new_item['filepath']
+                            cleaned_data.append(new_item)
+                            print(f"DEBUG: New item keys after processing: {list(new_item.keys())}")
+                        else:
+                            cleaned_data.append(item)
+                elif isinstance(data, dict):
+                    # Create a new dict with only allowed fields
+                    new_dict = {}
+                    allowed_fields = ['docsymbol', 'status', 'filename', 'language', 'message', 'error']
+                    for field in allowed_fields:
+                        if field in data:
+                            new_dict[field] = data[field]
+                    # Explicitly verify filepath is NOT in new_dict
+                    if 'filepath' in new_dict:
+                        print(f"ERROR: filepath somehow got into new_dict! Removing it...")
+                        del new_dict['filepath']
+                    cleaned_data = new_dict
+            except Exception as e:
+                # If building new structure fails, try to manually remove filepath
+                print(f"ERROR: Exception creating new data structure: {e}")
+                print(f"ERROR: Traceback: {traceback.format_exc()}")
+                # Try to manually remove filepath as fallback
+                try:
+                    if isinstance(data, list):
+                        cleaned_data = []
+                        for item in data:
+                            if isinstance(item, dict):
+                                item_copy = {k: v for k, v in item.items() if 'filepath' not in str(k).lower()}
+                                cleaned_data.append(item_copy)
+                            else:
+                                cleaned_data.append(item)
+                    elif isinstance(data, dict):
+                        cleaned_data = {k: v for k, v in data.items() if 'filepath' not in str(k).lower()}
+                except:
+                    print(f"ERROR: Even fallback removal failed!")
+                    cleaned_data = data
+        
         # creation of the log object
         my_analytics = {
             "user": user_connected,
             "action": action_analytics,
             "date": date_analytics,
-            "data":data
+            "data": cleaned_data
         }
+        
+        # Log what is being sent to database (especially for download actions)
+        if is_download_action:
+            print("=" * 80)
+            print("ANALYTICS LOG: Data being sent to database for download action")
+            print("=" * 80)
+            print(f"Action: {action_analytics}")
+            print(f"User: {user_connected}")
+            print(f"Date: {date_analytics}")
+            print(f"Data type: {type(cleaned_data)}")
+            if isinstance(cleaned_data, list):
+                print(f"Data length: {len(cleaned_data)}")
+                for idx, item in enumerate(cleaned_data):
+                    print(f"\n  Item {idx + 1}:")
+                    if isinstance(item, dict):
+                        print(f"    Keys: {list(item.keys())}")
+                        for key, value in item.items():
+                            print(f"    {key}: {value}")
+                        # Check for filepath
+                        if 'filepath' in item:
+                            print(f"    *** ERROR: filepath found in item {idx + 1}! ***")
+                        else:
+                            print(f"    *** OK: filepath NOT in item {idx + 1} ***")
+                    else:
+                        print(f"    Type: {type(item)}, Value: {item}")
+            elif isinstance(cleaned_data, dict):
+                print(f"Data keys: {list(cleaned_data.keys())}")
+                for key, value in cleaned_data.items():
+                    print(f"  {key}: {value}")
+                if 'filepath' in cleaned_data:
+                    print(f"  *** ERROR: filepath found in data! ***")
+                else:
+                    print(f"  *** OK: filepath NOT in data ***")
+            print("=" * 80)
+        
+        # FINAL SAFETY CHECK: Remove filepath from my_analytics right before insert
+        if is_download_action:
+            if isinstance(my_analytics.get("data"), list):
+                for item in my_analytics["data"]:
+                    if isinstance(item, dict):
+                        # Remove filepath in all variations
+                        keys_to_remove = [k for k in item.keys() if 'filepath' in str(k).lower()]
+                        for key in keys_to_remove:
+                            print(f"FINAL CHECK: Removing {key} from item before insert")
+                            del item[key]
+            elif isinstance(my_analytics.get("data"), dict):
+                keys_to_remove = [k for k in my_analytics["data"].keys() if 'filepath' in str(k).lower()]
+                for key in keys_to_remove:
+                    print(f"FINAL CHECK: Removing {key} from data before insert")
+                    del my_analytics["data"][key]
         
         # save the log in the database
         my_collection.insert_one(my_analytics)

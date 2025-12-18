@@ -460,7 +460,7 @@ Vue.component('ods', {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                            </div>
                                         <div class="modern-button-group mt-3">
                                             <button class="btn-modern btn-success-modern" type="button" v-if="displayResult2==false" @click="displayResultSendFile(docsymbols2)" :disabled="isSendFilesButtonDisabled">
                                                 <i class="fas fa-upload me-2"></i>
@@ -1340,7 +1340,7 @@ data: function () {
                 return 'Invalid date';
             }
         },
-        
+
         formatDate(dateString) {
             try {
                 const date = new Date(dateString);
@@ -1904,7 +1904,7 @@ data: function () {
                     try {        
                         let processedCount = 0;
                         my_data.forEach((elements, index) => {
-                            //console.log(typeof(elements))
+                        //console.log(typeof(elements))
                             const resultArray = Array.isArray(elements) ? elements : [elements];
                             this.listOfResult2 = this.listOfResult2.concat(resultArray);
                             processedCount += resultArray.length;

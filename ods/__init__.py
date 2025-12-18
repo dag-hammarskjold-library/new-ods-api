@@ -8,6 +8,7 @@ import datetime
 import os
 import platform
 import requests
+import copy
 import ods.ods_rutines
 from flask import Flask, jsonify,render_template,request,redirect,session, url_for, send_file
 from decouple import config
@@ -902,7 +903,7 @@ def create_app(test_config=None):
                 log_message
             )
             
-            # Create analytics (remove filepath from results for analytics)
+            # Create analytics - remove filepath from results before passing to add_analytics
             analytics_results = []
             for result in results:
                 analytics_result = {k: v for k, v in result.items() if k != 'filepath'}
