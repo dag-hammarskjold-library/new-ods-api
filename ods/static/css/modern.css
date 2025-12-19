@@ -3606,6 +3606,38 @@ body {
     color: #00ff88; /* Bright green color for bot messages in dark mode */
 }
 
+/* Date Picker Icon Styling */
+/* Light mode - black icon */
+[data-bs-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+    opacity: 1;
+    cursor: pointer;
+}
+
+[data-bs-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.8;
+}
+
+/* Dark mode - white icon */
+[data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 1;
+    cursor: pointer;
+}
+
+[data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.8;
+}
+
+/* Firefox and other browsers */
+[data-bs-theme="light"] input[type="date"] {
+    color-scheme: light;
+}
+
+[data-bs-theme="dark"] input[type="date"] {
+    color-scheme: dark;
+}
+
 .message-text ul,
 .message-text ol {
     margin: 0.5rem 0;

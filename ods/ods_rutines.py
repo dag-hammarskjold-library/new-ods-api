@@ -1313,3 +1313,89 @@ def download_file_from_ods(docsymbol, language):
         "language": language.upper(),
         "message": f"Failed to download file for {docsymbol} [{lang}]: File not found or not a PDF"
     }
+
+########################################################################
+# Extract 191__a values from API by date range
+########################################################################
+
+def extract_191a_values_by_date_range(start_date=None, end_date=None, base_url=None, output_file=None):
+    """
+    Extract 191__a values (docsymbols) from API endpoint for a date range.
+    
+    Args:
+        start_date (datetime): Start date for the range (default: 2025-11-01)
+        end_date (datetime): End date for the range (default: 2025-11-30)
+        base_url (str): Base URL template with {} placeholder for date (default: AWS API endpoint)
+        output_file (str): Optional output file path to save JSON results
+    
+    Returns:
+        list: List of all docsymbols (191__a values) found across the date range
+    """
+    # Set default values if not provided
+    if start_date is None:
+        start_date = datetime(2025, 11, 1)
+    if end_date is None:
+        end_date = datetime(2025, 11, 30)
+    if base_url is None:
+        base_url = "https://y8nxvr2153.execute-api.us-east-1.amazonaws.com/dev/{}/S"
+    
+    all_docsymbols = []
+    date = start_date
+    
+    while date <= end_date:
+        ymd = date.strftime("%Y%m%d")
+        url = base_url.format(ymd)
+        try:
+            r = requests.get(url, verify=False)
+            data = r.json()
+            for item in data:
+                if "191__a" in item:
+                    all_docsymbols.extend(item["191__a"])
+            print(ymd, f"Found {len([v for item in data if '191__a' in item for v in item['191__a']])} docsymbols")
+        except Exception as e:
+            print("Error on", ymd, e)
+        date += timedelta(days=1)
+    
+    # Remove duplicates while preserving order
+    unique_docsymbols = []
+    seen = set()
+    for docsymbol in all_docsymbols:
+        if docsymbol not in seen:
+            seen.add(docsymbol)
+            unique_docsymbols.append(docsymbol)
+    
+    # Save to file if output_file is provided
+    if output_file:
+        with open(output_file, "w") as f:
+            json.dump(unique_docsymbols, f, indent=2)
+        print(f"Results saved to {output_file}")
+    
+    return unique_docsymbols
+
+########################################################################
+# Test function for first 3 days of December
+########################################################################
+
+if __name__ == "__main__":
+    # Test with first 3 days of December 2025
+    print("=" * 60)
+    print("Testing extract_191a_values_by_date_range for December 1-3, 2025")
+    print("=" * 60)
+    
+    start_date = datetime(2025, 12, 1)
+    end_date = datetime(2025, 12, 3)
+    
+    result = extract_191a_values_by_date_range(
+        start_date=start_date,
+        end_date=end_date,
+        output_file="december_1-3_191a.json"
+    )
+    
+    print("\n" + "=" * 60)
+    print(f"Test completed!")
+    print(f"Total unique docsymbols found: {len(result)}")
+    print("=" * 60)
+    if result:
+        print(f"\nFirst 10 docsymbols: {result[:10]}")
+    else:
+        print("\nNo docsymbols found.")

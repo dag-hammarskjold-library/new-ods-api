@@ -222,6 +222,30 @@ Vue.component('ods', {
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="row" v-if="showGetDocSymbolsFields">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="getDocSymbolsStartDate" class="form-label-modern">Start Date</label>
+                                                <input type="date" class="form-control-modern" id="getDocSymbolsStartDate" v-model="getDocSymbolsStartDate" required>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="getDocSymbolsEndDate" class="form-label-modern">End Date</label>
+                                                <input type="date" class="form-control-modern" id="getDocSymbolsEndDate" v-model="getDocSymbolsEndDate" required>
+                                            </div>
+                                            <div class="col-md-4 mb-3 d-flex align-items-end">
+                                                <button class="btn-modern btn-success-modern" type="button" @click="getDocSymbolsFromAPI" :disabled="getDocSymbolsLoading || !getDocSymbolsStartDate || !getDocSymbolsEndDate">
+                                                    <i class="fas fa-search me-2"></i>
+                                                    Fetch DocSymbols
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="row" v-if="showGetDocSymbolsFields && getDocSymbolsLoading" style="margin-top: 10px;">
+                                            <div class="col-12 text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Fetching docsymbols...</p>
+                                            </div>
+                                        </div>
                                         <div class="row">
                                             <div class="col-12 mb-3">
                                                 <label class="form-label-modern">Select Languages</label>
@@ -242,6 +266,10 @@ Vue.component('ods', {
                                             </div>
                                         </div>
                                         <div class="modern-button-group mt-3">
+                                            <button class="btn-modern btn-info-modern" type="button" @click="toggleGetDocSymbolsFields" style="min-width: 180px;">
+                                                <i class="fas fa-list me-2"></i>
+                                                Get DocSymbols
+                                            </button>
                                             <button class="btn-modern btn-primary-modern" type="button" @click="downloadFilesFromODS" :disabled="isDownloadButtonDisabled">
                                                 <i class="fas fa-download me-2"></i>
                                                 Download Files
@@ -1033,7 +1061,6 @@ Vue.component('ods', {
                         </div>
                     </div>
                 </div>
-            </div>
              `,
 created:async function(){
     this.loadLogs()
@@ -1104,6 +1131,11 @@ data: function () {
         downloadEndTime: null,
         downloadTotalSymbols: 0,
         downloadTimerInterval: null,
+        // Get DocSymbols fields data
+        showGetDocSymbolsFields: false,
+        getDocSymbolsStartDate: "",
+        getDocSymbolsEndDate: "",
+        getDocSymbolsLoading: false,
         availableLanguages: [
             { code: "AR", name: "Arabic" },
             { code: "ZH", name: "Chinese" },
@@ -2008,6 +2040,252 @@ data: function () {
             // The computed property allLanguagesSelected will automatically update
         },
         
+        toggleGetDocSymbolsFields() {
+            // Toggle visibility of the date fields
+            this.showGetDocSymbolsFields = !this.showGetDocSymbolsFields;
+            
+            // If showing fields, set default dates to today
+            if (this.showGetDocSymbolsFields) {
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                
+                // Set both dates to today by default
+                this.getDocSymbolsStartDate = todayStr;
+                this.getDocSymbolsEndDate = todayStr;
+                this.getDocSymbolsLoading = false;
+            }
+        },
+        
+        openGetDocSymbolsModal() {
+            // Set default dates (today and 30 days ago)
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            this.getDocSymbolsStartDate = thirtyDaysAgo.toISOString().split('T')[0];
+            this.getDocSymbolsEndDate = today.toISOString().split('T')[0];
+            this.getDocSymbolsLoading = false;
+            
+            // Function to find and show modal
+            const showModal = () => {
+                // Try multiple ways to find the modal
+                let modalElement = null;
+                
+                // Method 1: By ID
+                modalElement = document.getElementById('getDocSymbolsModal');
+                console.log('Method 1 (getElementById):', modalElement);
+                
+                // Method 2: By Vue ref
+                if (!modalElement && this.$refs && this.$refs.getDocSymbolsModal) {
+                    modalElement = this.$refs.getDocSymbolsModal;
+                    console.log('Method 2 (Vue ref):', modalElement);
+                }
+                
+                // Method 3: Query selector
+                if (!modalElement) {
+                    modalElement = document.querySelector('#getDocSymbolsModal');
+                    console.log('Method 3 (querySelector):', modalElement);
+                }
+                
+                // Method 4: Query by class and ID attribute
+                if (!modalElement) {
+                    const modals = document.querySelectorAll('.modal');
+                    console.log('Found modals:', modals.length);
+                    for (let m of modals) {
+                        if (m.id === 'getDocSymbolsModal') {
+                            modalElement = m;
+                            break;
+                        }
+                    }
+                }
+                
+                // Method 5: Search within Vue component's root element
+                if (!modalElement && this.$el) {
+                    modalElement = this.$el.querySelector('#getDocSymbolsModal');
+                    console.log('Method 5 (Vue $el):', modalElement, 'Vue $el:', this.$el);
+                }
+                
+                // Method 6: Search in entire document body
+                if (!modalElement) {
+                    const allElements = document.querySelectorAll('*');
+                    for (let el of allElements) {
+                        if (el.id === 'getDocSymbolsModal') {
+                            modalElement = el;
+                            console.log('Method 6 (found in all elements):', modalElement);
+                            break;
+                        }
+                    }
+                }
+                
+                if (modalElement) {
+                    console.log('Modal element found, attempting to show');
+                    // Check if bootstrap is available
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        try {
+                            // Check if modal instance already exists
+                            let modal = bootstrap.Modal.getInstance(modalElement);
+                            if (!modal) {
+                                // Create new modal instance
+                                modal = new bootstrap.Modal(modalElement, {
+                                    backdrop: true,
+                                    keyboard: true,
+                                    focus: true
+                                });
+                            }
+                            modal.show();
+                        } catch (error) {
+                            console.error('Error showing Bootstrap modal:', error);
+                            // Fallback: manually show modal
+                            this.showModalManually(modalElement);
+                        }
+                    } else {
+                        console.warn('Bootstrap Modal not available, using fallback');
+                        // Fallback: manually show modal
+                        this.showModalManually(modalElement);
+                    }
+                } else {
+                    console.error('Modal element not found after multiple attempts');
+                    console.log('Available modals:', document.querySelectorAll('.modal'));
+                    console.log('Vue component $el:', this.$el);
+                    console.log('Vue component $refs:', this.$refs);
+                    console.log('Document body:', document.body);
+                    console.log('All elements with modal class:', document.querySelectorAll('.modal'));
+                    notifications.error('Modal not found. The page may need to be refreshed.', 'Error');
+                }
+            };
+            
+            // Use Vue's $nextTick with a small delay to ensure DOM is ready
+            this.$nextTick(() => {
+                // Try immediately
+                showModal();
+                
+                // If still not found, try again after a short delay
+                setTimeout(() => {
+                    if (!document.getElementById('getDocSymbolsModal')) {
+                        showModal();
+                    }
+                }, 100);
+            });
+        },
+        
+        showModalManually(modalElement) {
+            // Manual modal display fallback
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.setAttribute('aria-hidden', 'false');
+            modalElement.setAttribute('aria-modal', 'true');
+            document.body.classList.add('modal-open');
+            
+            // Remove existing backdrop if any
+            const existingBackdrop = document.getElementById('getDocSymbolsModalBackdrop');
+            if (existingBackdrop) {
+                existingBackdrop.remove();
+            }
+            
+            // Create backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'getDocSymbolsModalBackdrop';
+            backdrop.style.zIndex = '1040';
+            document.body.appendChild(backdrop);
+            
+            // Handle close button
+            const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"], .btn-close');
+            closeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    this.closeModalManually(modalElement);
+                });
+            });
+            
+            // Handle backdrop click
+            backdrop.addEventListener('click', () => {
+                this.closeModalManually(modalElement);
+            });
+        },
+        
+        closeModalManually(modalElement) {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.setAttribute('aria-modal', 'false');
+            document.body.classList.remove('modal-open');
+            
+            const backdrop = document.getElementById('getDocSymbolsModalBackdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+        },
+        
+        async getDocSymbolsFromAPI() {
+            if (!this.getDocSymbolsStartDate || !this.getDocSymbolsEndDate) {
+                notifications.error('Please select both start and end dates', 'Validation Error');
+                return;
+            }
+            
+            // Validate date range
+            if (new Date(this.getDocSymbolsStartDate) > new Date(this.getDocSymbolsEndDate)) {
+                notifications.error('Start date must be before or equal to end date', 'Validation Error');
+                return;
+            }
+            
+            this.getDocSymbolsLoading = true;
+            
+            try {
+                const response = await fetch('./extract_191a_by_date_range', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        start_date: this.getDocSymbolsStartDate,
+                        end_date: this.getDocSymbolsEndDate
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch docsymbols');
+                }
+                
+                const docsymbols = await response.json();
+                
+                if (!Array.isArray(docsymbols)) {
+                    throw new Error('Invalid response format');
+                }
+                
+                if (docsymbols.length === 0) {
+                    notifications.warning('No docsymbols found for the selected date range', 'No Results');
+                } else {
+                    // Add docsymbols to the download textarea
+                    // If there's existing content, add newline separator
+                    const existingContent = this.downloadDocsymbol.trim();
+                    const newSymbols = docsymbols.join('\n');
+                    
+                    if (existingContent) {
+                        this.downloadDocsymbol = existingContent + '\n' + newSymbols;
+                    } else {
+                        this.downloadDocsymbol = newSymbols;
+                    }
+                    
+                    notifications.success(
+                        `Successfully retrieved ${docsymbols.length} docsymbol(s) and added to the download list`,
+                        'Success'
+                    );
+                    
+                    // Hide the fields after successful fetch
+                    this.showGetDocSymbolsFields = false;
+                }
+            } catch (error) {
+                console.error('Error fetching docsymbols:', error);
+                notifications.error(
+                    `Failed to fetch docsymbols: ${error.message}`,
+                    'Error'
+                );
+            } finally {
+                this.getDocSymbolsLoading = false;
+            }
+        },
+        
         clearDownloadForm() {
             this.downloadDocsymbol = "";
             this.selectedLanguages = ["EN"]; // Reset to English by default
@@ -2019,6 +2297,11 @@ data: function () {
             this.downloadElapsedTime = 0;
             this.downloadEndTime = null;
             this.downloadTotalSymbols = 0;
+            // Hide the date selector fields and reset dates
+            this.showGetDocSymbolsFields = false;
+            this.getDocSymbolsStartDate = "";
+            this.getDocSymbolsEndDate = "";
+            this.getDocSymbolsLoading = false;
             notifications.info('Download form cleared', 'Clear');
         },
         

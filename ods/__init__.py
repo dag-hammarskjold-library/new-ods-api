@@ -1405,6 +1405,104 @@ def create_app(test_config=None):
                 
         except Exception as e:
             return jsonify({"success": False, "message": f"Error: {str(e)}"})
+    
+    ############################################################################
+    # EXTRACT 191__a VALUES BY DATE RANGE
+    ############################################################################
+    
+    @app.route('/extract_191a_by_date_range', methods=['POST'])
+    def extract_191a_by_date_range():
+        """
+        Extract 191__a values (docsymbols) from API endpoint for a date range.
+        Accepts POST requests with start_date and end_date in format YYYY-MM-DD.
+        Can accept form data or JSON.
+        """
+        try:
+            # Get parameters from request (support both form and JSON)
+            if request.is_json:
+                start_date_str = request.json.get('start_date', '').strip()
+                end_date_str = request.json.get('end_date', '').strip()
+                output_file = request.json.get('output_file', '').strip()
+            else:
+                start_date_str = request.form.get('start_date', '').strip()
+                end_date_str = request.form.get('end_date', '').strip()
+                output_file = request.form.get('output_file', '').strip()
+            
+            # Validate required parameters
+            if not start_date_str or not end_date_str:
+                return jsonify({
+                    "success": False,
+                    "error": "start_date and end_date are required (format: YYYY-MM-DD)"
+                }), 400
+            
+            # Parse dates
+            try:
+                start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d')
+                end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d')
+            except ValueError as e:
+                return jsonify({
+                    "success": False,
+                    "error": f"Invalid date format. Use YYYY-MM-DD format. Error: {str(e)}"
+                }), 400
+            
+            # Validate date range
+            if start_date > end_date:
+                return jsonify({
+                    "success": False,
+                    "error": "start_date must be before or equal to end_date"
+                }), 400
+            
+            # Prepare parameters for function call
+            kwargs = {
+                "start_date": start_date,
+                "end_date": end_date
+            }
+            
+            if output_file:
+                kwargs["output_file"] = output_file
+            
+            # Call the function
+            result = ods.ods_rutines.extract_191a_values_by_date_range(**kwargs)
+            
+            # Create log
+            username = session.get('username', 'unknown_user')
+            log_message = f"Extract 191a values by date range: {start_date_str} to {end_date_str} - Found {len(result)} docsymbols"
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                log_message
+            )
+            
+            # Create analytics
+            analytics_data = {
+                "start_date": start_date_str,
+                "end_date": end_date_str,
+                "total_docsymbols": len(result),
+                "docsymbols": result
+            }
+            ods.ods_rutines.add_analytics(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                "extract_191a_by_date_range_endpoint",
+                [analytics_data]
+            )
+            
+            # Return results - just the list of docsymbols
+            return jsonify(result)
+            
+        except Exception as e:
+            # Log error
+            username = session.get('username', 'unknown_user')
+            ods.ods_rutines.add_log(
+                datetime.datetime.now(tz=datetime.timezone.utc),
+                username,
+                f"Error in extract_191a_by_date_range: {str(e)}"
+            )
+            
+            return jsonify({
+                "success": False,
+                "error": f"Error extracting 191a values: {str(e)}"
+            }), 500
         
     return app
 app = create_app()
