@@ -8,9 +8,9 @@ on:
     types: [ opened, synchronize, reopened ]
 
 # Set environment variables
-env:
-  DLX_REST_TESTING: True
- 
+#env:
+  #DLX_REST_TESTING: True
+  # Others?
 
 jobs:
   build:
