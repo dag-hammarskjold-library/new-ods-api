@@ -3540,12 +3540,22 @@ body {
 
 .user-message .message-avatar {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
+    color: #000000; /* Black color for user avatar in light mode */
+}
+
+/* Dark mode override for user avatar */
+[data-bs-theme="dark"] .user-message .message-avatar {
+    color: white; /* White color for user avatar in dark mode */
 }
 
 .bot-message .message-avatar {
     background: linear-gradient(135deg, var(--info), var(--info-dark));
-    color: white;
+    color: #000000; /* Black color for bot avatar in light mode */
+}
+
+/* Dark mode override for bot avatar */
+[data-bs-theme="dark"] .bot-message .message-avatar {
+    color: white; /* White color for bot avatar in dark mode */
 }
 
 .message-content {
@@ -3571,9 +3581,17 @@ body {
 }
 
 .user-message .message-text {
-    background: var(--primary);
-    color: white;
+    background: var(--bg-primary);
+    color: #000000; /* Black color for user messages in light mode */
+    border: 1px solid var(--border-color);
     border-bottom-right-radius: 4px;
+}
+
+/* Dark mode override for user messages */
+[data-bs-theme="dark"] .user-message .message-text {
+    background: var(--primary);
+    color: white; /* White color for user messages in dark mode */
+    border: none;
 }
 
 .bot-message .message-text {
@@ -3673,6 +3691,24 @@ body {
 /* Responsive chatbot */
 @media (max-width: 768px) {
     .chatbot-container {
+        height: 500px;
+    }
+    
+    .message {
+        max-width: 90%;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .message-text {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
         height: 500px;
     }
     
