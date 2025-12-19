@@ -8,6 +8,8 @@ import datetime
 import os
 import platform
 import requests
+import copy
+import traceback
 import ods.ods_rutines
 from flask import Flask, jsonify,render_template,request,redirect,session, url_for, send_file
 from io import BytesIO
@@ -313,7 +315,7 @@ def create_app(test_config=None):
 
             # converting password to array of bytes 
             pwd = generate_password_hash(request.form.get("password"))
-            
+
             # Helper function to convert to string "true" or "false"
             def get_string_value(key):
                 value = request.form.get(key)
@@ -739,65 +741,81 @@ def create_app(test_config=None):
     # DOWNLOAD FILE FROM ODS
     ############################################################################
     
-    @app.route('/download_file_from_ods', methods=['GET', 'POST'])
+    @app.route('/download_file_from_ods', methods=['POST'])
     def download_file_from_ods_route():
         """
-        Download a PDF file from ODS for a given document symbol and language.
-        Accepts both GET (query parameters) and POST (form/json) requests.
+        Download PDF files from ODS for a document symbol and multiple languages.
+        Expects JSON with "docsymbol": "symbol", "languages": ["lang1", "lang2", ...]
         """
+        print(f"DEBUG: download_file_from_ods endpoint called")
         try:
-            # Get parameters from request (support both GET and POST)
-            if request.method == 'GET':
-                docsymbol = request.args.get('docsymbol', '').strip()
-                language = request.args.get('language', '').strip()
-            else:
-                # POST request - try form data first, then JSON
-                if request.is_json:
-                    docsymbol = request.json.get('docsymbol', '').strip()
-                    language = request.json.get('language', '').strip()
-                else:
-                    docsymbol = request.form.get('docsymbol', '').strip()
-                    language = request.form.get('language', '').strip()
+            # Expect JSON with docsymbol and languages array
+            data = request.get_json()
+            docsymbol = data.get('docsymbol', '').strip()
+            languages = data.get('languages', [])
             
-            # Validate required parameters
             if not docsymbol:
                 return jsonify({
                     "status": 0,
-                    "error": "docsymbol parameter is required"
+                    "error": "docsymbol is required"
                 }), 400
             
-            if not language:
+            if not languages or not isinstance(languages, list):
                 return jsonify({
                     "status": 0,
-                    "error": "language parameter is required"
+                    "error": "languages array is required"
                 }), 400
             
-            # Call the download function
-            result = ods.ods_rutines.download_file_from_ods(docsymbol, language)
-            
-            # Create log
+            results = []
             username = session.get('username', 'unknown_user')
-            log_message = f"Download file from ODS: {docsymbol} [{language}]"
-            if result.get("status") == 1:
-                log_message += f" - Success: {result.get('filename', '')}"
+            print(f"DEBUG: Username from session: {username}")
+            
+            for language in languages:
+                language = language.strip()
+                if not language:
+                    continue
+                
+                # Call the download function
+                result = ods.ods_rutines.download_file_from_ods(docsymbol, language)
+                result['docsymbol'] = docsymbol
+                result['language'] = language
+                
+                # Create log for each download
+                log_message = f"Download file from ODS: {docsymbol} [{language}]"
+                if result.get("status") == 1:
+                    log_message += f" - Success: {result.get('filename', '')}"
+                else:
+                    log_message += f" - Failed: {result.get('message', '')}"
+                
+                ods.ods_rutines.add_log(
+                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    username,
+                    log_message
+                )
+                
+                results.append(result)
+            
+            # Create analytics for this docsymbol - data is the results array for all languages
+            analytics_data = results
+            print(f"DEBUG: Results data: {analytics_data}")
+            print(f"DEBUG: Calling add_analytics with action: download_file_from_ods_endpoint, data length: {len(analytics_data) if analytics_data else 'None'}")
+            if not analytics_data:
+                print(f"ERROR: analytics_data is empty!")
             else:
-                log_message += f" - Failed: {result.get('message', '')}"
+                try:
+                    ods.ods_rutines.add_analytics(
+                        datetime.datetime.now(tz=datetime.timezone.utc),
+                        username,
+                        "download_file_from_ods_endpoint",
+                        analytics_data
+                    )
+                    print(f"DEBUG: add_analytics call completed successfully")
+                except Exception as e:
+                    print(f"ERROR: add_analytics failed: {e}")
+                    print(f"ERROR: Traceback: {traceback.format_exc()}")
+            print(f"DEBUG: add_analytics call completed")
             
-            ods.ods_rutines.add_log(
-                datetime.datetime.now(tz=datetime.timezone.utc),
-                username,
-                log_message
-            )
-            
-            # Create analytics
-            ods.ods_rutines.add_analytics(
-                datetime.datetime.now(tz=datetime.timezone.utc),
-                username,
-                "download_file_from_ods_endpoint",
-                [result]
-            )
-            
-            return jsonify(result)
+            return jsonify(results)
             
         except Exception as e:
             # Log error
@@ -907,17 +925,12 @@ def create_app(test_config=None):
                 log_message
             )
             
-            # Create analytics (remove filepath from results for analytics)
-            analytics_results = []
-            for result in results:
-                analytics_result = {k: v for k, v in result.items() if k != 'filepath'}
-                analytics_results.append(analytics_result)
-            
+            # Create analytics - exactly like send_file_endpoint
             ods.ods_rutines.add_analytics(
                 datetime.datetime.now(tz=datetime.timezone.utc),
                 username,
                 "batch_download_files_from_ods_endpoint",
-                analytics_results
+                results
             )
             
             return jsonify({

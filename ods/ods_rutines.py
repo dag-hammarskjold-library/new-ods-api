@@ -2,7 +2,7 @@
 # imports
 #############################m###########################################
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 from pymongo import MongoClient
 import requests
@@ -20,6 +20,9 @@ import platform
 import base64
 import time
 from pathlib import Path
+import copy
+import traceback
+import traceback
 
 ########################################################################
 # setup urllib3
@@ -125,22 +128,66 @@ def add_analytics(date_analytics:str,user_connected:str,action_analytics:str,dat
         
         # setup the database and the collection
         my_collection = my_database["ods_actions_analytics_collection"]
+        
+        print(f"DEBUG: Database connection test - collection: {my_collection.name}")
 
-        # creation of the log object
-        my_analytics = {
-            "user": user_connected,
-            "action": action_analytics,
-            "date": date_analytics,
-            "data":data
-        }
+        # For download actions, create a new data structure without filepath
+        # Check if this is a download action
+        is_download_action = (action_analytics == "batch_download_files_from_ods_endpoint" or 
+                             action_analytics == "download_file_from_ods_endpoint" or
+                             "batch_download" in str(action_analytics).lower() or
+                             "download_file_from_ods" in str(action_analytics).lower())
         
-        # save the log in the database
-        my_collection.insert_one(my_analytics)
+        # For download actions, build a new structure without filepath
+        cleaned_data = data
+        if is_download_action:
+            print(f"DEBUG: Processing download action: {action_analytics}")
+            print(f"DEBUG: Original data: {data}")
+            
+            # Simply remove filepath from the data
+            if isinstance(data, list):
+                cleaned_data = []
+                for item in data:
+                    if isinstance(item, dict):
+                        # Remove filepath if it exists
+                        cleaned_item = {k: v for k, v in item.items() if k != 'filepath'}
+                        cleaned_data.append(cleaned_item)
+                    else:
+                        cleaned_data.append(item)
+            elif isinstance(data, dict):
+                cleaned_data = {k: v for k, v in data.items() if k != 'filepath'}
+            
+            print(f"DEBUG: Cleaned data: {cleaned_data}")
         
-        return 0
+        print(f"DEBUG: Final cleaned_data: {cleaned_data}")
         
-    except:
-
+        # For download actions, always insert new document (for testing)
+        if is_download_action:
+            print(f"DEBUG: Processing download action: {action_analytics} for user: {user_connected}")
+            # Always insert new document for download actions
+            my_analytics = {
+                "user": user_connected,
+                "action": action_analytics,
+                "date": date_analytics,
+                "data": cleaned_data
+            }
+            result = my_collection.insert_one(my_analytics)
+            print(f"DEBUG: Insert result: {result.inserted_id}")
+            return 0
+        else:
+            # For non-download actions, insert as new entry
+            my_analytics = {
+                "user": user_connected,
+                "action": action_analytics,
+                "date": date_analytics,
+                "data": cleaned_data
+            }
+            my_collection.insert_one(my_analytics)
+            return 0
+        
+    except Exception as e:
+        print(f"ERROR: Exception in add_analytics: {e}")
+        print(f"ERROR: Traceback: {traceback.format_exc()}")
         return -1
 
 ########################################################################

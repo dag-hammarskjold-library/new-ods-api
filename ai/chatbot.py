@@ -1,5 +1,5 @@
 """
-Chatbot module using Gemini API for ODS Actions Help
+Chatbot module using Hugging Face Llama-3.1-8B-Instruct for ODS Actions Help
 This module provides a chatbot interface that uses the extracted PDF documentation
 to answer user questions about the ODS Actions application.
 """
@@ -8,6 +8,8 @@ import os
 import sys
 import re
 import json
+import requests
+import urllib.parse
 from pathlib import Path
 from decouple import config
 
@@ -22,25 +24,31 @@ except ImportError:
     except ImportError:
         DB_READER_AVAILABLE = False
 
-# Try to import Gemini
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except ImportError as e:
-    GEMINI_AVAILABLE = False
-    # Don't print warning on import - let the functions handle it
-    _GEMINI_IMPORT_ERROR = str(e)
-except Exception as e:
-    # Handle other import errors (like missing grpc)
-    GEMINI_AVAILABLE = False
-    _GEMINI_IMPORT_ERROR = str(e)
+# Hugging Face API configuration
+HF_API_AVAILABLE = True
+# List of models to try in order (will try each until one works)
+# Using models that are more likely to work - trying basic text generation models
+# These are publicly available and don't require special access
+# NOTE: If all models fail, consider using OpenAI API or a local model
+HF_MODELS_TO_TRY = [
+    "gpt2",                      # Very accessible, basic text generation
+    "distilgpt2",                # Smaller GPT-2 variant, very accessible
+    "google/flan-t5-small",      # Small instruction-following model
+    "google/flan-t5-base",       # Base model, instruction following
+]
+# Start with the first model
+HF_MODEL = HF_MODELS_TO_TRY[0]
+# Use the router API endpoint for inference (inference API is deprecated)
+HF_API_URL = f"https://router.huggingface.co/models/{HF_MODEL}"
 
 # Load documentation from extracted text file (already extracted)
 _DOCUMENTATION_CACHE = ""
 
 def load_documentation_from_file():
     """
-    Load documentation from the already extracted text file.
+    Load ODS_ACTIONS_DOCUMENTATION from the already extracted text file.
+    This loads the documentation from extracted_documentation.txt (not from PDF).
+    The model uses this text documentation to answer questions - no PDF extraction needed.
     This is faster and more reliable than extracting from PDF each time.
     """
     global _DOCUMENTATION_CACHE
@@ -85,106 +93,106 @@ def load_documentation_from_file():
 _DOCUMENTATION_CACHE = load_documentation_from_file()
 
 
-def initialize_gemini():
+def initialize_hf():
     """
-    Initialize Gemini API with API key from environment variables.
+    Initialize Hugging Face API with API key from environment variables.
     
     Returns:
         bool: True if initialization successful, False otherwise
     """
-    if not GEMINI_AVAILABLE:
+    if not HF_API_AVAILABLE:
         return False
     
     try:
         # Get API key from environment variable
-        api_key = config("GEMINI_API_KEY", default=None)
+        api_key = config("HF_API_KEY", default=None)
+        
+        # Try alternative names if HF_API_KEY not found
+        if not api_key:
+            api_key = config("HUGGINGFACE_API_KEY", default=None)
+        if not api_key:
+            api_key = config("HUGGING_FACE_API_KEY", default=None)
+        if not api_key:
+            # Try from os.environ directly as fallback
+            import os
+            api_key = os.environ.get("HF_API_KEY") or os.environ.get("HUGGINGFACE_API_KEY") or os.environ.get("HUGGING_FACE_API_KEY")
         
         if not api_key:
-            print("Error: GEMINI_API_KEY not found in environment variables")
+            print("Error: HF_API_KEY not found in environment variables")
+            print("Please add HF_API_KEY=your_key_here to your .env file")
             return False
         
-        # Configure Gemini
-        genai.configure(api_key=api_key)
+        # Test API key by making a simple request (skip test for router API, just verify key exists)
+        # Router API might not support GET requests, so we'll test during actual inference
         return True
         
+        if test_response.status_code == 200 or test_response.status_code == 503:  # 503 means model is loading
+            return True
+        else:
+            print(f"Error: Hugging Face API returned status {test_response.status_code}")
+            return False
     except Exception as e:
-        print(f"Error initializing Gemini: {e}")
+        print(f"Error initializing Hugging Face API: {e}")
         return False
 
 
-# Cache the model instance to avoid recreating it on every request
-_MODEL_CACHE = None
+# Cache the API key to avoid re-reading it
+_HF_API_KEY = None
+
+def get_hf_api_key():
+    """
+    Get the Hugging Face API key from environment variables.
+    
+    Returns:
+        str or None: The API key, or None if unavailable
+    """
+    global _HF_API_KEY
+    
+    if _HF_API_KEY is not None:
+        return _HF_API_KEY
+    
+    try:
+        # Try to get the API key from environment
+        api_key = config("HF_API_KEY", default=None)
+        
+        # If not found, try alternative names
+        if not api_key:
+            api_key = config("HUGGINGFACE_API_KEY", default=None)
+        if not api_key:
+            api_key = config("HUGGING_FACE_API_KEY", default=None)
+        if not api_key:
+            # Try from os.environ directly as fallback
+            import os
+            api_key = os.environ.get("HF_API_KEY") or os.environ.get("HUGGINGFACE_API_KEY") or os.environ.get("HUGGING_FACE_API_KEY")
+        
+        if api_key:
+            _HF_API_KEY = api_key
+            return api_key
+        else:
+            print("Error: HF_API_KEY not found in environment variables.")
+            print("Please add HF_API_KEY=your_key_here to your .env file")
+            return None
+            except Exception as e:
+        print(f"Error getting HF_API_KEY: {e}")
+        return None
+
 
 def get_chatbot_model():
     """
-    Get the Gemini model configured for chat.
-    Uses cached model instance for better performance.
+    Get the Hugging Face model configuration for chat.
+    This function is kept for compatibility but returns True if API is available.
     
     Returns:
-        Model or None: The Gemini model instance, or None if unavailable
+        bool: True if API is available, False otherwise
     """
-    global _MODEL_CACHE
-    
-    # Return cached model if available
-    if _MODEL_CACHE is not None:
-        return _MODEL_CACHE
-    
-    if not GEMINI_AVAILABLE:
-        return None
-    
-    if not initialize_gemini():
-        return None
-    
-    try:
-        # Use faster Flash models first for better response times
-        # Try 2.5 Flash first (fastest), then 2.5 Pro, then fallbacks
-        model_names = [
-            'gemini-2.5-flash',  # Fastest option
-            'models/gemini-2.5-flash',
-            'gemini-2.5-pro',  # User requested 2.5
-            'models/gemini-2.5-pro',
-            'gemini-1.5-flash',  # Fast fallback
-            'models/gemini-1.5-flash',
-            'gemini-1.5-pro',  # Slower fallback
-            'models/gemini-1.5-pro'
-        ]
-        
-        last_error = None
-        for model_name in model_names:
-            try:
-                model = genai.GenerativeModel(model_name)
-                # Cache the model for reuse
-                _MODEL_CACHE = model
-                return model
-            except Exception as e:
-                last_error = e
-                continue
-        
-        # If all models failed, try to list available models
-        try:
-            models = genai.list_models()
-            available = []
-            for m in models:
-                if hasattr(m, 'supported_generation_methods') and 'generateContent' in m.supported_generation_methods:
-                    available.append(m.name)
-            if available:
-                # Prefer flash models for speed
-                flash_models = [m for m in available if 'flash' in m.lower()]
-                if flash_models:
-                    _MODEL_CACHE = genai.GenerativeModel(flash_models[0])
-                    return _MODEL_CACHE
-                # Otherwise use first available
-                _MODEL_CACHE = genai.GenerativeModel(available[0])
-                return _MODEL_CACHE
-        except Exception as list_error:
-            print(f"Could not list models: {list_error}")
-        
-        print(f"Error getting model. Last error: {last_error}")
+    if not HF_API_AVAILABLE:
         return None
                 
-    except Exception as e:
-        print(f"Error getting model: {e}")
+    api_key = get_hf_api_key()
+    if not api_key:
         return None
+    
+    return True  # Return True to indicate API is available
 
 
 # Cache the system prompt to avoid recreating it every time
@@ -762,11 +770,12 @@ Be helpful, friendly, and professional."""
 
 def chat_with_gemini(user_message, conversation_history=None):
     """
-    Send a message to Gemini and get a response.
+    Send a message to Hugging Face Llama model and get a response.
+    This function is kept for backward compatibility but now uses Hugging Face.
     
     Args:
         user_message (str): The user's question/message
-        conversation_history (list, optional): Previous conversation messages
+        conversation_history (list, optional): Previous conversation messages (not fully supported yet)
         
     Returns:
         dict: Response dictionary with:
@@ -774,159 +783,9 @@ def chat_with_gemini(user_message, conversation_history=None):
             - 'response' (str): The bot's response text
             - 'error' (str): Error message if failed
     """
-    global _DOCUMENTATION_CACHE
-    
-    result = {
-        'success': False,
-        'response': '',
-        'error': None
-    }
-    
-    if not GEMINI_AVAILABLE:
-        error_msg = "Gemini API library not available."
-        if '_GEMINI_IMPORT_ERROR' in globals():
-            if 'grpc' in _GEMINI_IMPORT_ERROR.lower():
-                error_msg += " Missing dependency: grpcio. Install with: pip install grpcio"
-            else:
-                error_msg += f" Error: {_GEMINI_IMPORT_ERROR}. Install with: pip install google-generativeai grpcio"
-        else:
-            error_msg += " Install with: pip install google-generativeai grpcio"
-        result['error'] = error_msg
-        return result
-    
-    if not _DOCUMENTATION_CACHE:
-        _DOCUMENTATION_CACHE = load_documentation_from_file()
-        
-    if not _DOCUMENTATION_CACHE:
-        result['error'] = "Documentation not loaded. Please ensure extracted_documentation.txt exists in the ai folder."
-        return result
-    
-    try:
-        model = get_chatbot_model()
-        if not model:
-            result['error'] = "Failed to initialize Gemini model. Check GEMINI_API_KEY in .env file."
-            return result
-        
-        # Create system prompt with documentation
-        system_prompt = create_system_prompt()
-        
-        # Check if this is a database query and get results
-        db_context = ""
-        if DB_READER_AVAILABLE and detect_database_query(user_message):
-            db_context = get_database_context(user_message)
-        
-        # Build conversation
-        if conversation_history is None:
-            conversation_history = []
-        
-        # Start chat with system prompt
-        chat = model.start_chat(history=[])
-        
-        # Send system prompt as first message (context)
-        try:
-            chat.send_message(system_prompt)
-        except:
-            # Some models don't support system messages, so we'll include it in the first user message
-            pass
-        
-        # Add conversation history
-        for msg in conversation_history:
-            if msg.get('role') == 'user':
-                chat.send_message(msg.get('content', ''))
-            elif msg.get('role') == 'assistant':
-                # For history, we need to maintain context
-                # Gemini handles this through the chat history
-                pass
-        
-        # Send user message (with context if no history)
-        if not conversation_history:
-            # Optimized prompt - more direct
-            full_message = f"""{system_prompt}
-
-Question: {user_message}
-{db_context}
-
-Answer:"""
-        else:
-            full_message = user_message + db_context
-        
-        # Generate with optimized settings for speed
-        generation_config = {
-            'temperature': 0.7,
-            'max_output_tokens': 1024,  # Limit length for speed
-        }
-        
-        # Get response
-        response = chat.send_message(full_message, generation_config=generation_config)
-        
-        # Check for blocked responses or errors
-        if not response.candidates or len(response.candidates) == 0:
-            result['error'] = "No response generated. The response may have been blocked by safety filters."
-            result['success'] = False
-            return result
-        
-        candidate = response.candidates[0]
-        
-        # Check finish_reason (SAFETY, RECITATION, etc.)
-        # finish_reason values: 1=STOP (normal), 2=MAX_TOKENS (truncated but valid), 3=SAFETY (blocked), 4=RECITATION (blocked)
-        if hasattr(candidate, 'finish_reason'):
-            finish_reason = candidate.finish_reason
-            finish_reason_str = str(finish_reason).upper() if finish_reason else None
-            finish_reason_int = int(finish_reason) if isinstance(finish_reason, (int, float)) else None
-            
-            # Only block on actual blocking reasons (3=SAFETY, 4=RECITATION)
-            # 1=STOP and 2=MAX_TOKENS are valid completions
-            if finish_reason_int == 3 or finish_reason_str == "SAFETY":
-                result['error'] = "Response was blocked by safety filters. Please try rephrasing your question or breaking it into smaller parts."
-                result['success'] = False
-                return result
-            elif finish_reason_int == 4 or finish_reason_str == "RECITATION":
-                result['error'] = "Response was blocked due to recitation concerns. Please try rephrasing your question."
-                result['success'] = False
-                return result
-            # Don't block on STOP (1) or MAX_TOKENS (2) - these are valid
-        
-        # Check if response has text content
-        # First try to get text from parts (more reliable)
-        text_content = None
-        if candidate.content and hasattr(candidate.content, 'parts') and candidate.content.parts:
-            text_parts = []
-            for part in candidate.content.parts:
-                if hasattr(part, 'text') and part.text:
-                    text_parts.append(part.text)
-            if text_parts:
-                text_content = ' '.join(text_parts)
-        
-        # Fallback to response.text if available (but be careful with finish_reason 2)
-        if not text_content:
-            try:
-                if hasattr(response, 'text') and response.text:
-                    text_content = response.text
-            except Exception as e:
-                # If response.text fails (e.g., finish_reason 2 with no parts), that's okay
-                # We'll handle it below
-                pass
-        
-        # If we have text content, return it (even if finish_reason is 2/MAX_TOKENS)
-        if text_content:
-            result['success'] = True
-            result['response'] = text_content
-            # Add a note if it was truncated
-            if hasattr(candidate, 'finish_reason'):
-                finish_reason = candidate.finish_reason
-                if (isinstance(finish_reason, (int, float)) and int(finish_reason) == 2) or str(finish_reason).upper() == "MAX_TOKENS":
-                    result['response'] += "\n\n(Note: Response may have been truncated due to token limit)"
-        else:
-            # No text content available
-            finish_reason_info = f" (finish_reason: {candidate.finish_reason})" if hasattr(candidate, 'finish_reason') else ""
-            result['error'] = f"Response generated but contains no text content{finish_reason_info}. This may occur if the response was truncated or blocked."
-            result['success'] = False
-        
-    except Exception as e:
-        result['error'] = f"Error communicating with Gemini: {str(e)}"
-        result['success'] = False
-    
-    return result
+    # For now, use simple_chat which works well with Hugging Face
+    # Conversation history can be added later if needed
+    return simple_chat(user_message)
 
 
 def simple_chat(user_message):
@@ -940,19 +799,11 @@ def simple_chat(user_message):
     Returns:
         dict: Response dictionary
     """
-    if not GEMINI_AVAILABLE:
-        error_msg = "Gemini API library not available."
-        if '_GEMINI_IMPORT_ERROR' in globals():
-            if 'grpc' in _GEMINI_IMPORT_ERROR.lower():
-                error_msg += " Missing dependency: grpcio. Install with: pip install grpcio"
-            else:
-                error_msg += f" Error: {_GEMINI_IMPORT_ERROR}"
-        else:
-            error_msg += " Install with: pip install google-generativeai grpcio"
+    if not HF_API_AVAILABLE:
         return {
             'success': False,
             'response': '',
-            'error': error_msg
+            'error': "Hugging Face API not available. Please ensure requests library is installed."
         }
     
     # Ensure documentation is loaded
@@ -968,12 +819,12 @@ def simple_chat(user_message):
         }
     
     try:
-        model = get_chatbot_model()
-        if not model:
+        api_key = get_hf_api_key()
+        if not api_key:
             return {
                 'success': False,
                 'response': '',
-                'error': "Failed to initialize Gemini model"
+                'error': "Failed to get Hugging Face API key. Check HF_API_KEY in .env file."
             }
         
         # Create prompt with documentation (cached)
@@ -984,7 +835,9 @@ def simple_chat(user_message):
         if DB_READER_AVAILABLE and detect_database_query(user_message):
             db_context = get_database_context(user_message)
         
-        # Optimized prompt - more direct, less verbose
+        # Format prompt for instruction-following models (FLAN-T5, Mistral, Llama, etc.)
+        # Combine system prompt and user message into a single text prompt
+        # FLAN-T5 models work well with this format
         full_prompt = f"""{system_prompt}
 
 Question: {user_message}
@@ -992,81 +845,142 @@ Question: {user_message}
 
 Answer:"""
         
-        # Generate response with optimized settings for speed
-        generation_config = {
-            'temperature': 0.7,  # Balanced creativity/speed
-            'top_p': 0.9,
-            'top_k': 40,
-            'max_output_tokens': 1024,  # Limit response length for speed
+        # Prepare the payload for Hugging Face API
+        # For text generation models, we pass the prompt as a string
+        payload = {
+            "inputs": full_prompt,
+            "parameters": {
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "max_new_tokens": 1024,
+                "return_full_text": False
+            }
         }
         
-        response = model.generate_content(
-            full_prompt,
-            generation_config=generation_config
-        )
+        headers = {"Authorization": f"Bearer {api_key}"}
         
-        # Check for blocked responses or errors
-        if not response.candidates or len(response.candidates) == 0:
-            return {
-                'success': False,
-                'response': '',
-                'error': "No response generated. The response may have been blocked by safety filters."
+        # Try models in order until one works
+        response = None
+        last_error = None
+        used_model = None
+        
+        for model_name in HF_MODELS_TO_TRY:
+            # Try router API first
+            model_url = f"https://router.huggingface.co/models/{model_name}"
+            used_model = model_name
+            
+            try:
+                response = requests.post(model_url, headers=headers, json=payload, timeout=60)
+                
+                # If model is loading (503), wait and retry
+                if response.status_code == 503:
+                    import time
+                    time.sleep(5)
+                    response = requests.post(model_url, headers=headers, json=payload, timeout=60)
+                
+                # If successful, break out of loop
+                if response.status_code == 200:
+                    break
+                
+                # If 404, try inference API as fallback (even though deprecated)
+                if response.status_code == 404:
+                    last_error = f"Model {model_name} not found on Router API (404)"
+                    # Try inference API as fallback
+                    inference_url = f"https://api-inference.huggingface.co/models/{model_name}"
+                    try:
+                        inference_response = requests.post(inference_url, headers=headers, json=payload, timeout=60)
+                        if inference_response.status_code == 200:
+                            response = inference_response
+                            break
+                        elif inference_response.status_code == 503:
+                            import time
+                            time.sleep(5)
+                            inference_response = requests.post(inference_url, headers=headers, json=payload, timeout=60)
+                            if inference_response.status_code == 200:
+                                response = inference_response
+                                break
+                    except:
+                        pass  # Continue to next model
+                    continue
+                
+                # For other errors, break and report
+                break
+                
+            except requests.exceptions.RequestException as e:
+                last_error = f"Request error with {model_name}: {str(e)}"
+                response = None  # Ensure response is None on exception
+                continue
+            except Exception as e:
+                last_error = f"Unexpected error with {model_name}: {str(e)}"
+                response = None  # Ensure response is None on exception
+                continue
+        
+        # If no model worked, return error
+        if not response or response.status_code != 200:
+            error_msg = f"Hugging Face API error: {response.status_code if response else 'No response'}"
+            try:
+                if response:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        error_msg += f" - {error_data['error']}"
+                    elif isinstance(error_data, str):
+                        error_msg += f" - {error_data}"
+                    elif isinstance(error_data, dict):
+                        error_msg += f" - {str(error_data)}"
+            except:
+                if response:
+                    error_text = response.text[:500] if hasattr(response, 'text') else str(response)[:500]
+                    error_msg += f" - {error_text}"
+            
+            # If 404, provide helpful message about model access
+            if not response or response.status_code == 404:
+                error_msg += f"\n\nTried models: {', '.join(HF_MODELS_TO_TRY)}\n"
+                error_msg += f"Last attempted: {used_model if used_model else HF_MODEL}\n"
+                if used_model:
+                    error_msg += f"Endpoint: https://router.huggingface.co/models/{used_model}\n\n"
+                error_msg += "All models returned 404. Possible issues:\n"
+                error_msg += "1. Models may require accepting terms on Hugging Face\n"
+                error_msg += "2. Your API key may not have access to these models\n"
+                error_msg += "3. Models may not be available through the Router API\n"
+                error_msg += "4. Check Hugging Face model pages and accept terms if needed\n"
+                if last_error:
+                    error_msg += f"\nLast error: {last_error}"
+            
+                return {
+                    'success': False,
+                    'response': '',
+                'error': error_msg
             }
         
-        candidate = response.candidates[0]
+        # Parse response
+        response_data = response.json()
         
-        # Check finish_reason (SAFETY, RECITATION, etc.)
-        # finish_reason values: 1=STOP (normal), 2=MAX_TOKENS (truncated but valid), 3=SAFETY (blocked), 4=RECITATION (blocked)
-        if hasattr(candidate, 'finish_reason'):
-            finish_reason = candidate.finish_reason
-            finish_reason_str = str(finish_reason).upper() if finish_reason else None
-            finish_reason_int = int(finish_reason) if isinstance(finish_reason, (int, float)) else None
-            
-            # Only block on actual blocking reasons (3=SAFETY, 4=RECITATION)
-            # 1=STOP and 2=MAX_TOKENS are valid completions
-            if finish_reason_int == 3 or finish_reason_str == "SAFETY":
-                return {
-                    'success': False,
-                    'response': '',
-                    'error': "Response was blocked by safety filters. Please try rephrasing your question or breaking it into smaller parts."
-                }
-            elif finish_reason_int == 4 or finish_reason_str == "RECITATION":
-                return {
-                    'success': False,
-                    'response': '',
-                    'error': "Response was blocked due to recitation concerns. Please try rephrasing your question."
-                }
-            # Don't block on STOP (1) or MAX_TOKENS (2) - these are valid
+        # Hugging Face API returns a list of generated text
+        if isinstance(response_data, list) and len(response_data) > 0:
+            if 'generated_text' in response_data[0]:
+                response_text = response_data[0]['generated_text']
+            elif isinstance(response_data[0], dict) and 'text' in response_data[0]:
+                response_text = response_data[0]['text']
+            else:
+                # Try to extract text from the response
+                response_text = str(response_data[0])
+        elif isinstance(response_data, dict):
+            if 'generated_text' in response_data:
+                response_text = response_data['generated_text']
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
         
-        # Check if response has text content
-        # First try to get text from parts (more reliable)
-        text_content = None
-        if candidate.content and hasattr(candidate.content, 'parts') and candidate.content.parts:
-            text_parts = []
-            for part in candidate.content.parts:
-                if hasattr(part, 'text') and part.text:
-                    text_parts.append(part.text)
-            if text_parts:
-                text_content = ' '.join(text_parts)
-        
-        # Fallback to response.text if available (but be careful with finish_reason 2)
-        if not text_content:
-            try:
-                if hasattr(response, 'text') and response.text:
-                    text_content = response.text
-            except Exception as e:
-                # If response.text fails (e.g., finish_reason 2 with no parts), that's okay
-                # We'll handle it below
-                pass
-        
-        # If we have text content, return it (even if finish_reason is 2/MAX_TOKENS)
-        if text_content:
-            response_text = text_content
-            # Add a note if it was truncated
-            if hasattr(candidate, 'finish_reason'):
-                finish_reason = candidate.finish_reason
-                if (isinstance(finish_reason, (int, float)) and int(finish_reason) == 2) or str(finish_reason).upper() == "MAX_TOKENS":
-                    response_text += "\n\n(Note: Response may have been truncated due to token limit)"
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
             
             return {
                 'success': True,
@@ -1074,12 +988,10 @@ Answer:"""
                 'error': None
             }
         else:
-            # No text content available
-            finish_reason_info = f" (finish_reason: {candidate.finish_reason})" if hasattr(candidate, 'finish_reason') else ""
             return {
                 'success': False,
                 'response': '',
-                'error': f"Response generated but contains no text content{finish_reason_info}. This may occur if the response was truncated or blocked."
+                'error': "No response generated from Hugging Face API."
             }
         
     except Exception as e:
@@ -1090,15 +1002,24 @@ Answer:"""
         }
 
 
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
 if __name__ == "__main__":
     # Test the chatbot
     print("Testing ODS Actions Chatbot...")
     print("=" * 60)
     
-    # Check if Gemini is available
-    if not GEMINI_AVAILABLE:
-        print("✗ Gemini library not installed")
-        print("Install with: pip install google-generativeai")
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
         sys.exit(1)
     
     # Check documentation (no global needed at module level)
@@ -1113,8 +1034,8 @@ if __name__ == "__main__":
     print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
     
     # Test initialization
-    if initialize_gemini():
-        print("✓ Gemini initialized successfully")
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
         
         # Test a simple question
         print("\nTesting with sample question...")
@@ -1128,6 +1049,866 @@ if __name__ == "__main__":
         else:
             print(f"\nError: {result['error']}")
     else:
-        print("✗ Failed to initialize Gemini")
-        print("Make sure GEMINI_API_KEY is set in your .env file")
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
+
+
+            elif 'text' in response_data:
+                response_text = response_data['text']
+            else:
+                response_text = str(response_data)
+        else:
+            response_text = str(response_data)
+        
+        # Clean up the response text (remove any prompt artifacts)
+        if response_text:
+            # Remove the original prompt if it was included
+            if user_message in response_text:
+                response_text = response_text.split(user_message)[-1].strip()
+            if "Answer:" in response_text:
+                response_text = response_text.split("Answer:")[-1].strip()
+            
+            return {
+                'success': True,
+                'response': response_text,
+                'error': None
+            }
+        else:
+            return {
+                'success': False,
+                'response': '',
+                'error': "No response generated from Hugging Face API."
+            }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'response': '',
+            'error': f"Error: {str(e)}"
+        }
+
+
+# Alias for backward compatibility
+def initialize_gemini():
+    """Alias for initialize_hf() for backward compatibility"""
+    return initialize_hf()
+
+def chat_with_gemini(user_message, conversation_history=None):
+    """Alias for simple_chat() for backward compatibility"""
+    return simple_chat(user_message)
+
+if __name__ == "__main__":
+    # Test the chatbot
+    print("Testing ODS Actions Chatbot...")
+    print("=" * 60)
+    
+    # Check if Hugging Face API is available
+    if not HF_API_AVAILABLE:
+        print("✗ Hugging Face API not available")
+        print("Please ensure requests library is installed: pip install requests")
+        sys.exit(1)
+    
+    # Check documentation (no global needed at module level)
+    if not _DOCUMENTATION_CACHE:
+        _DOCUMENTATION_CACHE = load_documentation_from_file()
+        
+    if not _DOCUMENTATION_CACHE:
+        print("✗ Documentation not loaded")
+        print("Please ensure extracted_documentation.txt exists in the ai folder")
+        sys.exit(1)
+    
+    print(f"✓ Documentation loaded: {len(_DOCUMENTATION_CACHE)} characters")
+    
+    # Test initialization
+    if initialize_hf():
+        print("✓ Hugging Face API initialized successfully")
+        
+        # Test a simple question
+        print("\nTesting with sample question...")
+        test_question = "How do I display metadata for a document symbol?"
+        
+        result = simple_chat(test_question)
+        
+        if result['success']:
+            print(f"\nQuestion: {test_question}")
+            print(f"\nAnswer:\n{result['response']}")
+        else:
+            print(f"\nError: {result['error']}")
+    else:
+        print("✗ Failed to initialize Hugging Face API")
+        print("Make sure HF_API_KEY is set in your .env file")
 

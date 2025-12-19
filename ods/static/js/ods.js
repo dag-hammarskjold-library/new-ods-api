@@ -202,14 +202,11 @@ Vue.component('ods', {
                                             </div>
                                             <div class="col-md-5 mb-3">
                                                 <div id="downloadProgress" class="text-center" v-if="downloadProgress" style="padding-top: 40px;">
-                                                    <div class="loading-spinner">
-                                                        <div class="spinner"></div>
-                                                        <p>Downloading files...</p>
-                                                    </div>
                                                     <div class="mt-3" style="text-align: left; padding-left: 20px;">
                                                         <p class="mb-1"><strong>Total Symbols:</strong> {{ downloadTotalSymbols }}</p>
                                                         <p class="mb-1"><strong>Start Time:</strong> {{ formatStartTime(downloadStartTime) }}</p>
                                                         <p class="mb-1"><strong>Elapsed Time:</strong> {{ formatElapsedTime(downloadElapsedTime) }}</p>
+                                                        <p class="mb-1" v-if="downloadEndTime"><strong>End Time:</strong> {{ formatStartTime(downloadEndTime) }}</p>
                                                         <div ref="downloadLogsContainer" class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
                                                             <strong style="font-size: 0.9em; color: #ffffff;">Progress Logs:</strong>
                                                             <div v-if="downloadLogs.length === 0" class="mt-2" style="font-size: 0.85em; color: #cccccc;">
@@ -438,15 +435,12 @@ Vue.component('ods', {
                                             </div>
                                             <div class="col-md-5 mb-3">
                                                 <div id="sendFilesProgress" class="text-center" v-if="displayProgress3" style="padding-top: 40px;">
-                                                    <div class="loading-spinner">
-                                                        <div class="spinner"></div>
-                                                        <p>Uploading files...</p>
-                                                    </div>
                                                     <div class="mt-3" style="text-align: left; padding-left: 20px;">
                                                         <p class="mb-1"><strong>Total Symbols:</strong> {{ sendFilesTotalSymbols }}</p>
                                                         <p class="mb-1"><strong>Start Time:</strong> {{ formatStartTime(sendFilesStartTime) }}</p>
                                                         <p class="mb-1"><strong>Elapsed Time:</strong> {{ formatElapsedTime(sendFilesElapsedTime) }}</p>
-                                                        <div class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
+                                                        <p class="mb-1" v-if="sendFilesEndTime"><strong>End Time:</strong> {{ formatStartTime(sendFilesEndTime) }}</p>
+                                                        <div ref="sendFilesLogsContainer" class="mt-2" style="padding: 10px; background-color: #000000; border-radius: 5px; max-height: 250px; overflow-y: auto; color: #ffffff;">
                                                             <strong style="font-size: 0.9em; color: #ffffff;">Progress Logs:</strong>
                                                             <div v-if="sendFilesLogs.length === 0" class="mt-2" style="font-size: 0.85em; color: #cccccc;">
                                                                 Waiting to start...
@@ -460,7 +454,7 @@ Vue.component('ods', {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                            </div>
                                         <div class="modern-button-group mt-3">
                                             <button class="btn-modern btn-success-modern" type="button" v-if="displayResult2==false" @click="displayResultSendFile(docsymbols2)" :disabled="isSendFilesButtonDisabled">
                                                 <i class="fas fa-upload me-2"></i>
@@ -1107,10 +1101,7 @@ data: function () {
         downloadResults: [],
         downloadStartTime: null,
         downloadElapsedTime: 0,
-        downloadTotalSymbols: 0,
-        downloadTimerInterval: null,
-        downloadStartTime: null,
-        downloadElapsedTime: 0,
+        downloadEndTime: null,
         downloadTotalSymbols: 0,
         downloadTimerInterval: null,
         availableLanguages: [
@@ -1126,6 +1117,7 @@ data: function () {
         sendFilesLogs: [],
         sendFilesStartTime: null,
         sendFilesElapsedTime: 0,
+        sendFilesEndTime: null,
         sendFilesTotalSymbols: 0,
         sendFilesTimerInterval: null,
         // User management data
@@ -1340,7 +1332,7 @@ data: function () {
                 return 'Invalid date';
             }
         },
-        
+
         formatDate(dateString) {
             try {
                 const date = new Date(dateString);
@@ -1857,16 +1849,20 @@ data: function () {
                     }
                 }
 
-                // Initialize tracking
+                // Initialize tracking - show details window immediately (same as Download Files)
                 this.displayProgress3 = true;
                 this.listOfResult2 = [];
                 this.sendFilesLogs = [];
                 this.sendFilesStartTime = new Date();
+                this.sendFilesEndTime = null; // Reset end time
                 this.sendFilesTotalSymbols = symbols.length;
                 this.sendFilesElapsedTime = 0;
                 
-                // Start timer
+                // Start timer immediately
                 this.startSendFilesTimer();
+                
+                // Force Vue to update to show the details window
+                await this.$nextTick();
                 
                 // Add initial log
                 this.addSendFilesLog('info', `Starting upload for ${symbols.length} symbol(s)...`);
@@ -1903,39 +1899,90 @@ data: function () {
                     // loading data
                     try {        
                         let processedCount = 0;
-                        my_data.forEach((elements, index) => {
-                            //console.log(typeof(elements))
+                        let totalFiles = 0;
+                        
+                        // First pass: count total files
+                        my_data.forEach((elements) => {
                             const resultArray = Array.isArray(elements) ? elements : [elements];
-                            this.listOfResult2 = this.listOfResult2.concat(resultArray);
-                            processedCount += resultArray.length;
-                            
-                            // Log progress for each batch
-                            if ((index + 1) % 10 === 0 || index === my_data.length - 1) {
-                                this.addSendFilesLog('info', `Processed ${processedCount} file(s) so far...`);
-                            }
+                            totalFiles += resultArray.length;
                         });
+                        
+                        this.addSendFilesLog('info', `Total files to process: ${totalFiles}`);
+                        
+                        // Second pass: process and log each file (with delay to allow Vue updates)
+                        // Process files one by one to show real-time progress (like Download Files tab)
+                        for (let index = 0; index < my_data.length; index++) {
+                            const elements = my_data[index];
+                            const resultArray = Array.isArray(elements) ? elements : [elements];
+                            
+                            // Process each file in the result array
+                            for (let fileIndex = 0; fileIndex < resultArray.length; fileIndex++) {
+                                const fileResult = resultArray[fileIndex];
+                                processedCount++;
+                                const docsymbol = fileResult.docsymbol || fileResult['Document Symbol'] || 'Unknown';
+                                const language = fileResult.language || fileResult['Language'] || 'Unknown';
+                                const filename = fileResult.filename || fileResult['Filename'] || 'Unknown';
+                                
+                                // Add log for processing this file
+                                this.addSendFilesLog('info', `[${processedCount}/${totalFiles}] Processing ${docsymbol} [${language}] - ${filename}`);
+                                
+                                // Wait for Vue to update - longer delay to ensure visibility (like Download Files)
+                                await this.$nextTick();
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                
+                                // Check result status
+                                const result = fileResult.result || fileResult['Result'] || '';
+                                if (result.toLowerCase().includes('success') || result.toLowerCase().includes('created') || result.toLowerCase().includes('updated')) {
+                                    this.addSendFilesLog('success', `[${processedCount}/${totalFiles}] Success: ${docsymbol} [${language}]`);
+                                } else if (result.toLowerCase().includes('error') || result.toLowerCase().includes('failed')) {
+                                    this.addSendFilesLog('error', `[${processedCount}/${totalFiles}] Failed: ${docsymbol} [${language}] - ${result}`);
+                                }
+                                
+                                // Wait again for Vue to update after status log
+                                await this.$nextTick();
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                            
+                            // Add results to list
+                            this.listOfResult2 = this.listOfResult2.concat(resultArray);
+                        }
                         
                         this.addSendFilesLog('success', `Successfully processed ${this.listOfResult2.length} file(s)`);
                         
-                    } catch (error) {
-                        // Stop spinner on error
-                        this.displayProgress3=false
+                        // Stop timer and calculate end time
                         this.stopSendFilesTimer();
+                        if (this.sendFilesStartTime) {
+                            this.sendFilesEndTime = new Date(this.sendFilesStartTime.getTime() + (this.sendFilesElapsedTime * 1000));
+                            this.addSendFilesLog('info', `Processing completed at ${this.formatStartTime(this.sendFilesEndTime)}`);
+                        }
+                        
+                    } catch (error) {
+                        // Keep details window open even on error
                         this.addSendFilesLog('error', `Data processing error: ${error.message}`);
                         notifications.error(error.message || error, 'Data Processing Error');
+                        
+                        // Stop timer and calculate end time on error
+                        this.stopSendFilesTimer();
+                        if (this.sendFilesStartTime) {
+                            this.sendFilesEndTime = new Date(this.sendFilesStartTime.getTime() + (this.sendFilesElapsedTime * 1000));
+                        }
                     }
                     
                 } catch (error) {
-                    // Stop spinner on error
-                    this.displayProgress3=false
-                    this.stopSendFilesTimer();
+                    // Keep details window open even on error
                     this.addSendFilesLog('error', `Upload error: ${error.message}`);
                     notifications.error(error.message || error, 'Upload Error');
+                    
+                    // Stop timer and calculate end time on error
+                    this.stopSendFilesTimer();
+                    if (this.sendFilesStartTime) {
+                        this.sendFilesEndTime = new Date(this.sendFilesStartTime.getTime() + (this.sendFilesElapsedTime * 1000));
+                    }
                 }
                 finally{
-                    // Ensure spinner is always stopped
-                    this.displayProgress3=false
-                    this.stopSendFilesTimer();
+                    // Keep details window open - only close when Clear button is clicked
+                    // Timer will continue running to show elapsed time
+                    // Don't stop the timer or hide the window here
                 }
 
                 // Always show results table if we have any results
@@ -1970,6 +2017,7 @@ data: function () {
             this.downloadProgress = false;
             this.downloadStartTime = null;
             this.downloadElapsedTime = 0;
+            this.downloadEndTime = null;
             this.downloadTotalSymbols = 0;
             notifications.info('Download form cleared', 'Clear');
         },
@@ -2013,6 +2061,7 @@ data: function () {
             this.downloadResults = [];
             this.downloadLogs = [];
             this.downloadStartTime = new Date();
+            this.downloadEndTime = null; // Reset end time
             this.downloadTotalSymbols = symbols.length;
             this.downloadElapsedTime = 0;
             
@@ -2037,43 +2086,44 @@ data: function () {
                     const symbol = symbols[i];
                     this.addDownloadLog('info', `Processing symbol ${i + 1}/${symbols.length}: ${symbol}`);
                     
-                    // Process each language for this symbol
-                    for (let j = 0; j < this.selectedLanguages.length; j++) {
-                        const language = this.selectedLanguages[j];
-                        const currentFile = (i * this.selectedLanguages.length) + j + 1;
+                    try {
+                        // Send request for this symbol with all selected languages
+                        const response = await fetch('./download_file_from_ods', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                docsymbol: symbol,
+                                languages: this.selectedLanguages
+                            })
+                        });
                         
-                        this.addDownloadLog('info', `[${currentFile}/${totalFiles}] Downloading ${symbol} [${language}]...`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
                         
-                        try {
-                            // Call single download endpoint
-                            const response = await fetch('./download_file_from_ods', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    docsymbol: symbol,
-                                    language: language
-                                })
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            
-                            const result = await response.json();
-                            result.docsymbol = symbol; // Add symbol to result
-                            
-                            allResults.push(result);
+                        const results = await response.json();
+                        
+                        // Process results for this symbol
+                        for (let j = 0; j < results.length; j++) {
+                            const result = results[j];
+                            const currentFile = ((i * this.selectedLanguages.length) + j + 1);
                             
                             if (result.status === 1) {
                                 successfulFiles++;
-                                this.addDownloadLog('success', `[${currentFile}/${totalFiles}] ✓ Successfully downloaded: ${result.filename || symbol}`);
+                                this.addDownloadLog('success', `[${currentFile}/${totalFiles}] ✓ Successfully downloaded: ${result.filename || result.docsymbol}`);
                             } else {
                                 this.addDownloadLog('error', `[${currentFile}/${totalFiles}] ✗ Failed: ${result.message || 'Unknown error'}`);
                             }
-                        } catch (error) {
-                            this.addDownloadLog('error', `[${currentFile}/${totalFiles}] ✗ Error downloading ${symbol} [${language}]: ${error.message}`);
+                        }
+                        
+                        allResults.push(...results);
+                        
+                    } catch (error) {
+                        this.addDownloadLog('error', `✗ Error processing symbol ${symbol}: ${error.message}`);
+                        // Add error entries for all languages of this symbol
+                        for (const language of this.selectedLanguages) {
                             allResults.push({
                                 docsymbol: symbol,
                                 language: language,
@@ -2145,8 +2195,17 @@ data: function () {
                     console.error('Error cleaning temp folder:', cleanupError);
                 }
             } finally {
+                // Stop timer and calculate end time (keep details window open)
                 this.stopDownloadTimer();
-                this.downloadProgress = false;
+                if (this.downloadStartTime) {
+                    // Calculate end time if not already set
+                    if (!this.downloadEndTime) {
+                        this.downloadEndTime = new Date(this.downloadStartTime.getTime() + (this.downloadElapsedTime * 1000));
+                        this.addDownloadLog('info', `Download completed at ${this.formatStartTime(this.downloadEndTime)}`);
+                    }
+                }
+                // Keep downloadProgress = true so details window stays visible
+                // Only clear when user clicks Clear button
             }
         },
         
@@ -2234,17 +2293,21 @@ data: function () {
         addSendFilesLog(type, message) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString();
+            
+            // Add log entry
             this.sendFilesLogs.push({
                 type: type, // 'info', 'success', 'error', 'warning'
                 message: message,
                 time: timeStr
             });
             
+            // Force immediate Vue update to show the log
+            this.$forceUpdate();
+            
             // Auto-scroll to bottom of logs
             this.$nextTick(() => {
-                const logContainer = document.querySelector('#sendFilesProgress .mt-3:last-child');
-                if (logContainer) {
-                    logContainer.scrollTop = logContainer.scrollHeight;
+                if (this.$refs.sendFilesLogsContainer) {
+                    this.$refs.sendFilesLogsContainer.scrollTop = this.$refs.sendFilesLogsContainer.scrollHeight;
                 }
             });
         },
@@ -2865,6 +2928,7 @@ data: function () {
             this.displayProgress3 = false;
             this.sendFilesStartTime = null;
             this.sendFilesElapsedTime = 0;
+            this.sendFilesEndTime = null;
             this.sendFilesTotalSymbols = 0;
             notifications.success('Send files results and input cleared', 'Clear Complete');
         },
