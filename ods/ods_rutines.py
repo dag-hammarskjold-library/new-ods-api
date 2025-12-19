@@ -73,7 +73,7 @@ def create_language_entries(docsymbol, job_numbers, result_message):
 ########################################################################
 
 base_url = config("BASE_URL")
-username = config("USERNAME1")
+username = config("USERNAME")
 password = config("PASSWORD")
 client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
