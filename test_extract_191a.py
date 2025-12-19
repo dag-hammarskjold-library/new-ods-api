@@ -8,13 +8,21 @@ from datetime import datetime, timedelta
 import requests
 import json
 
+# Set mock environment variables before importing to avoid config errors
+os.environ.setdefault('BASE_URL', 'https://mock-url.com/')
+os.environ.setdefault('USERNAME', 'test_user')
+os.environ.setdefault('PASSWORD', 'test_pass')
+os.environ.setdefault('CLIENT_ID', 'test_client_id')
+os.environ.setdefault('CLIENT_SECRET', 'test_client_secret')
+os.environ.setdefault('CONN', 'mongodb://localhost:27017/test')
+
 # Add ods directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ods'))
 
 # Import only the function we need (this will still load the module but we'll handle errors)
 try:
     from ods.ods_rutines import extract_191a_values_by_date_range
-except ImportError as e:
+except (ImportError, Exception) as e:
     print(f"Warning: Could not import from ods_rutines: {e}")
     print("Trying to define function directly...")
     

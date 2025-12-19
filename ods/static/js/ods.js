@@ -1057,10 +1057,10 @@ Vue.component('ods', {
                                     </div>
                                 </div>
                                 <!-- End Help Tab -->	
-                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
              `,
 created:async function(){
     this.loadLogs()
