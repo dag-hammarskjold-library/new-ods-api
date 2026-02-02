@@ -1214,7 +1214,7 @@ def create_app(test_config=None):
                 query1={"symbol":ident['value']}
                 #query = Query.from_string("191__a:'"+ident['value']+"'")
                 #query1 = Query.from_string("symbol":{ident['value']}) # Dataset-search_query f"191__a:'{path}'""
-                print(f"query1 is {query1}")
+                #print(f"query1 is {query1}")
                 bibset = BibSet.from_query(query1)
                 for bib in bibset.records:
                     title1=bib.get_value('245','a')
@@ -1225,7 +1225,7 @@ def create_app(test_config=None):
                         title=title1+" "+title2
                     if title3!="":
                         title=title+" "+title3  
-                    print (title)
+                    #print (title)
                     if ident["value"].startswith(query):
                         results[ident["value"]] = {"identifier": ident["value"], "url": uri, "title": title}
                         break  # Assuming one matching identifier per document
