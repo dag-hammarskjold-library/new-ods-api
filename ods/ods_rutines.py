@@ -410,12 +410,12 @@ def get_token()->str:
     'Authorization': f'Basic {get_encode_base64()}'
   }
   response = requests.request("GET", url, headers=headers0, data=payload0,verify=False)
-  print(f"username is {username}")
-  print(f"password is {password}")
-  print(f"client_id is {client_id}")
-  print(f"client_secret is {client_secret}")
-  print(f"url is {url}")
-  print(f"response is {response.text}")
+  #print(f"username is {username}")
+  #print(f"password is {password}")
+  #print(f"client_id is {client_id}")
+  #print(f"client_secret is {client_secret}")
+  #print(f"url is {url}")
+  #print(f"response is {response.text}")
   json_data = json.loads(response.text)
   return json_data["token"]
 
@@ -524,12 +524,12 @@ def get_data_from_cb(symbols):
     tcodes=""
 
     for bib in BibSet.from_query(query):
-        document_symbol=bib.get_values('191', 'a')
+        document_symbols=bib.get_values('191', 'a')
         distribution=bib.get_value('091', 'a')
         publication_date=bib.get_value('269','a')
         release_date=datetime.now().strftime('%d/%m/%y')
         sessions=' '.join(bib.get_values('191','c'))
-        
+        #print(document_symbols)
         if publication_date !='':
           try:
             publication_date=datetime.strptime(publication_date, '%Y-%m-%d').strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -538,9 +538,12 @@ def get_data_from_cb(symbols):
         title_en=bib.get_value('245', 'a')+" "+bib.get_value('245', 'b')+" "+bib.get_value('245', 'c')
         #print(f'title_en is {title_en}')
         agendas=' '.join(bib.get_values('991','b'))
-        #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])                         
+        #tcodes=' '.join([get_tcodes(subject) for subject in bib.get_values('650','a')])
+        symbols = ",".join(filter(None, document_symbols))
+        #print(f'symbols are {symbols}')
+                  
         tcodes=[get_tcodes(subject) for subject in bib.get_values('650','a')]                    
-        datamodel={"symbol":document_symbol[0],"distribution":distribution,"area": area, "publication_date":publication_date, 
+        datamodel={"symbols":symbols,"distribution":distribution,"area": area, "publication_date":publication_date, 
                 "release_date":release_date, "sessions":sessions, "title":title_en, "agendas":agendas, "subjects":subjects, "tcodes":tcodes}
         
         lst.append(datamodel)
@@ -637,8 +640,11 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     datamodel=get_data_from_cb(my_symbol)
     
     if len(datamodel)>0:
-      
-      my_symbol=datamodel[0]["symbol"]
+      #print(f'datamodel is {datamodel}')
+      my_symbols=datamodel[0]["symbols"]
+      #my_symbol1, my_symbol2, my_symbol3 = (my_symbols.split(',') + ["", "", ""])[:3]  # Split and assign with default empty strings
+      my_symbol1, my_symbol2, my_symbol3 = my_symbols[0],my_symbols[1], my_symbols[2]  # Split and assign with default empty strings
+      #my_symbol=datamodel[0]["symbol"]
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
       my_publication_date= datamodel[0]["publication_date"]
@@ -665,7 +671,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       url = config("BASE_URL") + "api/loading/symbol"
 
       # retrieving the data and assignment
-      symbols=  [f"{my_symbol}","",""]   
+      symbols=  [f"{my_symbol1}",f"{my_symbol2}",f"{my_symbol3}"]   
       sessions= [f"{my_sessions}","",""]
       agendas=  [f"{my_agendas}","",""]   
 
@@ -733,6 +739,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
                 }
         
       # define file
+      #print(f"payload is {payload}")
       files = {
         'data': (None,json.dumps(payload),'application/json'),
       }
@@ -769,7 +776,12 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
     #print(my_release_dates)
     if len(datamodel)>0:
       # assign the values from central database to local variables
-      my_symbol=datamodel[0]["symbol"]
+      #my_symbol=datamodel[0]["symbol"]
+      my_symbols=datamodel[0]["symbols"]
+      #print(f'my_symbols are {my_symbols}')
+      #my_symbol1, my_symbol2, my_symbol3 = (my_symbols.split(',') + ["", "", ""])[:3]  # Split and assign with default empty strings
+      my_symbol1, my_symbol2, my_symbol3 = my_symbols[0],my_symbols[1], my_symbols[2]
+      #print(f'my_symbol1 is {my_symbol1} my_symbol2 is {my_symbol2} and my_symbol3 is {my_symbol3}')
       my_distribution=datamodel[0]["distribution"]
       my_area=datamodel[0]["area"]
       my_publication_date= datamodel[0]["publication_date"]
@@ -796,13 +808,13 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       url = config("BASE_URL") + "api/loading/symbol"
 
       # retrieving the data and assignment
-      symbols=  [f"{my_symbol}","",""]   
+      symbols=  [f"{my_symbol1}",f"{my_symbol2}",f"{my_symbol3}"]   
       sessions= [f"{my_sessions}","",""]
       agendas=  [f"{my_agendas}","",""]   
       
       
       # retrieving jobnumber for the ones existing and if not exist the system will create it
-      print(f'my_symbol is {my_symbol} my_title is {my_title}')
+      #print(f'my_symbol is {my_symbol} my_title is {my_title}')
       jobnumbers=check_if_docsymbol_exists(my_symbol)[1] #in ods
       print(f'updating metadata - jobnumbers in ODS are {jobnumbers}')
       # generate values for jobnumbers missing if it's the case
@@ -822,7 +834,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
           my_final_job_numbers[i]=recup["jobnumber_value"]
           # if the jobnumbers exist in the ODS we will reuse it and store that job number from the ODS into our collection of jobnumbers
         else:
-          print(f'job number for this update action for {LANGUAGES[i]} are {my_final_job_numbers[i]}')
+          #print(f'job number for this update action for {LANGUAGES[i]} are {my_final_job_numbers[i]}')
           data1 = {
                   "created_date": datetime.now(), 
                   "jobnumber_value":my_final_job_numbers[i],
@@ -833,7 +845,8 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
           new_value={"$set":data1}
           resultat=my_collection.update_one({"jobnumber_value":my_final_job_numbers[i]},new_value,upsert=True)
           if resultat:
-            print('updated jobnumber in our coll')
+             pass
+            #print('updated jobnumber in our coll')
           #my_final_job_numbers[i]=recup["jobnumber_value"]
         #my_language+=1
         

@@ -33,7 +33,7 @@ client_id = config("CLIENT_ID")
 client_secret = config("CLIENT_SECRET")
 database_conn=config("CONN")
 
-
+#print (database_conn)
 
 ##############################################################################################
 ##########  APP INIZIALISATION
@@ -118,15 +118,15 @@ def create_app(test_config=None):
             client = MongoClient(database_conn)
             my_database = client["odsActions"] 
             my_collection = my_database["ods_actions_users_collection"]
-            
-
+            #print(request.form.get("email"))
+            #print(my_collection)
 
             user = {
                 "email": request.form.get("email"),
             }
 
             results= list(my_collection.find(user))
-            #print(results)
+            #print(user)
            
             find_record=False
 
@@ -179,8 +179,8 @@ def create_app(test_config=None):
                         session["show_parameters"] = show_parameters_str == "true"
                         
                         find_record=True
-                        print(f'session after login {session}')
-                        print(f"username is {session['username']}")
+                        #print(f'session after login {session}')
+                        #print(f"username is {session['username']}")
                         if session['username']!="":
                             return jsonify({
                                 "success": True,
@@ -1106,13 +1106,13 @@ def create_app(test_config=None):
         }
         #LANGUAGESList =['DE', 'AR', 'FR', 'ES', 'RU', 'ZH', 'EN']
         LANGUAGESList =['EN']
-        print(symbol)
+        #print(symbol)
         #symbol=unquote(symbol)
-        print(f"after unquote the symbol is {symbol}")
+        #print(f"after unquote the symbol is {symbol}")
         cln = Collation(locale='en', strength=2)
         docs = filesColl.find({"identifiers.value": symbol}, collation=cln)
         languages = [''.join(doc.get("languages")) for doc in docs]
-        print(languages)
+        #print(languages)
         if lang is None:
             # Find all documents matching the symbol
             docs = filesColl.find({"identifiers.value": symbol})
