@@ -1228,7 +1228,7 @@ def create_app(test_config=None):
                     #print (title)
                     if ident["value"].startswith(query):
                         results[ident["value"]] = {"identifier": ident["value"], "url": uri, "title": title}
-                        break  # Assuming one matching identifier per document 
+                        break  # Assuming one matching identifier per document  
         return jsonify(list(results.values()))
 
 
