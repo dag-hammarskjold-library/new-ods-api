@@ -1122,8 +1122,12 @@ def create_app(test_config=None):
                 return "No available languages for this document.", 404
             return render_template("language_selection.html", symbol=symbol, languages='en', LANGUAGES=LANGUAGES)
 
-        # Look up the specific document for  the given language
-        doc = filesColl.find_one({"identifiers.value": symbol, "languages": lang}, collation=cln)
+        # Look up the specific document for the given language, preferring the one with the largest size
+        doc = filesColl.find_one(
+            {"identifiers.value": symbol, "languages": lang},
+            sort=[("size", -1)],
+            collation=cln
+        )
         if not doc or not doc.get("uri"):
             return "Document not found for this language.", 404
 

@@ -410,12 +410,12 @@ def get_token()->str:
     'Authorization': f'Basic {get_encode_base64()}'
   }
   response = requests.request("GET", url, headers=headers0, data=payload0,verify=False)
-  print(f"username is {username}")
-  print(f"password is {password}")
-  print(f"client_id is {client_id}")
-  print(f"client_secret is {client_secret}")
-  print(f"url is {url}")
-  print(f"response is {response.text}")
+  #print(f"username is {username}")
+  #print(f"password is {password}")
+  #print(f"client_id is {client_id}")
+  #print(f"client_secret is {client_secret}")
+  #print(f"url is {url}")
+  #print(f"response is {response.text}")
   json_data = json.loads(response.text)
   return json_data["token"]
 
