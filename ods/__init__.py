@@ -1125,7 +1125,7 @@ def create_app(test_config=None):
         # Look up the specific document for the given language, preferring the one with the largest size
         doc = filesColl.find_one(
             {"identifiers.value": symbol, "languages": lang},
-            sort=[("size", -1)],
+            sort=[("timestamp", -1)],
             collation=cln
         )
         if not doc or not doc.get("uri"):
