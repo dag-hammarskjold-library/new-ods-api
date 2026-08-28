@@ -1,6 +1,9 @@
 import os
+from dotenv import load_dotenv
 from dlx.marc import Bib, Auth
 import boto3
+
+load_dotenv()
 
 class Config(object):
     DEBUG = False
