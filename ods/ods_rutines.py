@@ -202,6 +202,19 @@ def get_encode_base64()-> str:
   encoded_string = encoded_bytes.decode('utf-8')
   return encoded_string
 
+def _ods_json_headers(token):
+  return {
+    "authorization": f"Access {token}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  }
+
+def _ods_multipart_headers(token):
+  return {
+    "authorization": f"Access {token}",
+    "Accept": "application/json",
+  }
+
 
 ####################################################################################################################################        
 # check if a docsymbol exists already
@@ -260,9 +273,7 @@ def find_update_job_numbers(my_docsymbol:str,my_language:str):
   payload={}
   
   # build the header
-  headers = {
-          "authorization":  "Access {}".format(my_token),
-          }
+  headers = _ods_json_headers(my_token)
   
   # get the response 
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
@@ -407,7 +418,9 @@ def get_token()->str:
   url = f"{base_url}api/auth/token?username={username}&password={password}&client_id={client_id}&client_secret={client_secret}"
   payload0 = {}
   headers0 = {
-    'Authorization': f'Basic {get_encode_base64()}'
+    'Authorization': f'Basic {get_encode_base64()}',
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   }
   response = requests.request("GET", url, headers=headers0, data=payload0,verify=False)
   #print(f"username is {username}")
@@ -435,9 +448,7 @@ def ods_get_loading_symbol(my_param:str):
   payload={}
   
   # build the header
-  headers = {
-          "authorization":  "Access {}".format(my_token),
-          }
+  headers = _ods_json_headers(my_token)
   
   # get the response 
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
@@ -463,9 +474,7 @@ def ods_get_loading_search(my_param):
   payload={}
   
   # build the header
-  headers = {
-          "authorization":  "Access {}".format(my_token),
-          }
+  headers = _ods_json_headers(my_token)
   
   # get the response 
   response = requests.request("GET", url1, headers=headers, data=payload,verify=False)
@@ -657,9 +666,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_token=get_token()
 
       # definition of the header
-      headers = {
-              "authorization":  "Access {}".format(my_token),
-              }
+      headers = _ods_multipart_headers(my_token)
           
       # build the url
       url = config("BASE_URL") + "api/loading/symbol"
@@ -788,9 +795,7 @@ def ods_create_update_metadata(my_symbol,prefix_jobnumber):
       my_token=get_token()
 
       # definition of the header
-      headers = {
-              "authorization":  "Access {}".format(my_token),
-              }
+      headers = _ods_multipart_headers(my_token)
           
       # build the url
       url = config("BASE_URL") + "api/loading/symbol"
@@ -934,9 +939,7 @@ def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
 
 
   # definition of the header
-  headers = {
-          "authorization":  "Access {}".format(my_token),
-          }
+  headers = _ods_json_headers(my_token)
 
   # creation the data
   payload = {
@@ -953,7 +956,7 @@ def update_one_metadata(my_symbol, fieldName,fieldValue, lang):
 
   # building the request
 
-  response = requests.patch(url,headers=headers,data=payload,verify=False)
+  response = requests.patch(url, headers=headers, json=payload, verify=False)
   #print(f'path result is{response.json()}')
   return response.json()
 
@@ -968,9 +971,7 @@ def ods_file_upload_simple_file(my_symbol,my_distribution,my_jobnumber,my_langua
 
 
   # definition of the header
-  headers = {
-          "authorization":  "Access {}".format(my_token),
-          }
+  headers = _ods_multipart_headers(my_token)
 
   # creation the data
   payload = {
